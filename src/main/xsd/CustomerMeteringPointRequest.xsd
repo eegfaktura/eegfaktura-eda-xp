@@ -1,0 +1,61 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:oe="http://www.ebutilities.at/datenplattform/0700" targetNamespace="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified">
+
+	<xsd:include schemaLocation="CommonTypes.xsd" />
+
+	<xsd:element name="CustomerMeteringPointRequest">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:CustomerMeteringPointRequestMessageData" />
+				<xsd:element name="ProcessData" type="oe:CustomerMeteringPointRequestProcessData" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:complexType name="CustomerMeteringPointRequestMessageData">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode">
+						<xsd:simpleType>
+							<xsd:restriction base="oe:MessageCode">
+								<xsd:enumeration value="ANFRAGE_ZPID" />
+							</xsd:restriction>
+						</xsd:simpleType>
+					</xsd:element>
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="CustomerMeteringPointRequestProcessData">
+		<xsd:sequence>
+			<xsd:element name="ContractPartnerData" type="oe:ContractPartnerData" minOccurs="0" />
+			<xsd:element name="DeliveryAddressData" type="oe:DeliveryAddressDataBasic" minOccurs="0" />
+			<xsd:element name="MeteringPointData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:extension base="oe:MeteringPointDataMin">
+							<xsd:sequence>
+								<xsd:element name="DeviceData" type="oe:DeviceDataBasic" minOccurs="0" />
+							</xsd:sequence>
+						</xsd:extension>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="POAData" type="oe:POADataMin" />
+			<xsd:element name="ProcessControlData">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="RequestForManualSearch" type="xsd:boolean" />
+						<xsd:element name="AddressSelectionData" type="oe:AddressSelectionDataFull" />
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+</xsd:schema>

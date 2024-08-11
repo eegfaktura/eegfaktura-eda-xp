@@ -1,0 +1,93 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:oe="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified" targetNamespace="http://www.ebutilities.at/datenplattform/0700">
+
+	<xsd:include schemaLocation="CommonTypes.xsd" />
+
+	<xsd:element name="MoveInRequest">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:MoveInRequestMessageData" />
+				<xsd:element name="ProcessData" type="oe:MoveInRequestProcessData" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:complexType name="MoveInRequestMessageData">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode">
+						<xsd:simpleType>
+							<xsd:restriction base="oe:MessageCode">
+								<xsd:enumeration value="ANFRAGE_ANM" />
+							</xsd:restriction>
+						</xsd:simpleType>
+					</xsd:element>
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="MoveInRequestProcessData">
+		<xsd:sequence>
+			<xsd:element name="ContractPartnerData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:extension base="oe:ContractPartnerData">
+							<xsd:sequence>
+								<xsd:element name="Salutation" type="oe:Salutation" minOccurs="0" />
+							</xsd:sequence>
+						</xsd:extension>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>	
+			<xsd:element name="DeliveryAddressData" type="oe:DeliveryAddressDataFull" />
+			<xsd:element name="CorrespondenceAddressData" type="oe:CorrespondenceAddressData" minOccurs="0" />
+			<xsd:element name="MeteringPointData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:extension base="oe:MeteringPointDataMin">
+							<xsd:sequence>
+								<xsd:element name="ForecastConsumptionCustomer" type="oe:ConsumptionProduction" minOccurs="0" />
+								<xsd:element name="DeviceData" minOccurs="0" maxOccurs="1000">
+									<xsd:complexType>
+										<xsd:complexContent>
+											<xsd:extension base="oe:DeviceDataMin">
+												<xsd:sequence>
+													<xsd:element name="MeterData" type="oe:MeterData" minOccurs="0" maxOccurs="1000"/>
+												</xsd:sequence>
+											</xsd:extension>
+										</xsd:complexContent>
+									</xsd:complexType>
+								</xsd:element>
+								<xsd:element name="GreenPowerData" minOccurs="0">
+									<xsd:complexType>									
+										<xsd:sequence>
+											<xsd:element name="EndOfFunding" type="xsd:date" minOccurs="0" />
+										</xsd:sequence>
+									</xsd:complexType>
+								</xsd:element>
+								<xsd:element name="GasGridUsageContractData" type="oe:GasGridUsageContractDataFull" minOccurs="0" />
+								<xsd:element name="SupplierContractData" type="oe:SupplierContractDataExtended" />
+							</xsd:sequence>
+						</xsd:extension>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="POAData" type="oe:POADataMin" minOccurs="0" />
+			<xsd:element name="ProcessControlData">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="RequestForManualSearch" type="xsd:boolean" />
+						<xsd:element name="RequestedStartSupplyData" type="oe:RequestedStartSupplyDataMin" />
+						<xsd:element name="AddressSelectionData" type="oe:AddressSelectionDataFull" />
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+</xsd:schema>

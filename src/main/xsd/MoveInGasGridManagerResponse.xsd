@@ -1,0 +1,87 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:oe="http://www.ebutilities.at/datenplattform/0700" targetNamespace="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified">
+
+	<xsd:include schemaLocation="CommonTypes.xsd" />
+
+	<xsd:element name="MoveInGasGridManagerResponse">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:MoveInGasGridManagerResponseMessageData" />
+				<xsd:element name="ProcessData" type="oe:MoveInGasGridManagerResponseProcessData" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:complexType name="MoveInGasGridManagerResponseMessageData">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode">
+						<xsd:simpleType>
+							<xsd:restriction base="oe:MessageCode">
+								<xsd:enumeration value="ANTW_VGM_ANM" />
+							</xsd:restriction>
+						</xsd:simpleType>
+					</xsd:element>
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="MoveInGasGridManagerResponseProcessData">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="5">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="60" />
+											<xsd:enumeration value="61" />
+											<xsd:enumeration value="62" />
+											<xsd:enumeration value="63" />
+											<xsd:enumeration value="64" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="ANTW_VGM_ANM" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="MeteringPointData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:extension base="oe:MeteringPointDataBasic">
+							<xsd:sequence>
+								<xsd:element name="LoadProfileType" type="oe:LoadProfileType" />
+								<xsd:element name="MPGasSpecificData" type="oe:MPGasSpecificDataBasic" />
+								<xsd:element name="GasGridUsageContractData" type="oe:GasGridUsageContractDataMinConsumer" />
+							</xsd:sequence>
+						</xsd:extension>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="ProcessControlData">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="NewSupplier" type="oe:ECNumber" />
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+</xsd:schema>

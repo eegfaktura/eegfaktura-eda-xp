@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.out</target>
+        <encoder>
+            <pattern>%date{ISO8601} %-5level [%thread] %logger{0} --> %class{0} - %msg tenant=%X{tenant:-}%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/var/tmp/log/epmsmail/application-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>1GB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+
+        <append>true</append>
+
+        <encoder>
+            <pattern>%date{yyyy-MM-dd'T'HH:mm:ss.SSS+03:00, Africa/Lagos} %-5level[%thread] %logger{1} - %msg%n</pattern>
+        </encoder>
+
+    </appender>
+
+    <logger name="akka" level="DEBUG" />
+    <logger name="slick.pgsql.local" level="INFO"/>
+    <logger name="scala.slick" level="INFO" />
+    <logger name="slick.jdbc.DriverDataSource" level="INFO" />
+    <logger name="slick.compiler"             level="INFO" />
+
+    <root level="DEBUG">
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+
+    <root level="${SLICK_LOG_LEVEL:-INFO}">
+        <appender-ref ref="STDOUT" />
+    </root>
+
+    <logger name="slick.basic.BasicBackend.action"          level="${log_action:-inherited}" />
+    <logger name="slick.basic.BasicBackend.stream"          level="${log_stream:-inherited}" />
+    <logger name="slick.compiler"                           level="OFF" />
+    <logger name="slick.compiler.QueryCompiler"             level="OFF" />
+    <logger name="slick.compiler.QueryCompilerBenchmark"    level="OFF" />
+    <logger name="slick.jdbc.DriverDataSource"              level="${log_jdbc_driver:-inherited}" />
+    <logger name="slick.jdbc.JdbcBackend.statement"         level="${log_jdbc_statement:-inherited}" />
+    <logger name="slick.jdbc.JdbcBackend.parameter"         level="${log_jdbc_parameter:-inherited}" />
+    <logger name="slick.jdbc.JdbcBackend.benchmark"         level="${log_jdbc_bench:-inherited}" />
+    <logger name="slick.jdbc.StatementInvoker.result"       level="${log_jdbc_result:-inherited}" />
+    <logger name="slick.jdbc.JdbcModelBuilder"              level="${log_createModel:-inherited}" />
+    <logger name="slick.memory.HeapBackend"                 level="${log_heap:-inherited}" />
+    <logger name="slick.memory.QueryInterpreter"            level="${log_interpreter:-inherited}" />
+    <logger name="slick.relational.ResultConverterCompiler" level="${log_resultConverter:-inherited}" />
+    <logger name="slick.util.AsyncExecutor"                 level="${log_asyncExecutor:-inherited}" />
+</configuration>

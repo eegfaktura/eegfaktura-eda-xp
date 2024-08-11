@@ -1,0 +1,72 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:oe="http://www.ebutilities.at/datenplattform/0700" targetNamespace="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified">
+
+	<xsd:include schemaLocation="CommonTypes.xsd" />
+
+	<xsd:element name="PremiseMeteringPointResponse">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:PremiseMeteringPointResponseMessageData" />
+				<xsd:element name="ProcessData" type="oe:PremiseMeteringPointResponseProcessData" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:complexType name="PremiseMeteringPointResponseMessageData">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode">
+						<xsd:simpleType>
+							<xsd:restriction base="oe:MessageCode">
+								<xsd:enumeration value="ANTWORT_ANL" />
+							</xsd:restriction>
+						</xsd:simpleType>
+					</xsd:element>
+					<xsd:element name="CasesData" type="oe:CasesDataMultiple" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="PremiseMeteringPointResponseProcessData">
+		<xsd:sequence>
+			<xsd:element name="StatusCodeData" >
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:StatusCodeData">
+							<xsd:sequence>
+								<xsd:element name="StatusCode" type="oe:StatusCode" maxOccurs="999" />
+							</xsd:sequence>
+							<xsd:attribute name="StatusCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:StatusCodeGroup">
+										<xsd:enumeration value="ANTWORT_ANL" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>	
+			<xsd:element name="DeliveryAddressData" type="oe:DeliveryAddressDataFullWithMultipleMPs" />
+			<xsd:element name="MeteringPointData" maxOccurs="1000">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:extension base="oe:MeteringPointDataBasic">
+							<xsd:sequence>
+								<xsd:element name="EnergyDirection" type="oe:EnergyDirection" />
+								<xsd:element name="LoadProfileType" type="oe:LoadProfileType" minOccurs="0" />
+								<xsd:element name="DeviceData" type="oe:DeviceDataFull" minOccurs="0" maxOccurs="1000" />
+								<xsd:element name="DSOTariffclass" type="oe:DSOTariffClass" />
+							</xsd:sequence>
+						</xsd:extension>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+</xsd:schema>

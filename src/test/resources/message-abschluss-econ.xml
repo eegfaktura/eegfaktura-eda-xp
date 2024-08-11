@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<ns0:ECMPList xmlns:ns0="http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p00" xmlns:ns1="http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20">
+    <ns0:MarketParticipantDirectory DocumentMode="PROD" Duplicate="false" SchemaVersion="01.00">
+        <ns1:RoutingHeader>
+            <ns1:Sender AddressType="ECNumber">
+                <ns1:MessageAddress>AT003000</ns1:MessageAddress>
+            </ns1:Sender>
+            <ns1:Receiver AddressType="ECNumber">
+                <ns1:MessageAddress>RC100181</ns1:MessageAddress>
+            </ns1:Receiver>
+            <ns1:DocumentCreationDateTime>2023-03-06T09:00:33.8584120Z</ns1:DocumentCreationDateTime>
+        </ns1:RoutingHeader>
+        <ns1:Sector>01</ns1:Sector>
+        <ns0:MessageCode>ABSCHLUSS_ECON</ns0:MessageCode>
+    </ns0:MarketParticipantDirectory>
+    <ns0:ProcessDirectory>
+        <ns0:MessageId>AT003000202303041606138110133749517</ns0:MessageId>
+        <ns0:ConversationId>AT003000202303041506076450000003761</ns0:ConversationId>
+        <ns0:ProcessDate>2023-03-06</ns0:ProcessDate>
+        <ns0:ECID>AT00300000000RC100181000000956509</ns0:ECID>
+        <ns0:ECType>RC_R</ns0:ECType>
+        <ns0:ECDisModel>D</ns0:ECDisModel>
+        <ns0:MPListData>
+            <ns0:MeteringPoint>AT0030000000000000000000000655856</ns0:MeteringPoint>
+            <ns0:MPTimeData>
+                <ns0:DateFrom>2023-03-06</ns0:DateFrom>
+                <ns0:DateTo>9999-12-31</ns0:DateTo>
+                <ns0:EnergyDirection>CONSUMPTION</ns0:EnergyDirection>
+                <ns0:DateActivate>2023-03-06</ns0:DateActivate>
+                <ns0:ECShare>0.0000</ns0:ECShare>
+            </ns0:MPTimeData>
+        </ns0:MPListData>
+    </ns0:ProcessDirectory>
+</ns0:ECMPList>

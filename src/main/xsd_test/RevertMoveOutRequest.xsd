@@ -1,0 +1,43 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:oe="http://www.ebutilities.at/datenplattform/0700" targetNamespace="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified">
+
+	<xsd:include schemaLocation="CommonTypes.xsd" />
+
+	<xsd:element name="RevertMoveOutRequest">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:RevertMoveOutRequestMessageData" />
+				<xsd:element name="ProcessData" type="oe:RevertMoveOutRequestProcessData" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:complexType name="RevertMoveOutRequestMessageData">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode">
+						<xsd:simpleType>
+							<xsd:restriction base="oe:MessageCode">
+								<xsd:enumeration value="ANFRAGE_RAABM" />
+							</xsd:restriction>
+						</xsd:simpleType>
+					</xsd:element>
+					<xsd:element name="ReferenceConversationId" type="oe:IdentificationNumber" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="RevertMoveOutRequestProcessData">
+		<xsd:sequence>
+			<xsd:element name="ContractPartnerData" type="oe:ContractPartnerData" />
+			<xsd:element name="DeliveryAddressData" type="oe:DeliveryAddressDataFull" />
+			<xsd:element name="MeteringPointData" type="oe:MeteringPointDataBasic" />
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+</xsd:schema>

@@ -1,0 +1,66 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:oe="http://www.ebutilities.at/datenplattform/0700" targetNamespace="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified">
+
+	<xsd:include schemaLocation="CommonTypes.xsd" />
+
+	<xsd:element name="MoveInGasGridManagerNotification">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:MoveInGasGridManagerNotificationMessageData" />
+				<xsd:element name="ProcessData" type="oe:MoveInGasGridManagerNotificationProcessData" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:complexType name="MoveInGasGridManagerNotificationMessageData">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode">
+						<xsd:simpleType>
+							<xsd:restriction base="oe:MessageCode">
+								<xsd:enumeration value="ANFR_VGM_ANM" />
+								<xsd:enumeration value="MLDG_VGM_ANM" />
+								<xsd:enumeration value="NEG_KAP_VGM_ANM" />
+							</xsd:restriction>
+						</xsd:simpleType>
+					</xsd:element>
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="MoveInGasGridManagerNotificationProcessData">
+		<xsd:sequence>
+			<xsd:element name="DeliveryAddressData" type="oe:DeliveryAddressDataMin" />
+			<xsd:element name="MeteringPointData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:extension base="oe:MeteringPointDataBasic">
+							<xsd:sequence>
+								<xsd:element name="LoadProfileType" type="oe:LoadProfileType" />
+								<xsd:element name="MPGasSpecificData" type="oe:MPGasSpecificDataBasic" />
+								<xsd:element name="GasGridUsageContractData" type="oe:GasGridUsageContractDataMinConsumer" />
+							</xsd:sequence>
+						</xsd:extension>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="ProcessControlData">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="NewSupplier" type="oe:ECNumber" />
+						<xsd:choice>
+							<xsd:element name="EstimatedStartSupplyDate" type="xsd:date" />
+							<xsd:element name="ConfirmedStartSupplyDate" type="xsd:date" />
+						</xsd:choice>
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+</xsd:schema>

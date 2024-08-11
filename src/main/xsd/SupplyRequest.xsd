@@ -1,0 +1,78 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:oe="http://www.ebutilities.at/datenplattform/0700" targetNamespace="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified">
+
+	<xsd:include schemaLocation="CommonTypes.xsd" />
+
+	<xsd:element name="SupplyRequest">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:SupplyRequestMessageData" />
+				<xsd:element name="ProcessData" type="oe:SupplyRequestProcessData" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:complexType name="SupplyRequestMessageData">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode">
+						<xsd:simpleType>
+							<xsd:restriction base="oe:MessageCode">
+								<xsd:enumeration value="BELWU_BELNB" />
+							</xsd:restriction>
+						</xsd:simpleType>
+					</xsd:element>
+					<xsd:element name="CasesData" type="oe:CasesDataMultiple" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="SupplyRequestProcessData">
+		<xsd:sequence>
+			<xsd:element name="ContractPartnerData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:extension base="oe:ContractPartnerData">
+							<xsd:sequence>
+								<xsd:element name="Salutation" type="oe:Salutation" minOccurs="0" />
+							</xsd:sequence>
+						</xsd:extension>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>	
+			<xsd:element name="DeliveryAddressData" type="oe:DeliveryAddressDataFullWithMultipleMPs" />
+			<xsd:element name="CorrespondenceAddressData" type="oe:CorrespondenceAddressData" minOccurs="0" />
+			<xsd:element name="MeteringPointData" maxOccurs="1000">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:extension base="oe:MeteringPointDataBasic">
+							<xsd:sequence>
+								<xsd:element name="EnergyDirection" type="oe:EnergyDirection" />
+								<xsd:element name="ForecastConsumption" type="oe:ConsumptionProduction" minOccurs="0" />
+								<xsd:element name="LoadProfileType" type="oe:LoadProfileType" minOccurs="0" />
+								<xsd:element name="DeviceData" type="oe:DeviceDataFull" minOccurs="0" maxOccurs="1000" />
+								<xsd:element name="MeterReadingInfoData" type="oe:MeterReadingInfoDataMin" />
+								<xsd:choice>
+									<xsd:element name="MPElectricitySpecificData" type="oe:MPElectricitySpecificDataFull"/>
+									<xsd:element name="MPGasSpecificData" type="oe:MPGasSpecificDataBasic"/>
+								</xsd:choice>
+							</xsd:sequence>
+						</xsd:extension>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="ProcessControlData">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="RequestedStartSupplyData" type="oe:RequestedStartSupplyDataFull" />
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+</xsd:schema>

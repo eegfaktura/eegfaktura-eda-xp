@@ -1,0 +1,60 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:oe="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified" targetNamespace="http://www.ebutilities.at/datenplattform/0700">
+
+	<xsd:include schemaLocation="CommonTypes.xsd" />
+
+	<xsd:element name="ConsumptionInfoTransmission">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:ConsumptionInfoTransmissionMessageData" />
+				<xsd:element name="ProcessData" type="oe:ConsumptionInfoTransmissionProcessData" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:complexType name="ConsumptionInfoTransmissionMessageData">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode">
+						<xsd:simpleType>
+							<xsd:restriction base="oe:MessageCode">
+								<xsd:enumeration value="ZAEHLERST_ZUEM" />
+							</xsd:restriction>
+						</xsd:simpleType>
+					</xsd:element>
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="ConsumptionInfoTransmissionProcessData">
+		<xsd:sequence>
+			<xsd:element name="MeteringPointData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:extension base="oe:MeteringPointDataBasic">
+							<xsd:sequence>
+								<xsd:element name="DeviceData" maxOccurs="1000">
+									<xsd:complexType>
+										<xsd:complexContent>
+											<xsd:extension base="oe:DeviceDataMin">
+												<xsd:sequence>
+													<xsd:element name="MeterData" type="oe:MeterData" maxOccurs="1000"/>
+												</xsd:sequence>
+											</xsd:extension>
+										</xsd:complexContent>
+									</xsd:complexType>
+								</xsd:element>
+							</xsd:sequence>
+						</xsd:extension>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+</xsd:schema>

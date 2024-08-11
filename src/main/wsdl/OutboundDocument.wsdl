@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions name="OutboundDocument" targetNamespace="http://xp.ponton.de/eda/v320" xmlns:oe="http://xp.ponton.de/eda/v320"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+>
+    <wsdl:types>
+        <xsd:schema targetNamespace="http://xp.ponton.de/eda/v320">
+            <xsd:include schemaLocation="../xsd/OutboundDocument.xsd" />
+        </xsd:schema>
+    </wsdl:types>
+    <wsdl:message name="sendDocumentRequest">
+        <wsdl:part element="oe:OutboundDocument" name="parameters" />
+    </wsdl:message>
+    <wsdl:portType name="OutboundDocumentPort">
+        <wsdl:operation name="sendDocument">
+            <wsdl:input message="oe:sendDocumentRequest" />
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="OutboundDocument4SOAP" type="oe:OutboundDocumentPort">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http" />
+        <wsdl:operation name="sendDocument">
+            <soap:operation soapAction="http://xp.ponton.de/eda/v320/outboundDocument" />
+            <wsdl:input>
+                <soap:body use="literal" />
+            </wsdl:input>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="OutboundDocumentService">
+        <wsdl:port binding="oe:OutboundDocument4SOAP" name="OutboundDocumentSOAP">
+            <soap:address location="http://localhost/outboundDocument" />
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema" targetNamespace="http://xp.ponton.de/eda/v320" xmlns:oe="http://xp.ponton.de/eda/v320" xmlns:dp7="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified">
+    <import schemaLocation="ebUtilities.xsd" namespace="http://www.ebutilities.at/datenplattform/0700"/>
+    <element name="OutboundDocument" type="oe:OutboundDocument"/>
+    <complexType name="OutboundDocument">
+        <sequence>
+            <element name="Header" type="oe:OutHeaderType"/>
+            <element name="Message">
+                <complexType>
+                    <choice>
+                        <element ref="dp7:CancellationMoveInConfirmation" />
+                        <element ref="dp7:CancellationMoveInGasGridManagerNotification" />
+                        <element ref="dp7:CancellationMoveInRequest" />
+                        <element ref="dp7:ConsumptionInfoTransmission" />
+                        <element ref="dp7:ContractDataRequest" />
+                        <element ref="dp7:ContractDataResponse" />
+                        <element ref="dp7:ContractlessStateConfirmation" />
+                        <element ref="dp7:ContractlessStateGasGridManagerConfirmation" />
+                        <element ref="dp7:ContractlessStateNotification" />
+                        <element ref="dp7:ContractlessStateRequest" />
+                        <element ref="dp7:ContractTerminationRequest" />
+                        <element ref="dp7:ContractTerminationResponse" />
+                        <element ref="dp7:CustomerMeteringPointRequest" />
+                        <element ref="dp7:CustomerMeteringPointResponse" />
+                        <element ref="dp7:MessageTransmission" />
+                        <element ref="dp7:MoveInConfirmation" />
+                        <element ref="dp7:MoveInEstimation" />
+                        <element ref="dp7:MoveInShift" />
+                        <element ref="dp7:MoveInGasGridManagerNotification" />
+                        <element ref="dp7:MoveInGasGridManagerResponse" />
+                        <element ref="dp7:MoveInRequest" />
+                        <element ref="dp7:MoveOutConfirmation" />
+                        <element ref="dp7:MoveOutEstimation" />
+                        <element ref="dp7:MoveOutShift" />
+                        <element ref="dp7:MoveOutGasGridManagerConfirmation" />
+                        <element ref="dp7:MoveOutRequest" />
+                        <element ref="dp7:PoaVerificationRequest" />
+                        <element ref="dp7:PoaVerificationResponse" />
+                        <element ref="dp7:PoaVerificationTransmission" />
+                        <element ref="dp7:PowerOfAttorneyTransmission" />
+                        <element ref="dp7:PremiseMeteringPointRequest" />
+                        <element ref="dp7:PremiseMeteringPointResponse" />
+                        <element ref="dp7:RevertMoveInConfirmation" />
+                        <element ref="dp7:RevertMoveInGasGridManagerNotification" />
+                        <element ref="dp7:RevertMoveInRequest" />
+                        <element ref="dp7:RevertMoveOutConfirmation" />
+                        <element ref="dp7:RevertMoveOutGasGridManagerNotification" />
+                        <element ref="dp7:RevertMoveOutRequest" />
+                        <element ref="dp7:SupplierChangeConfirmation" />
+                        <element ref="dp7:SupplierChangeConsumptionInfo" />
+                        <element ref="dp7:SupplierChangeGasGridManagerNotification" />
+                        <element ref="dp7:SupplierChangeGasGridManagerConfirmation" />
+                        <element ref="dp7:SupplierChangeInfoRecord" />
+                        <element ref="dp7:SupplierChangeNotification" />
+                        <element ref="dp7:SupplierChangeObjectionRecord" />
+                        <element ref="dp7:SupplierChangeRequest" />
+                        <element ref="dp7:SupplyRequest" />
+                        <element ref="dp7:ABBRUCH_LA_WIES" />
+                        <element ref="dp7:ABBRUCH_LN_WIES" />
+                        <element ref="dp7:ABBRUCH_NB_WIES" />
+                        <element ref="dp7:ABLE_RAABM" />
+                        <element ref="dp7:ABLE_RAANM" />
+                        <element ref="dp7:ABLWU_LA_WIES" />
+                        <element ref="dp7:ABLWU_LN_WIES" />
+                        <element ref="dp7:ANFRAGE_STO" />
+                        <element ref="dp7:BEHARR_LA_WIES" />
+                        <element ref="dp7:BEHARR_NB_WIES" />
+                        <element ref="dp7:FEHLER_ABM" />
+                        <element ref="dp7:FEHLER_ANL" />
+                        <element ref="dp7:FEHLER_ANM" />
+                        <element ref="dp7:FEHLER_BINKUN" />
+                        <element ref="dp7:FEHLER_KUEND" />
+                        <element ref="dp7:FEHLER_RTANM" />
+                        <element ref="dp7:FEHLER_STO" />
+                        <element ref="dp7:FEHLER_VOL" />
+                        <element ref="dp7:FEHLER_VZ" />
+                        <element ref="dp7:FEHLER_WIES" />
+                        <element ref="dp7:FEHLER_ZPID" />
+                        <element ref="dp7:FEHLER_ZUEM" />
+                        <element ref="dp7:FINALE_EINS_STO" />
+                        <element ref="dp7:FINALE_VGM_STO" />
+                        <element ref="dp7:FINALE_ZWEI_STO" />
+                        <element ref="dp7:KEIN_EW_LN_WIES" />
+                        <element ref="dp7:KEIN_EW_NB_WIES" />
+                        <element ref="dp7:LIEF_ZUORD_ABM" />
+                        <element ref="dp7:LIEF_ZUORD_RAABM" />
+                        <element ref="dp7:LIEF_ZUORD_RAANM" />
+                        <element ref="dp7:LIEF_ZUORD_VZ" />
+                        <element ref="dp7:LIEF_ZUORD_WIES" />
+                        <element ref="dp7:MANUELLESU_ANL" />
+                        <element ref="dp7:MANUELLESU_ANM" />
+                        <element ref="dp7:SYSTEM_ERROR_TE" />
+                        <element ref="dp7:SYSTEM_INFO_TE" />
+                        <element ref="dp7:TECHN_ERROR_TE" />
+                        <element ref="dp7:VOLLPRUEF_EINS_VP" />
+                    </choice>
+                </complexType>
+            </element>
+        </sequence>
+    </complexType>
+    <complexType name="OutHeaderType">
+        <sequence>
+            <element name="MessageId" type="string"/>
+            <element name="ConversationId" type="string" minOccurs="0"/>
+            <element name="SenderId" type="string"/>
+            <element name="ReceiverId" type="string"/>
+            <element name="MessageType" type="string"/>
+            <element name="MessageVersion" type="string"/>
+            <element name="LogInfo" type="string" minOccurs="0"/>
+        </sequence>
+    </complexType>
+</schema>

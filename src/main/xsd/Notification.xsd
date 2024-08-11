@@ -1,0 +1,2471 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:oe="http://www.ebutilities.at/datenplattform/0700"
+	targetNamespace="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified">
+
+	<xsd:include schemaLocation="CommonTypes.xsd" />
+
+<!-- Notifications -->
+	<xsd:element name="FEHLER_ABM">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FEHLER_ABM" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FEHLER_ABM" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="LIEF_ZUORD_ABM">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_LIEF_ZUORD_ABM" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_LIEF_ZUORD_ABM" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="FEHLER_ANL">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FEHLER_ANL" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FEHLER_ANL" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="MANUELLESU_ANL">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_MANUELLESU_ANL" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_MANUELLESU_ANL" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="FEHLER_ANM">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FEHLER_ANM" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FEHLER_ANM" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="MANUELLESU_ANM">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_MANUELLESU_ANM" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_MANUELLESU_ANM" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="FEHLER_BINKUN">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FEHLER_BINKUN" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FEHLER_BINKUN" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="FEHLER_KUEND">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FEHLER_KUEND" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FEHLER_KUEND" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="ABLE_RAABM">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_ABLE_RAABM" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_ABLE_RAABM" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="LIEF_ZUORD_RAABM">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_LIEF_ZUORD_RAABM" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_LIEF_ZUORD_RAABM" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="ABLE_RAANM">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_ABLE_RAANM" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_ABLE_RAANM" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	
+	<xsd:element name="LIEF_ZUORD_RAANM">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_LIEF_ZUORD_RAANM" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_LIEF_ZUORD_RAANM" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="FEHLER_RTANM">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FEHLER_RTANM" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FEHLER_RTANM" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="ANFRAGE_STO">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_ANFRAGE_STO" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_ANFRAGE_STO" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="FEHLER_STO">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FEHLER_STO" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FEHLER_STO" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="FINALE_EINS_STO">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FINALE_EINS_STO" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FINALE_EINS_STO" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="FINALE_ZWEI_STO">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FINALE_ZWEI_STO" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FINALE_ZWEI_STO" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	
+	<xsd:element name="FINALE_VGM_STO">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FINALE_VGM_STO" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FINALE_VGM_STO" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="SYSTEM_ERROR_TE">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_SYSTEM_ERROR_TE" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_SYSTEM_ERROR_TE" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	
+	<xsd:element name="SYSTEM_INFO_TE">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_SYSTEM_INFO_TE" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_SYSTEM_INFO_TE" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="TECHN_ERROR_TE">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_TECHN_ERROR_TE" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_TECHN_ERROR_TE" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="FEHLER_VOL">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FEHLER_VOL" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FEHLER_VOL" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="VOLLPRUEF_EINS_VP">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_VOLLPRUEF_EINS_VP" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_VOLLPRUEF_EINS_VP" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="FEHLER_VZ">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FEHLER_VZ" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FEHLER_VZ" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="LIEF_ZUORD_VZ">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_LIEF_ZUORD_VZ" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_LIEF_ZUORD_VZ" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="FEHLER_WIES">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FEHLER_WIES" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FEHLER_WIES" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="KEIN_EW_LN_WIES">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_KEIN_EW_LN_WIES" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_KEIN_EW_LN_WIES" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="KEIN_EW_NB_WIES">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_KEIN_EW_NB_WIES" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_KEIN_EW_NB_WIES" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="BEHARR_LA_WIES">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_BEHARR_LA_WIES" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_BEHARR_LA_WIES" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="ABBRUCH_LN_WIES">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_ABBRUCH_LN_WIES" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_ABBRUCH_LN_WIES" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="ABBRUCH_LA_WIES">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_ABBRUCH_LA_WIES" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_ABBRUCH_LA_WIES" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="ABBRUCH_NB_WIES">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_ABBRUCH_NB_WIES" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_ABBRUCH_NB_WIES" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="BEHARR_NB_WIES">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_BEHARR_NB_WIES" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_BEHARR_NB_WIES" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="ABLWU_LN_WIES">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_ABLWU_LN_WIES" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_ABLWU_LN_WIES" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="ABLWU_LA_WIES">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_ABLWU_LA_WIES" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_ABLWU_LA_WIES" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="LIEF_ZUORD_WIES">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_LIEF_ZUORD_WIES" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_LIEF_ZUORD_WIES" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="FEHLER_ZPID">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FEHLER_ZPID" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FEHLER_ZPID" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="FEHLER_ZUEM">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:NotificationMessageData_FEHLER_ZUEM" />
+				<xsd:element name="ProcessData" type="oe:NotificationProcessData_FEHLER_ZUEM" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+<!-- NotificationMessageData -->
+	<xsd:complexType name="NotificationMessageData_FEHLER_ABM">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FEHLER_ABM" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_LIEF_ZUORD_ABM">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_LIEF_ZUORD_ABM" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_FEHLER_ANL">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FEHLER_ANL" />
+					<xsd:element name="CasesData" type="oe:CasesDataMultiple" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_MANUELLESU_ANL">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_MANUELLESU_ANL" />
+					<xsd:element name="CasesData" type="oe:CasesDataMultiple" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_FEHLER_ANM">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FEHLER_ANM" />
+					<xsd:element name="CasesData" type="oe:CasesDataMultiple" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_MANUELLESU_ANM">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_MANUELLESU_ANM" />
+					<xsd:element name="CasesData" type="oe:CasesDataMultiple" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_FEHLER_BINKUN">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FEHLER_BINKUN" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_FEHLER_KUEND">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FEHLER_KUEND" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_ABLE_RAABM">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_ABLE_RAABM" />
+					<xsd:element name="ReferenceConversationId" type="oe:IdentificationNumber" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_LIEF_ZUORD_RAABM">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_LIEF_ZUORD_RAABM" />
+					<xsd:element name="ReferenceConversationId" type="oe:IdentificationNumber" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_ABLE_RAANM">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_ABLE_RAANM" />
+					<xsd:element name="ReferenceConversationId" type="oe:IdentificationNumber" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_LIEF_ZUORD_RAANM">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_LIEF_ZUORD_RAANM" />
+					<xsd:element name="ReferenceConversationId" type="oe:IdentificationNumber" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_FEHLER_RTANM">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FEHLER_RTANM" />
+					<xsd:element name="ReferenceConversationId" type="oe:IdentificationNumber" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_ANFRAGE_STO">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_ANFRAGE_STO" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_FEHLER_STO">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FEHLER_STO" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_FINALE_EINS_STO">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FINALE_EINS_STO" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_FINALE_ZWEI_STO">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FINALE_ZWEI_STO" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	
+	<xsd:complexType name="NotificationMessageData_FINALE_VGM_STO">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FINALE_VGM_STO" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_SYSTEM_ERROR_TE">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_SYSTEM_ERROR_TE" />
+					<xsd:element name="ReferenceMessageId" type="oe:IdentificationNumber" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_SYSTEM_INFO_TE">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_SYSTEM_INFO_TE" />
+					<xsd:element name="ReferenceMessageId" type="oe:IdentificationNumber" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_TECHN_ERROR_TE">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_TECHN_ERROR_TE" />
+					<xsd:element name="ReferenceMessageId" type="oe:IdentificationNumber" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_FEHLER_VOL">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FEHLER_VOL" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_VOLLPRUEF_EINS_VP">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_VOLLPRUEF_EINS_VP" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_FEHLER_VZ">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FEHLER_VZ" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_LIEF_ZUORD_VZ">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_LIEF_ZUORD_VZ" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_ABBRUCH_LA_WIES">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_ABBRUCH_LA_WIES" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_ABBRUCH_LN_WIES">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_ABBRUCH_LN_WIES" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_ABBRUCH_NB_WIES">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_ABBRUCH_NB_WIES" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_ABLWU_LA_WIES">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_ABLWU_LA_WIES" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_ABLWU_LN_WIES">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_ABLWU_LN_WIES" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_BEHARR_LA_WIES">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_BEHARR_LA_WIES" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_BEHARR_NB_WIES">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_BEHARR_NB_WIES" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_FEHLER_WIES">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FEHLER_WIES" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_KEIN_EW_LN_WIES">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_KEIN_EW_LN_WIES" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_KEIN_EW_NB_WIES">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_KEIN_EW_NB_WIES" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_LIEF_ZUORD_WIES">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_LIEF_ZUORD_WIES" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_FEHLER_ZPID">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FEHLER_ZPID" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationMessageData_FEHLER_ZUEM">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="oe:NotificationMessageCode_FEHLER_ZUEM" />
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+<!-- NotificationMessageCodes -->
+	<xsd:simpleType name="NotificationMessageCode_FEHLER_ABM">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FEHLER_ABM" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_LIEF_ZUORD_ABM">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="LIEF_ZUORD_ABM" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_FEHLER_ANL">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FEHLER_ANL" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_MANUELLESU_ANL">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="MANUELLESU_ANL" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_FEHLER_ANM">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FEHLER_ANM" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_MANUELLESU_ANM">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="MANUELLESU_ANM" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_FEHLER_BINKUN">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FEHLER_BINKUN" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_FEHLER_KUEND">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FEHLER_KUEND" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_ABLE_RAABM">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="ABLE_RAABM" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_LIEF_ZUORD_RAABM">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="LIEF_ZUORD_RAABM" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_ABLE_RAANM">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="ABLE_RAANM" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_LIEF_ZUORD_RAANM">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="LIEF_ZUORD_RAANM" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_FEHLER_RTANM">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FEHLER_RTANM" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_ANFRAGE_STO">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="ANFRAGE_STO" />
+		</xsd:restriction>
+
+		</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_FEHLER_STO">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FEHLER_STO" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_FINALE_EINS_STO">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FINALE_EINS_STO" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_FINALE_ZWEI_STO">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FINALE_ZWEI_STO" />
+		</xsd:restriction>
+	</xsd:simpleType>
+	
+	<xsd:simpleType name="NotificationMessageCode_FINALE_VGM_STO">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FINALE_VGM_STO" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_SYSTEM_ERROR_TE">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="SYSTEM_ERROR_TE" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_SYSTEM_INFO_TE">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="SYSTEM_INFO_TE" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_TECHN_ERROR_TE">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="TECHN_ERROR_TE" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_FEHLER_VOL">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FEHLER_VOL" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_VOLLPRUEF_EINS_VP">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="VOLLPRUEF_EINS_VP" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_FEHLER_VZ">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FEHLER_VZ" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_LIEF_ZUORD_VZ">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="LIEF_ZUORD_VZ" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_ABBRUCH_LA_WIES">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="ABBRUCH_LA_WIES" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_ABBRUCH_LN_WIES">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="ABBRUCH_LN_WIES" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_ABBRUCH_NB_WIES">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="ABBRUCH_NB_WIES" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_ABLWU_LA_WIES">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="ABLWU_LA_WIES" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_ABLWU_LN_WIES">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="ABLWU_LN_WIES" />
+		</xsd:restriction>
+	</xsd:simpleType>
+	
+	<xsd:simpleType name="NotificationMessageCode_BEHARR_LA_WIES">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="BEHARR_LA_WIES" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_BEHARR_NB_WIES">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="BEHARR_NB_WIES" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_FEHLER_WIES">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FEHLER_WIES" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_KEIN_EW_LN_WIES">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="KEIN_EW_LN_WIES" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_KEIN_EW_NB_WIES">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="KEIN_EW_NB_WIES" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_LIEF_ZUORD_WIES">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="LIEF_ZUORD_WIES" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_FEHLER_ZPID">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FEHLER_ZPID" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NotificationMessageCode_FEHLER_ZUEM">
+		<xsd:restriction base="oe:ResponseCodeGroup">
+			<xsd:enumeration value="FEHLER_ZUEM" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+
+<!-- NotificationProcessData -->
+	<xsd:complexType name="NotificationProcessData_FEHLER_ABM">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="9">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="1" />
+											<xsd:enumeration value="8" />
+											<xsd:enumeration value="9" />
+											<xsd:enumeration value="55" />
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="57" />
+											<xsd:enumeration value="72" />
+											<xsd:enumeration value="73" />
+											<xsd:enumeration value="74" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FEHLER_ABM" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="ContractPartnerData" type="oe:ContractPartnerData" minOccurs="0" />
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_LIEF_ZUORD_ABM">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="2">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="76" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="LIEF_ZUORD_ABM" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_FEHLER_ANL">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="3">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="2" />
+											<xsd:enumeration value="11" />
+											<xsd:enumeration value="80" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FEHLER_ANL" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="StatusCodeData" >
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:StatusCodeData">
+							<xsd:sequence>
+								<xsd:element name="StatusCode" type="oe:StatusCode" maxOccurs="999" />
+							</xsd:sequence>
+							<xsd:attribute name="StatusCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:StatusCodeGroup">
+										<xsd:enumeration value="FEHLER_ANL" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="DeliveryAddressData" type="oe:DeliveryAddressDataFullWithMultipleMPs" minOccurs="0" maxOccurs="1000" />
+			<xsd:element name="MeteringPointData" minOccurs="0" maxOccurs="1000">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:extension base="oe:MeteringPointDataBasic">
+							<xsd:sequence>
+								<xsd:element name="DeviceData" minOccurs="0" maxOccurs="1000">
+									<xsd:complexType>
+										<xsd:attribute name="DeviceNumber" type="oe:DeviceNumber" use="optional" />
+									</xsd:complexType>
+								</xsd:element>
+							</xsd:sequence>
+						</xsd:extension>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_MANUELLESU_ANL">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="1">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="75" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="MANUELLESU_ANL" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_FEHLER_ANM">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="26">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="2" />
+											<xsd:enumeration value="3" />
+											<xsd:enumeration value="5" />
+											<xsd:enumeration value="6" />
+											<xsd:enumeration value="10" />
+											<xsd:enumeration value="11" />
+											<xsd:enumeration value="13" />
+											<xsd:enumeration value="20" />
+											<xsd:enumeration value="32" />
+											<xsd:enumeration value="34" />
+											<xsd:enumeration value="41" />
+											<xsd:enumeration value="42" />
+											<xsd:enumeration value="43" />
+											<xsd:enumeration value="54" />
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="59" />
+											<xsd:enumeration value="60" />
+											<xsd:enumeration value="61" />
+											<xsd:enumeration value="62" />
+											<xsd:enumeration value="64" />
+											<xsd:enumeration value="65" />
+											<xsd:enumeration value="70" />
+											<xsd:enumeration value="71" />
+											<xsd:enumeration value="74" />
+											<xsd:enumeration value="80" />
+											<xsd:enumeration value="118" />
+											<xsd:enumeration value="119" />
+											<xsd:enumeration value="136" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FEHLER_ANM" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_MANUELLESU_ANM">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="1">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="75" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="MANUELLESU_ANM" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_FEHLER_BINKUN">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="11">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="5" />
+											<xsd:enumeration value="6" />
+											<xsd:enumeration value="8" />
+											<xsd:enumeration value="9" />
+											<xsd:enumeration value="10" />
+											<xsd:enumeration value="41" />
+											<xsd:enumeration value="42" />
+											<xsd:enumeration value="43" />
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="57" />
+											<xsd:enumeration value="59" />
+											<xsd:enumeration value="80" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FEHLER_BINKUN" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="ContractPartnerData" type="oe:ContractPartnerData" minOccurs="0" />
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_FEHLER_KUEND">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="13">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="5" />
+											<xsd:enumeration value="6" />
+											<xsd:enumeration value="9" />
+											<xsd:enumeration value="10" />
+											<xsd:enumeration value="23" />
+											<xsd:enumeration value="24" />
+											<xsd:enumeration value="25" />
+											<xsd:enumeration value="41" />
+											<xsd:enumeration value="43" />
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="57" />
+											<xsd:enumeration value="59" />
+											<xsd:enumeration value="78" />
+											<xsd:enumeration value="80" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FEHLER_KUEND" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="ContractPartnerData" type="oe:ContractPartnerData" minOccurs="0" />
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_ABLE_RAABM">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="11">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="1" />
+											<xsd:enumeration value="7" />
+											<xsd:enumeration value="55" />
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="57" />
+											<xsd:enumeration value="80" />
+											<xsd:enumeration value="129" />
+											<xsd:enumeration value="130" />
+											<xsd:enumeration value="131" />
+											<xsd:enumeration value="133" />
+											<xsd:enumeration value="135" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="ABLE_RAABM" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_LIEF_ZUORD_RAABM">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="11">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="130" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="LIEF_ZUORD_RAABM" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>	
+	
+	<xsd:complexType name="NotificationProcessData_ABLE_RAANM">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="11">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="1" />
+											<xsd:enumeration value="7" />
+											<xsd:enumeration value="55" />
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="57" />
+											<xsd:enumeration value="80" />
+											<xsd:enumeration value="128" />
+											<xsd:enumeration value="130" />
+											<xsd:enumeration value="131" />
+											<xsd:enumeration value="133" />
+											<xsd:enumeration value="135" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="ABLE_RAANM" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_LIEF_ZUORD_RAANM">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="11">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="130" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="LIEF_ZUORD_RAANM" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>	
+
+	<xsd:complexType name="NotificationProcessData_FEHLER_RTANM">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="1">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="1" />
+											<xsd:enumeration value="8" />
+											<xsd:enumeration value="9" />
+											<xsd:enumeration value="55" />
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="57" />
+											<xsd:enumeration value="72" />
+											<xsd:enumeration value="73" />
+											<xsd:enumeration value="74" />
+											<xsd:enumeration value="130" />
+											<xsd:enumeration value="137" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FEHLER_RTANM" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_ANFRAGE_STO">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="11">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="12" />
+											<xsd:enumeration value="26" />
+											<xsd:enumeration value="27" />
+											<xsd:enumeration value="28" />
+											<xsd:enumeration value="29" />
+											<xsd:enumeration value="38" />
+											<xsd:enumeration value="39" />
+											<xsd:enumeration value="40" />
+											<xsd:enumeration value="53" />
+											<xsd:enumeration value="66" />
+											<xsd:enumeration value="67" />
+											<xsd:enumeration value="82" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="ANFRAGE_STO" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_FEHLER_STO">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="3">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="15" />
+											<xsd:enumeration value="37" />
+											<xsd:enumeration value="79" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FEHLER_STO" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_FINALE_EINS_STO">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="14">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="12" />
+											<xsd:enumeration value="26" />
+											<xsd:enumeration value="27" />
+											<xsd:enumeration value="28" />
+											<xsd:enumeration value="29" />
+											<xsd:enumeration value="36" />
+											<xsd:enumeration value="52" />
+											<xsd:enumeration value="53" />
+											<xsd:enumeration value="67" />
+											<xsd:enumeration value="71" />
+											<xsd:enumeration value="72" />
+											<xsd:enumeration value="73" />
+											<xsd:enumeration value="74" />
+											<xsd:enumeration value="82" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FINALE_EINS_STO" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_FINALE_ZWEI_STO">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="15">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="26" />
+											<xsd:enumeration value="27" />
+											<xsd:enumeration value="28" />
+											<xsd:enumeration value="29" />
+											<xsd:enumeration value="36" />
+											<xsd:enumeration value="67" />
+											<xsd:enumeration value="71" />
+											<xsd:enumeration value="72" />
+											<xsd:enumeration value="73" />
+											<xsd:enumeration value="74" />
+											<xsd:enumeration value="82" />
+											<xsd:enumeration value="90" />
+											<xsd:enumeration value="91" />
+											<xsd:enumeration value="92" />
+											<xsd:enumeration value="93" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FINALE_ZWEI_STO" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_FINALE_VGM_STO">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="15">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="26" />
+											<xsd:enumeration value="27" />
+											<xsd:enumeration value="28" />
+											<xsd:enumeration value="29" />
+											<xsd:enumeration value="36" />
+											<xsd:enumeration value="67" />
+											<xsd:enumeration value="71" />
+											<xsd:enumeration value="72" />
+											<xsd:enumeration value="73" />
+											<xsd:enumeration value="74" />
+											<xsd:enumeration value="82" />
+											<xsd:enumeration value="90" />
+											<xsd:enumeration value="91" />
+											<xsd:enumeration value="92" />
+											<xsd:enumeration value="93" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FINALE_VGM_STO" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:complexType name="NotificationProcessData_SYSTEM_ERROR_TE">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataSingle">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="85" />
+											<xsd:enumeration value="88" />
+											<xsd:enumeration value="94" />
+											<xsd:enumeration value="96" />
+											<xsd:enumeration value="97" />
+											<xsd:enumeration value="99" />
+											<xsd:enumeration value="100" />
+											<xsd:enumeration value="101" />
+											<xsd:enumeration value="102" />
+											<xsd:enumeration value="103" />
+											<xsd:enumeration value="104" />
+											<xsd:enumeration value="105" />
+											<xsd:enumeration value="106" />
+											<xsd:enumeration value="107" />
+											<xsd:enumeration value="108" />
+											<xsd:enumeration value="109" />
+											<xsd:enumeration value="110" />
+											<xsd:enumeration value="111" />
+											<xsd:enumeration value="112" />
+											<xsd:enumeration value="113" />
+											<xsd:enumeration value="114" />
+											<xsd:enumeration value="115" />
+											<xsd:enumeration value="116" />
+											<xsd:enumeration value="117" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="SYSTEM_ERROR_TE" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_SYSTEM_INFO_TE">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataSingle">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="95" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="SYSTEM_INFO_TE" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_TECHN_ERROR_TE">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="12">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="15" />
+											<xsd:enumeration value="31" />
+											<xsd:enumeration value="35" />
+											<xsd:enumeration value="77" />
+											<xsd:enumeration value="81" />
+											<xsd:enumeration value="83" />
+											<xsd:enumeration value="84" />
+											<xsd:enumeration value="86" />
+											<xsd:enumeration value="87" />
+											<xsd:enumeration value="89" />
+											<xsd:enumeration value="98" />
+											<xsd:enumeration value="99" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="TECHN_ERROR_TE" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_FEHLER_VOL">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="1">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="6" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FEHLER_VOL" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_VOLLPRUEF_EINS_VP">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="1">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="44" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="VOLLPRUEF_EINS_VP" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_FEHLER_VZ">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="9">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="1" />
+											<xsd:enumeration value="8" />
+											<xsd:enumeration value="9" />
+											<xsd:enumeration value="55" />
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="57" />
+											<xsd:enumeration value="72" />
+											<xsd:enumeration value="73" />
+											<xsd:enumeration value="74" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FEHLER_VZ" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="ContractPartnerData" type="oe:ContractPartnerData" minOccurs="0" />
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_LIEF_ZUORD_VZ">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="3">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="57" />
+											<xsd:enumeration value="76" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="LIEF_ZUORD_VZ" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_ABBRUCH_LA_WIES">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="1">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="47" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="ABBRUCH_LA_WIES" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_ABBRUCH_LN_WIES">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="1">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="47" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="ABBRUCH_LN_WIES" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_ABBRUCH_NB_WIES">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="1">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="16" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="ABBRUCH_NB_WIES" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_ABLWU_LN_WIES">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="1">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="68" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="ABLWU_LN_WIES" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_ABLWU_LA_WIES">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="1">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="68" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="ABLWU_LA_WIES" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_BEHARR_LA_WIES">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="1">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="4" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="BEHARR_LA_WIES" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_BEHARR_NB_WIES">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="1">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="4" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="BEHARR_NB_WIES" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_FEHLER_WIES">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="21">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="5" />
+											<xsd:enumeration value="6" />
+											<xsd:enumeration value="9" />
+											<xsd:enumeration value="10" />
+											<xsd:enumeration value="11" />
+											<xsd:enumeration value="20" />
+											<xsd:enumeration value="33" />
+											<xsd:enumeration value="41" />
+											<xsd:enumeration value="42" />
+											<xsd:enumeration value="43" />
+											<xsd:enumeration value="45" />
+											<xsd:enumeration value="49" />
+											<xsd:enumeration value="50" />
+											<xsd:enumeration value="54" />
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="57" />
+											<xsd:enumeration value="59" />
+											<xsd:enumeration value="71" />
+											<xsd:enumeration value="72" />
+											<xsd:enumeration value="73" />
+											<xsd:enumeration value="74" />
+											<xsd:enumeration value="80" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FEHLER_WIES" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_KEIN_EW_LN_WIES">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="1">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="14" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="KEIN_EW_LN_WIES" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_KEIN_EW_NB_WIES">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="1">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="14" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="KEIN_EW_NB_WIES" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_LIEF_ZUORD_WIES">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="3">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="57" />
+											<xsd:enumeration value="76" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="LIEF_ZUORD_WIES" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_FEHLER_ZPID">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="12">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="5" />
+											<xsd:enumeration value="6" />
+											<xsd:enumeration value="8" />
+											<xsd:enumeration value="9" />
+											<xsd:enumeration value="10" />
+											<xsd:enumeration value="11" />
+											<xsd:enumeration value="41" />
+											<xsd:enumeration value="42" />
+											<xsd:enumeration value="43" />
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="57" />
+											<xsd:enumeration value="59" />
+											<xsd:enumeration value="80" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FEHLER_ZPID" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="StatusCodeData" >
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:StatusCodeData">
+							<xsd:sequence>
+								<xsd:element name="StatusCode" type="oe:StatusCode" maxOccurs="999" />
+							</xsd:sequence>
+							<xsd:attribute name="StatusCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:StatusCodeGroup">
+										<xsd:enumeration value="FEHLER_ZPID" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>	
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="NotificationProcessData_FEHLER_ZUEM">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="2">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="56" />
+											<xsd:enumeration value="80" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="FEHLER_ZUEM" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+</xsd:schema>

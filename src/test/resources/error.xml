@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<EDASendError>
+    <MailSubject>[EC_PODLIST MessageId=rc100130202303111678571410000000076]</MailSubject>
+    <ReasonText>Der Messenger hat eine Fehlermeldung zurueck geliefert. Beschreibung: 'Validation failed.  Reason: 2 XML errors found while validating with (ANFORDERUNG_ECP 01.00/EC_PODLIST_01.00)
+   (Line 2 / Column 1154) cvc-minLength-valid: Value &amp;apos;&amp;apos; with length = &amp;apos;0&amp;apos; is not facet-valid with respect to minLength &amp;apos;1&amp;apos; for type &amp;apos;MeteringPoint&amp;apos;.
+   (Line 2 / Column 1154) cvc-type.3.1.3: The value &amp;apos;&amp;apos; of element &amp;apos;ct:MeteringPoint&amp;apos; is not valid.'</ReasonText>
+    <ReceivedAt>2023-03-11T22:50:16.162+01:00</ReceivedAt>
+</EDASendError>

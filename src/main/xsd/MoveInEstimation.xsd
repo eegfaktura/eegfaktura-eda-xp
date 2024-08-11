@@ -1,0 +1,73 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:oe="http://www.ebutilities.at/datenplattform/0700" targetNamespace="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified">
+
+	<xsd:include schemaLocation="CommonTypes.xsd" />
+
+	<xsd:element name="MoveInEstimation">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:MoveInEstimationMessageData" />
+				<xsd:element name="ProcessData" type="oe:MoveInEstimationProcessData" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:complexType name="MoveInEstimationMessageData">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode">
+						<xsd:simpleType>
+							<xsd:restriction base="oe:MessageCode">
+								<xsd:enumeration value="ERSTE_ANM" />
+							</xsd:restriction>
+						</xsd:simpleType>
+					</xsd:element>
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="MoveInEstimationProcessData">
+		<xsd:sequence>
+			<xsd:element name="ContractPartnerData" type="oe:ContractPartnerData" />
+			<xsd:element name="DeliveryAddressData" type="oe:DeliveryAddressDataFull" />
+			<xsd:element name="MeteringPointData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:extension base="oe:MeteringPointDataBasic">
+							<xsd:sequence>
+								<xsd:element name="EnergyDirection" type="oe:EnergyDirection" />
+								<xsd:element name="TypeOfGeneration" type="oe:TypeOfGeneration" />
+								<xsd:element name="LoadProfileType" type="oe:LoadProfileType" />
+								<xsd:element name="DeviceData" type="oe:DeviceDataMin" minOccurs="0" maxOccurs="1000" />
+								<xsd:element name="SupplierContractData">
+									<xsd:complexType>
+										<xsd:complexContent>
+											<xsd:extension base="oe:SupplierContractDataBasic">
+												<xsd:sequence>
+													<xsd:element name="EnergyCommunity" type="oe:EnergyCommunity" />
+												</xsd:sequence>													
+											</xsd:extension>
+										</xsd:complexContent>
+									</xsd:complexType>
+								</xsd:element>
+							</xsd:sequence>
+						</xsd:extension>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="ProcessControlData">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="EstimatedStartSupplyDate" type="xsd:date" />
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+</xsd:schema>

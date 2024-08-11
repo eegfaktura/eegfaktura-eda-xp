@@ -1,0 +1,110 @@
+
+ThisBuild / version := "0.1.0-SNAPSHOT"
+
+ThisBuild / scalaVersion := "2.13.9"
+
+lazy val courierVersion  = "3.0.1"
+lazy val akkaHttpVersion = "10.6.3"
+lazy val akkaVersion     = "2.9.3"
+lazy val alpakkaVersion  = "8.0.0"
+lazy val circeVersion    = "0.14.3"
+lazy val akkaHttpCirceVersion    = "1.39.2"
+lazy val slickVersion = "3.5.1"
+
+lazy val scalaxbSettings = Seq(
+  Compile / scalaxbJaxbPackage := JaxbPackage.Jakarta,
+  Compile / scalaxb / scalaxbPackageName := "generated",
+  Compile / scalaxb / scalaxbPackageNames := Map(
+    uri("http://xp.ponton.de/eda/v320") -> "ponton",
+    uri("http://www.ebutilities.at/datenplattform/0700") -> "dataplatform",
+    uri("http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p11") -> "cmnotification.v01p11",
+    uri("http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p00") -> "ecmplist.v01p00",
+    uri("http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p10") -> "ecmplist.v01p10",
+    uri("http://www.ebutilities.at/schemata/customerprocesses/gc/gcrequestap/01p00") -> "gcrequestap.v01p00",
+    uri("http://www.ebutilities.at/schemata/customerprocesses/gc/gcrequest/01p00") -> "gcrequest.v01p00",
+    uri("http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p30") -> "consumptionrecord.v01p30",
+    uri("http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p31") -> "consumptionrecord.v01p31",
+    uri("http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p40") -> "consumptionrecord.v01p40",
+    uri("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10") -> "cmrequest.v01p10",
+    uri("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p20") -> "cmrequest.v01p20",
+    uri("http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p00") -> "cmrevoke.v01p00",
+    uri("http://www.ebutilities.at/schemata/customerprocesses/cpnotification/01p13") -> "cpnotification.v01p13",
+    uri("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12") -> "cprequest.v01p12",
+    uri("http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20") -> "commontypes.v01p20",
+    uri("http://www.ebutilities.at/schemata/customerprocesses/cpdocument/01p12") -> "cpdocument.v01p12",
+  ),
+  Compile / scalaxb / scalaxbPrependFamily := false,
+  Compile / scalaxb / scalaxbJaxbPackage := JaxbPackage.Jakarta,
+  Compile / scalaxb / scalaxbGenerateDispatchClient := false,
+  Compile / scalaxb / scalaxbGenerateHttp4sClient := false,
+  //  Compile / scalaxb / scalaxbProtocolPackageName := Some("sepp")
+)
+
+lazy val root = (project in file("."))
+  .enablePlugins(ScalaxbPlugin)
+  .enablePlugins(AkkaGrpcPlugin)
+  .settings(scalaxbSettings)
+  .settings(
+    name := "XPAdapter",
+
+    resolvers += "repo.jenkins-ci.org" at "https://repo.jenkins-ci.org/releases",
+    resolvers += "Akka library repository" at "https://repo.akka.io/maven",
+
+    libraryDependencies ++= Seq(
+      "com.github.daddykotex" %% "courier" % courierVersion,
+      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
+      "de.heikoseeberger" %% "akka-http-circe" % akkaHttpCirceVersion,
+      "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
+      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+      "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
+//      "com.typesafe.akka" %% "akka-persistence-query" % akkaVersion,
+      "com.typesafe.akka" %% "akka-serialization-jackson"  % akkaVersion,
+      "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % alpakkaVersion,
+      "com.lightbend.akka" %% "akka-stream-alpakka-mqtt-streaming" % alpakkaVersion,
+      "jakarta.xml.bind" % "jakarta.xml.bind-api" % "4.0.2",
+//      "org.http4s" %% "http4s-core" % "1.0.0-m38",
+
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
+      "ch.qos.logback" % "logback-classic" % "1.5.6",
+      "org.slf4j" % "jcl-over-slf4j" % "1.7.22",
+
+      "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
+
+      "javax.xml.bind" % "jaxb-api" % "2.3.0",
+      "com.sun.xml.bind" % "jaxb-core" % "2.3.0",
+      "org.scala-lang.modules" %% "scala-xml" % "2.3.0",
+//      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2",
+
+      "com.google.guava" % "guava" % "31.1-jre"
+    ),
+
+    libraryDependencies ++= Seq(
+      "org.scalatest" %% "scalatest" % "3.2.14",
+      "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion,
+      "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion,
+      "org.jvnet.mock-javamail" % "mock-javamail" % "1.12",
+      "com.typesafe.slick" %% "slick-testkit" % slickVersion,
+      "com.h2database" % "h2" % "2.2.224",
+      "com.opentable.components" % "otj-pg-embedded" % "0.13.3",
+      "org.flywaydb" % "flyway-core" % "7.2.0",
+      "org.mockito" %% "mockito-scala" % "1.17.31",
+      "org.scalamock" %% "scalamock" % "6.0.0",
+      "com.typesafe.slick" %% "slick-testkit" % slickVersion,
+      "io.moquette"      % "moquette-broker"  % "0.15",
+    ).map(_ % Test),
+
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core",
+      "io.circe" %% "circe-generic",
+      "io.circe" %% "circe-parser"
+    ).map(_ % circeVersion),
+
+    libraryDependencies ++= Seq(
+      "com.typesafe.slick" %% "slick" % slickVersion,
+      "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
+      "org.postgresql" % "postgresql" % "42.2.5",
+      "com.github.tminglei" %% "slick-pg" % "0.22.2",
+      "com.github.tminglei" %% "slick-pg_circe-json" % "0.22.2"
+    ),
+    testOptions += Tests.Argument(TestFrameworks.JUnit, "-q", "-v", "-s", "-a")
+  )

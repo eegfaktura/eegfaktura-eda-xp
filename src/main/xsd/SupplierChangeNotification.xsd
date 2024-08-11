@@ -1,0 +1,106 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:oe="http://www.ebutilities.at/datenplattform/0700" targetNamespace="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified">
+
+	<xsd:include schemaLocation="CommonTypes.xsd" />
+
+	<xsd:element name="SupplierChangeNotification">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:SupplierChangeNotificationMessageData" />
+				<xsd:element name="ProcessData" type="oe:SupplierChangeNotificationProcessData" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:complexType name="SupplierChangeNotificationMessageData">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode">
+						<xsd:simpleType>
+							<xsd:restriction base="oe:MessageCode">
+								<xsd:enumeration value="ERSTE_LN_WIES" />
+								<xsd:enumeration value="ERSTE_LA_WIES" />
+							</xsd:restriction>
+						</xsd:simpleType>
+					</xsd:element>
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="SupplierChangeNotificationProcessData">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="48" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="ERSTE_LN_WIES" />
+										<xsd:enumeration value="ERSTE_LA_WIES" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="ContractPartnerData" type="oe:ContractPartnerData" />
+			<xsd:element name="DeliveryAddressData" type="oe:DeliveryAddressDataFull" />
+			<xsd:element name="MeteringPointData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:extension base="oe:MeteringPointDataBasic">
+							<xsd:sequence>
+								<xsd:element name="EnergyDirection" type="oe:EnergyDirection" />
+								<xsd:element name="TypeOfGeneration" type="oe:TypeOfGeneration" />
+								<xsd:element name="ForecastConsumption" type="oe:ConsumptionProduction" />
+								<xsd:element name="LoadProfileType" type="oe:LoadProfileType" />
+								<xsd:element name="DeviceData" type="oe:DeviceDataFull" maxOccurs="1000" />
+								<xsd:element name="MeterReadingInfoData" type="oe:MeterReadingInfoDataFull" />
+								<xsd:element name="BillingInfoData" type="oe:BillingInfoData" />
+								<xsd:choice>
+									<xsd:element name="MPElectricitySpecificData" type="oe:MPElectricitySpecificDataMin"/>
+									<xsd:element name="MPGasSpecificData" type="oe:MPGasSpecificDataBasic"/>
+								</xsd:choice>
+								<xsd:element name="SupplierContractData">
+									<xsd:complexType>
+										<xsd:complexContent>
+											<xsd:extension base="oe:SupplierContractDataBasic">
+												<xsd:sequence>
+													<xsd:element name="EnergyCommunity" type="oe:EnergyCommunity" />
+												</xsd:sequence>													
+											</xsd:extension>
+										</xsd:complexContent>
+									</xsd:complexType>
+								</xsd:element>
+							</xsd:sequence>
+						</xsd:extension>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="ProcessControlData">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="EstimatedChangeSupplyDate" type="xsd:date" />
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+</xsd:schema>

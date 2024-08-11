@@ -1,0 +1,628 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:oe="http://www.ebutilities.at/datenplattform/0700" targetNamespace="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified">
+
+	<xsd:simpleType name="SchemaVersion">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="07.00" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="DocumentMode">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="PROD" />
+			<xsd:enumeration value="SIMU" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="Sector">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="01" />
+			<xsd:enumeration value="02" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="ECNumber">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="[A-Za-z]{2}[0-9]{6}" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="IdentificationNumber">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="[0-9A-Za-z]{35}" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="MessageCode">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="ANFRAGE_ABM" />
+			<xsd:enumeration value="ERSTE_ABM" />
+			<xsd:enumeration value="FEHLER_ABM" />
+			<xsd:enumeration value="FINALE_ABM" />
+			<xsd:enumeration value="LIEF_ZUORD_ABM" />
+			<xsd:enumeration value="MLDG_VGM_ABM" />
+			<xsd:enumeration value="TERMINVER_ABM" />
+			<xsd:enumeration value="ANFRAGE_ANL" />
+			<xsd:enumeration value="ANTWORT_ANL" />
+			<xsd:enumeration value="FEHLER_ANL" />
+			<xsd:enumeration value="MANUELLESU_ANL" />
+			<xsd:enumeration value="ANFR_VGM_ANM" />
+			<xsd:enumeration value="ANFRAGE_ANM" />
+			<xsd:enumeration value="ANTW_VGM_ANM" />
+			<xsd:enumeration value="ERSTE_ANM" />
+			<xsd:enumeration value="FEHLER_ANM" />
+			<xsd:enumeration value="FINALE_ANM" />
+			<xsd:enumeration value="MANUELLESU_ANM" />
+			<xsd:enumeration value="MLDG_VGM_ANM" />
+			<xsd:enumeration value="NEG_KAP_VGM_ANM" />
+			<xsd:enumeration value="TERMINVER_ANM" />
+			<xsd:enumeration value="BELWU_BELNB" />
+			<xsd:enumeration value="ANFRAGE_BINKUN" />
+			<xsd:enumeration value="ANTWORT_BINKUN" />
+			<xsd:enumeration value="FEHLER_BINKUN" />
+			<xsd:enumeration value="ANFRAGE_KUEND" />
+			<xsd:enumeration value="ANTWORT_KUEND" />
+			<xsd:enumeration value="FEHLER_KUEND" />
+			<xsd:enumeration value="NACHRICHT_NUE" />
+			<xsd:enumeration value="ABLE_RAABM" />
+			<xsd:enumeration value="ANFRAGE_RAABM" />
+			<xsd:enumeration value="FINALE_RAABM" />
+			<xsd:enumeration value="LIEF_ZUORD_RAABM" />
+			<xsd:enumeration value="MLDG_VGM_RAABM" />
+			<xsd:enumeration value="ABLE_RAANM" />
+			<xsd:enumeration value="ANFRAGE_RAANM" />
+			<xsd:enumeration value="FINALE_RAANM" />
+			<xsd:enumeration value="LIEF_ZUORD_RAANM" />
+			<xsd:enumeration value="MLDG_VGM_RAANM" />
+			<xsd:enumeration value="ANFRAGE_RTANM" />
+			<xsd:enumeration value="FEHLER_RTANM" />
+			<xsd:enumeration value="FINALE_RTANM" />
+			<xsd:enumeration value="MLDG_VGM_RTANM" />
+			<xsd:enumeration value="ANFRAGE_STO" />
+			<xsd:enumeration value="FEHLER_STO" />
+			<xsd:enumeration value="FINALE_EINS_STO" />
+			<xsd:enumeration value="FINALE_ZWEI_STO" />
+			<xsd:enumeration value="FINALE_VGM_STO" />
+			<xsd:enumeration value="SYSTEM_ERROR_TE" />
+			<xsd:enumeration value="SYSTEM_INFO_TE" />
+			<xsd:enumeration value="TECHN_ERROR_TE" />
+			<xsd:enumeration value="FEHLER_VOL" />
+			<xsd:enumeration value="VOLLMACHT_VOL" />
+			<xsd:enumeration value="ANTWORT_VP" />
+			<xsd:enumeration value="VOLLMACHT_VP" />
+			<xsd:enumeration value="VOLLPRUEF_EINS_VP" />
+			<xsd:enumeration value="VOLLPRUEF_ZWEI_VP" />
+			<xsd:enumeration value="ANFRAGE_VZ" />
+			<xsd:enumeration value="ERSTE_VZ" />
+			<xsd:enumeration value="FEHLER_VZ" />
+			<xsd:enumeration value="FINALE_VZ" />
+			<xsd:enumeration value="LIEF_ZUORD_VZ" />
+			<xsd:enumeration value="MLDG_VGM_VZ" />
+			<xsd:enumeration value="TERMINVER_VZ" />
+			<xsd:enumeration value="ABBRUCH_LA_WIES" />
+			<xsd:enumeration value="ABBRUCH_LN_WIES" />
+			<xsd:enumeration value="ABBRUCH_NB_WIES" />
+			<xsd:enumeration value="ABLWU_LA_WIES" />
+			<xsd:enumeration value="ABLWU_LN_WIES" />
+			<xsd:enumeration value="ANFRAGE_WIES" />
+			<xsd:enumeration value="BEHARR_LA_WIES" />
+			<xsd:enumeration value="BEHARR_NB_WIES" />
+			<xsd:enumeration value="EINWAND_LN_WIES" />
+			<xsd:enumeration value="EINWAND_NB_WIES" />
+			<xsd:enumeration value="ERSTE_LA_WIES" />
+			<xsd:enumeration value="ERSTE_LN_WIES" />
+			<xsd:enumeration value="ERSTE_VGM_WIES" />
+			<xsd:enumeration value="FEHLER_WIES" />
+			<xsd:enumeration value="FINALE_LA_WIES" />
+			<xsd:enumeration value="FINALE_LN_WIES" />
+			<xsd:enumeration value="KEIN_EW_LN_WIES" />
+			<xsd:enumeration value="KEIN_EW_NB_WIES" />
+			<xsd:enumeration value="LIEF_ZUORD_WIES" />
+			<xsd:enumeration value="MLDG_VGM_WIES" />
+			<xsd:enumeration value="VERBRAUCH_WIES" />
+			<xsd:enumeration value="WECHSELINF_WIES" />
+			<xsd:enumeration value="ANFRAGE_ZPID" />
+			<xsd:enumeration value="ANTWORT_ZPID" />
+			<xsd:enumeration value="FEHLER_ZPID" />
+			<xsd:enumeration value="FEHLER_ZUEM" />
+			<xsd:enumeration value="ZAEHLERST_ZUEM" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NumberOfCases">
+		<xsd:restriction base="xsd:integer">
+			<xsd:minInclusive value="1" />
+			<xsd:maxInclusive value="1000" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="CaseId">
+		<xsd:restriction base="xsd:unsignedShort">
+			<xsd:totalDigits value="3" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="ResponseCodeGroup">
+		<xsd:restriction base="oe:MessageCode">
+			<xsd:enumeration value="FEHLER_ABM" />
+			<xsd:enumeration value="LIEF_ZUORD_ABM" />
+			<xsd:enumeration value="TERMINVER_ABM" />
+			<xsd:enumeration value="FEHLER_ANL" />
+			<xsd:enumeration value="MANUELLESU_ANL" />
+			<xsd:enumeration value="ANTW_VGM_ANM" />
+			<xsd:enumeration value="TERMINVER_ANM" />
+			<xsd:enumeration value="FEHLER_ANM" />
+			<xsd:enumeration value="MANUELLESU_ANM" />
+			<xsd:enumeration value="FEHLER_BINKUN" />
+			<xsd:enumeration value="FEHLER_KUEND" />
+			<xsd:enumeration value="ABLE_RAABM" />
+			<xsd:enumeration value="LIEF_ZUORD_RAABM" />
+			<xsd:enumeration value="ABLE_RAANM" />
+			<xsd:enumeration value="LIEF_ZUORD_RAANM" />
+			<xsd:enumeration value="FEHLER_RTANM" />
+			<xsd:enumeration value="ANFRAGE_STO" />
+			<xsd:enumeration value="FEHLER_STO" />
+			<xsd:enumeration value="FINALE_EINS_STO" />
+			<xsd:enumeration value="FINALE_ZWEI_STO" />
+			<xsd:enumeration value="FINALE_VGM_STO" />	
+			<xsd:enumeration value="SYSTEM_ERROR_TE" />
+			<xsd:enumeration value="SYSTEM_INFO_TE" />
+			<xsd:enumeration value="TECHN_ERROR_TE" />
+			<xsd:enumeration value="FEHLER_VOL" />
+			<xsd:enumeration value="ANTWORT_VP" />
+			<xsd:enumeration value="VOLLPRUEF_EINS_VP" />
+			<xsd:enumeration value="VOLLPRUEF_ZWEI_VP" />
+			<xsd:enumeration value="FEHLER_VZ" />
+			<xsd:enumeration value="LIEF_ZUORD_VZ" />
+			<xsd:enumeration value="ABBRUCH_LA_WIES" />
+			<xsd:enumeration value="ABBRUCH_LN_WIES" />
+			<xsd:enumeration value="ABBRUCH_NB_WIES" />
+			<xsd:enumeration value="ABLWU_LA_WIES" />
+			<xsd:enumeration value="ABLWU_LN_WIES" />
+			<xsd:enumeration value="BEHARR_LA_WIES" />
+			<xsd:enumeration value="BEHARR_NB_WIES" />
+			<xsd:enumeration value="EINWAND_LN_WIES" />
+			<xsd:enumeration value="EINWAND_NB_WIES" />
+			<xsd:enumeration value="ERSTE_LA_WIES" />
+			<xsd:enumeration value="ERSTE_LN_WIES" />
+			<xsd:enumeration value="FEHLER_WIES" />
+			<xsd:enumeration value="FINALE_LA_WIES" />
+			<xsd:enumeration value="FINALE_LN_WIES" />
+			<xsd:enumeration value="KEIN_EW_LN_WIES" />
+			<xsd:enumeration value="KEIN_EW_NB_WIES" />
+			<xsd:enumeration value="LIEF_ZUORD_WIES" />
+			<xsd:enumeration value="FEHLER_ZPID" />
+			<xsd:enumeration value="FEHLER_ZUEM" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="ResponseCode">
+		<xsd:restriction base="xsd:unsignedShort">
+			<xsd:minInclusive value="1" />
+			<xsd:maxInclusive value="150" />
+		</xsd:restriction>
+	</xsd:simpleType>
+	
+	<xsd:simpleType name="StatusCodeGroup">
+		<xsd:restriction base="oe:MessageCode">
+			<xsd:enumeration value="FEHLER_ZPID" />
+			<xsd:enumeration value="ANTWORT_ZPID" />
+			<xsd:enumeration value="FEHLER_ANL" />
+			<xsd:enumeration value="ANTWORT_ANL" />
+		</xsd:restriction>
+	</xsd:simpleType>
+	
+	<xsd:simpleType name="StatusCode">
+		<xsd:restriction base="xsd:unsignedShort">
+			<xsd:minInclusive value="1" />
+			<xsd:maxInclusive value="9999" />
+		</xsd:restriction>
+	</xsd:simpleType>
+	
+	<xsd:simpleType name="ContractNumber">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="[0-9A-Za-z]{1,20}" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+		<xsd:simpleType name="Salutation">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="Firma" />
+			<xsd:enumeration value="Frau" />
+			<xsd:enumeration value="Herr" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="Name">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="40" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="CompanyRegistrationNumber">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="[0-9A-Za-z]{1,20}" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="VATNumber">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="14" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="EmailAddress">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="254" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="PhoneNumber">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="254" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="PostalCode">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="10" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="City">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="40" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="Street">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="60" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="StreetNo">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="20" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="Staircase">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="10" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="Floor">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="10" />
+			<xsd:minLength value="1" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="DoorNumber">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="10" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="AdditionalAddress">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="254" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="MeteringPointId">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="[0-9A-Za-z]{33}" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="EnergyDirection">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="CONSUMPTION" />
+			<xsd:enumeration value="GENERATION" />
+		</xsd:restriction>
+	</xsd:simpleType>
+	
+	<xsd:simpleType name="TypeOfGeneration">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="FULL" />
+			<xsd:enumeration value="SURPLUS" />
+			<xsd:enumeration value="NONE" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="ConsumptionProduction">
+		<xsd:restriction base="xsd:long">
+			<xsd:totalDigits value="10" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="ShortageCapacity">
+		<xsd:restriction base="xsd:decimal">
+			<xsd:totalDigits value="12" />
+			<xsd:fractionDigits value="2" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="LoadProfileType">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="[0-9A-Za-z\-\+]{1,10}" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="DeviceNumber">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="[0-9A-Za-z]{1,18}" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="DeviceType">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="[0-9A-Za-z_]{1,15}" />
+		</xsd:restriction>
+	</xsd:simpleType>
+	
+	<xsd:simpleType name="DSOTariffClass">
+		<xsd:annotation>
+			<xsd:documentation>Tarifklasse Netzbetreiber (lt. SNVo)</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="G"/>
+			<xsd:enumeration value="GD"/>
+			<xsd:enumeration value="N"/>
+			<xsd:enumeration value="ND"/>
+			<xsd:enumeration value="U"/>
+			<xsd:enumeration value="UD"/>
+			<xsd:enumeration value="E"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="MeterCode">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="25" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="MeterValueTo">
+		<xsd:restriction base="xsd:decimal">
+			<xsd:totalDigits value="16" />
+			<xsd:fractionDigits value="6" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="Month_Monthly">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="0" />
+			<xsd:enumeration value="1" />
+			<xsd:enumeration value="2" />
+			<xsd:enumeration value="3" />
+			<xsd:enumeration value="4" />
+			<xsd:enumeration value="5" />
+			<xsd:enumeration value="6" />
+			<xsd:enumeration value="7" />
+			<xsd:enumeration value="8" />
+			<xsd:enumeration value="9" />
+			<xsd:enumeration value="10" />
+			<xsd:enumeration value="11" />
+			<xsd:enumeration value="12" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="Year">
+		<xsd:restriction base="xsd:unsignedShort">
+			<xsd:minInclusive value="1900" />
+			<xsd:maxInclusive value="9999" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="ElectricityGridLevel">
+		<xsd:restriction base="xsd:unsignedByte">
+			<xsd:minInclusive value="1" />
+			<xsd:maxInclusive value="7" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="PlantCategory">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="PHOTOVOLTAIK" />
+			<xsd:enumeration value="WINDKRAFT" />
+			<xsd:enumeration value="KLEINWASSERKRAFT" />
+			<xsd:enumeration value="BIOGAS" />
+			<xsd:enumeration value="BIOMASSE_FEST" />
+			<xsd:enumeration value="BIOMASSE_FLUESSIG" />
+			<xsd:enumeration value="GEOTHERMIE" />
+			<xsd:enumeration value="DEPONIEGAS" />
+			<xsd:enumeration value="KLAERGAS" />
+			<xsd:enumeration value="HYBRID" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="GasGridLevel">
+		<xsd:restriction base="xsd:unsignedByte">
+			<xsd:minInclusive value="1" />
+			<xsd:maxInclusive value="3" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="GasPeakPower">
+		<xsd:restriction base="xsd:long">
+			<xsd:totalDigits value="10" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="GasBalancingType">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="D" />
+			<xsd:enumeration value="H" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="Pressure">
+		<xsd:restriction base="xsd:decimal">
+			<xsd:totalDigits value="6" />
+			<xsd:fractionDigits value="3" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="KindOfConsumerProducer">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="[0-9A-Za-z]{1,4}" />
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="Month">
+		<xsd:restriction base="xsd:unsignedByte">
+			<xsd:minInclusive value="1" />	
+			<xsd:maxInclusive value="12" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="GridUsage">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="[0-9A-Za-z]{1,4}" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="GridInvoiceRecipient">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="CUSTOMER" />
+			<xsd:enumeration value="SUPPLIER" />
+		</xsd:restriction>
+	</xsd:simpleType>
+	
+	<xsd:simpleType name="ConsumptionBillingCycle">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="MONTHLY" />
+			<xsd:enumeration value="YEARLY" />
+		</xsd:restriction>
+	</xsd:simpleType>
+	
+	<xsd:simpleType name="EnergyCommunity">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="GC" />
+			<xsd:enumeration value="RC_R" />
+			<xsd:enumeration value="RC_L" />
+			<xsd:enumeration value="CC" />
+			<xsd:enumeration value="NONE" />
+			<xsd:enumeration value="MULTI" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="TimeOfNotice">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="DAILY" />
+			<xsd:enumeration value="END_OF_MONTH" />
+			<xsd:enumeration value="END_OF_QUARTER" />
+			<xsd:enumeration value="END_OF_YEAR" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="TimeUnit">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="DAY" />
+			<xsd:enumeration value="WEEK" />
+			<xsd:enumeration value="MONTH" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="TimeShare">
+		<xsd:restriction base="xsd:unsignedByte">
+			<xsd:minInclusive value="1"/>
+			<xsd:maxInclusive value="99"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="POANumber">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="[A-Za-z]{2}[0-9]{6}[0-9A-Za-z]{1,27}" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="POAProcess">
+		<xsd:restriction base="xsd:unsignedByte">
+			<xsd:minInclusive value="1" />
+			<xsd:maxInclusive value="99" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="POASubstantiation">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="500" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="InsolvencyOrDecease">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="UNBEK" />
+			<xsd:enumeration value="INSOL" />
+			<xsd:enumeration value="VERLA" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="EnergyDirectionSelection">
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="ALL" />
+			<xsd:enumeration value="CONSUMPTION" />
+			<xsd:enumeration value="GENERATION" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="AdditionalDataName">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="100" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="AdditionalDataValue">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1" />
+			<xsd:maxLength value="1000" />
+			<xsd:whiteSpace value="collapse" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="NumberOfWorkingDays">
+		<xsd:restriction base="xsd:unsignedByte">
+			<xsd:minInclusive value="1" />
+			<xsd:maxInclusive value="12" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="RequestedInstallationIdAmount">
+		<xsd:restriction base="xsd:unsignedShort">
+			<xsd:minInclusive value="1" />
+			<xsd:maxInclusive value="1000" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+</xsd:schema>

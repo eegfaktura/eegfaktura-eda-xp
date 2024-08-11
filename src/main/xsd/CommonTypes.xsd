@@ -1,0 +1,444 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:oe="http://www.ebutilities.at/datenplattform/0700" targetNamespace="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified">
+
+	<xsd:include schemaLocation="SimpleTypes.xsd" />
+
+	<xsd:complexType name="MarketParticipantData">
+		<xsd:sequence>
+			<xsd:element name="Sector" type="oe:Sector" />
+			<xsd:element name="LogicalSender" type="oe:ECNumber" />
+			<xsd:element name="LogicalReceiver" type="oe:ECNumber" />
+			<xsd:element name="InstallationId" type="oe:IdentificationNumber" />
+			<xsd:element name="ConversationId" type="oe:IdentificationNumber" />
+		</xsd:sequence>
+		<xsd:attribute name="SchemaVersion" type="oe:SchemaVersion" use="required" />
+		<xsd:attribute name="DocumentMode" type="oe:DocumentMode" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="MessageDataMin">
+		<xsd:sequence>
+			<xsd:element name="Timestamp" type="xsd:dateTime" />
+		</xsd:sequence>
+		<xsd:attribute name="MessageId" type="oe:IdentificationNumber" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="CasesDataSingle">
+		<xsd:sequence>
+			<xsd:element name="CaseId" type="oe:CaseId" />
+		</xsd:sequence>
+		<xsd:attribute name="NumberOfCases" type="oe:NumberOfCases" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="CasesDataMultiple">
+		<xsd:sequence>
+			<xsd:element name="CaseId" type="oe:CaseId" maxOccurs="1000" />
+		</xsd:sequence>
+		<xsd:attribute name="NumberOfCases" type="oe:NumberOfCases" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="ResponseCodeDataSingle">
+		<xsd:sequence>
+			<xsd:element name="ResponseCode" type="oe:ResponseCode" />
+		</xsd:sequence>
+		<xsd:attribute name="ResponseCodeGroup" type="oe:ResponseCodeGroup" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="ResponseCodeDataMultiple">
+		<xsd:sequence>
+			<xsd:element name="ResponseCode" type="oe:ResponseCode" maxOccurs="150" />
+		</xsd:sequence>
+		<xsd:attribute name="ResponseCodeGroup" type="oe:ResponseCodeGroup" use="required" />
+	</xsd:complexType>
+	
+	<xsd:complexType name="StatusCodeData">
+		<xsd:sequence>
+			<xsd:element name="StatusCode" type="oe:StatusCode" maxOccurs="999" />
+		</xsd:sequence>
+		<xsd:attribute name="StatusCodeGroup" type="oe:StatusCodeGroup" use="required" />
+	</xsd:complexType>	
+
+	<xsd:complexType name="ContractPartnerData">
+		<xsd:sequence>
+			<xsd:element name="Name1" type="oe:Name" />
+			<xsd:element name="Name2" type="oe:Name" minOccurs="0" />
+			<xsd:element name="CompanyRegistrationNumber" type="oe:CompanyRegistrationNumber" minOccurs="0" />
+			<xsd:element name="VATNumber" type="oe:VATNumber" minOccurs="0" />
+			<xsd:element name="DateOfBirth" type="xsd:date" minOccurs="0" />
+			<xsd:element name="EmailAddress" type="oe:EmailAddress" minOccurs="0" />
+			<xsd:element name="PhoneNumber" type="oe:PhoneNumber" minOccurs="0" />
+		</xsd:sequence>
+		<xsd:attribute name="ContractPartnerNumber" type="oe:ContractNumber" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="DeliveryAddressDataMin">
+		<xsd:sequence>
+			<xsd:element name="PostalCode" type="oe:PostalCode" />
+			<xsd:element name="City" type="oe:City" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="DeliveryAddressDataBasic">
+		<xsd:sequence>
+			<xsd:element name="PostalCode" type="oe:PostalCode" />
+			<xsd:element name="City" type="oe:City" minOccurs="0" />
+			<xsd:element name="Street" type="oe:Street" minOccurs="0" />
+			<xsd:element name="StreetNo" type="oe:StreetNo" minOccurs="0" />
+			<xsd:element name="Staircase" type="oe:Staircase" minOccurs="0" />
+			<xsd:element name="Floor" type="oe:Floor" minOccurs="0" />
+			<xsd:element name="DoorNumber" type="oe:DoorNumber" minOccurs="0" />
+			<xsd:element name="AdditionalAddress" type="oe:AdditionalAddress" minOccurs="0" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="DeliveryAddressDataFull">
+		<xsd:sequence>
+			<xsd:element name="PostalCode" type="oe:PostalCode" />
+			<xsd:element name="City" type="oe:City" />
+			<xsd:element name="Street" type="oe:Street" />
+			<xsd:element name="StreetNo" type="oe:StreetNo" />
+			<xsd:element name="Staircase" type="oe:Staircase" minOccurs="0" />
+			<xsd:element name="Floor" type="oe:Floor" minOccurs="0" />
+			<xsd:element name="DoorNumber" type="oe:DoorNumber" minOccurs="0" />
+			<xsd:element name="AdditionalAddress" type="oe:AdditionalAddress" minOccurs="0" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="DeliveryAddressDataFullWithMultipleMPs">
+		<xsd:sequence>
+			<xsd:element name="PostalCode" type="oe:PostalCode" />
+			<xsd:element name="City" type="oe:City" />
+			<xsd:element name="Street" type="oe:Street" />
+			<xsd:element name="StreetNo" type="oe:StreetNo" />
+			<xsd:element name="Staircase" type="oe:Staircase" minOccurs="0" />
+			<xsd:element name="Floor" type="oe:Floor" minOccurs="0" />
+			<xsd:element name="DoorNumber" type="oe:DoorNumber" minOccurs="0" />
+			<xsd:element name="AdditionalAddress" type="oe:AdditionalAddress" minOccurs="0" />
+			<xsd:element name="MeteringPointId" type="oe:MeteringPointId" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="CorrespondenceAddressData">
+		<xsd:sequence>
+			<xsd:element name="Salutation" type="oe:Salutation" minOccurs="0" />
+			<xsd:element name="Name1" type="oe:Name" minOccurs="0" />
+			<xsd:element name="Name2" type="oe:Name" minOccurs="0" />
+			<xsd:element name="CompanyRegistrationNumber" type="oe:CompanyRegistrationNumber" minOccurs="0" />
+			<xsd:element name="VATNumber" type="oe:VATNumber" minOccurs="0" />
+			<xsd:element name="DateOfBirth" type="xsd:date" minOccurs="0" />
+			<xsd:element name="EmailAddress" type="oe:EmailAddress" minOccurs="0" />
+			<xsd:element name="PhoneNumber" type="oe:PhoneNumber" minOccurs="0" />
+			<xsd:element name="PostalCode" type="oe:PostalCode" minOccurs="0" />
+			<xsd:element name="City" type="oe:City" minOccurs="0" />
+			<xsd:element name="Street" type="oe:Street" minOccurs="0" />
+			<xsd:element name="StreetNo" type="oe:StreetNo" minOccurs="0" />
+			<xsd:element name="Staircase" type="oe:Staircase" minOccurs="0" />
+			<xsd:element name="Floor" type="oe:Floor" minOccurs="0" />
+			<xsd:element name="DoorNumber" type="oe:DoorNumber" minOccurs="0" />
+			<xsd:element name="AdditionalAddress" type="oe:AdditionalAddress" minOccurs="0" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="MeteringPointDataMin">
+		<xsd:attribute use="required" name="CaseId" type="oe:CaseId" />
+		<xsd:attribute name="MeteringPointId" type="oe:MeteringPointId" use="optional" />
+	</xsd:complexType>
+	<xsd:complexType name="MeteringPointDataBasic">
+		<xsd:attribute name="CaseId" type="oe:CaseId" use="required" />
+		<xsd:attribute name="MeteringPointId" type="oe:MeteringPointId" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="DeviceDataMin">
+		<xsd:sequence>
+			<xsd:element name="DeviceType" type="oe:DeviceType" minOccurs="0" />
+		</xsd:sequence>
+		<xsd:attribute name="DeviceNumber" type="oe:DeviceNumber" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="DeviceDataBasic">
+		<xsd:sequence>
+			<xsd:element name="DeviceType" type="oe:DeviceType" minOccurs="0" />
+		</xsd:sequence>
+		<xsd:attribute name="DeviceNumber" type="oe:DeviceNumber" use="required" />
+	</xsd:complexType>
+	
+	<xsd:complexType name="DeviceDataFull">
+		<xsd:sequence>
+			<xsd:element name="DeviceType" type="oe:DeviceType" />
+		</xsd:sequence>
+		<xsd:attribute name="DeviceNumber" type="oe:DeviceNumber" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="MeterData">
+		<xsd:sequence>
+			<xsd:element name="DateTo" type="xsd:date" />
+			<xsd:element name="MeterValueTo" type="oe:MeterValueTo" />
+		</xsd:sequence>
+		<xsd:attribute name="MeterCode" type="oe:MeterCode" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="MeterReadingInfoDataMin">
+		<xsd:sequence>
+			<xsd:element name="MeterReadingMonth" type="oe:Month_Monthly" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="MeterReadingInfoDataFull">
+		<xsd:sequence>
+			<xsd:element name="MeterReadingMonth" type="oe:Month_Monthly" />
+			<xsd:element name="ConsumptionBillingMonth" type="oe:Month_Monthly" />
+			<xsd:element name="YearOfNextBill" type="oe:Year" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="BillingInfoData">
+		<xsd:sequence>
+			<xsd:element name="ConsumptionLastPeriod" type="oe:ConsumptionProduction" />
+			<xsd:element name="AccountPeriodBegin" type="xsd:date" />
+			<xsd:element name="AccountPeriodEnd" type="xsd:date" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="MPElectricitySpecificDataMin">
+		<xsd:sequence>
+			<xsd:element name="ElectricityGridLossLevel" type="oe:ElectricityGridLevel" />
+		</xsd:sequence>
+		<xsd:attribute name="ElectricityGridUsageLevel" type="oe:ElectricityGridLevel" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="MPElectricitySpecificDataFull">
+		<xsd:sequence>
+			<xsd:element name="ElectricityGridLossLevel" type="oe:ElectricityGridLevel" />
+			<xsd:element name="GreenPowerData" type="oe:GreenPowerData" minOccurs="0"/>
+		</xsd:sequence>
+		<xsd:attribute name="ElectricityGridUsageLevel" type="oe:ElectricityGridLevel" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="GreenPowerData">
+		<xsd:sequence>
+			<xsd:element name="ShortageCapacity" type="oe:ShortageCapacity" />
+			<xsd:element name="DateOfFirstOperation" type="xsd:date" />
+			<xsd:element name="ForecastSupply" type="oe:ConsumptionProduction" />
+			<xsd:element name="EndOfFunding" type="xsd:date" minOccurs="0" />
+		</xsd:sequence>
+		<xsd:attribute name="PlantCategory" type="oe:PlantCategory" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="MPGasSpecificDataMin">
+		<xsd:sequence>
+			<xsd:element name="GasPeakPower" type="oe:GasPeakPower" />
+		</xsd:sequence>
+		<xsd:attribute name="GasGridUsageLevel" type="oe:GasGridLevel" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="MPGasSpecificDataBasic">
+		<xsd:sequence>
+			<xsd:element name="GasPeakPower" type="oe:GasPeakPower" />
+			<xsd:element name="MPGasSpecificLPCData" type="oe:MPGasSpecificLPCData" minOccurs="0" />
+		</xsd:sequence>
+		<xsd:attribute name="GasGridUsageLevel" type="oe:GasGridLevel" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="MPGasSpecificLPCData">
+		<xsd:sequence>
+			<xsd:element name="GasBalancingChangeDate" type="xsd:date" />
+		</xsd:sequence>
+		<xsd:attribute name="GasBalancingType" type="oe:GasBalancingType" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="GasGridUsageContractDataMin">
+		<xsd:sequence>
+			<xsd:element name="ContractDateTo" type="xsd:date" minOccurs="0" />
+			<xsd:element name="PeakPower" type="oe:ConsumptionProduction" />
+			<xsd:element name="ForecastConsumption" type="oe:ConsumptionProduction" />
+			<xsd:choice>
+				<xsd:element name="GasConsumerData" type="oe:GasConsumerDataMin" />
+				<xsd:element name="GasProducerData" type="oe:GasProducerData" />
+			</xsd:choice>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="GasGridUsageContractDataMinConsumer">
+		<xsd:sequence>
+			<xsd:element name="ContractDateTo" type="xsd:date" minOccurs="0" />
+			<xsd:element name="PeakPower" type="oe:ConsumptionProduction" />
+			<xsd:element name="ForecastConsumption" type="oe:ConsumptionProduction" />
+			<xsd:element name="GasConsumerData" type="oe:GasConsumerDataMin" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="GasGridUsageContractDataFull">
+		<xsd:sequence>
+			<xsd:element name="ContractDateTo" type="xsd:date" minOccurs="0" />
+			<xsd:element name="PeakPower" type="oe:ConsumptionProduction" />
+			<xsd:element name="ForecastConsumption" type="oe:ConsumptionProduction" />
+			<xsd:element name="MinimalPressure" type="oe:Pressure" />
+			<xsd:element name="MaximalPressure" type="oe:Pressure" />
+			<xsd:choice>
+				<xsd:element name="GasConsumerData" type="oe:GasConsumerDataFull" />
+				<xsd:element name="GasProducerData" type="oe:GasProducerData" />
+			</xsd:choice>
+		</xsd:sequence>
+		<xsd:attribute name="RequestForGridUsageContract" type="xsd:boolean" use="required" />
+		<xsd:attribute name="StandardTerms" type="xsd:boolean" use="required" />
+		<xsd:attribute name="LimitedGridUsageContract" type="xsd:boolean" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="GasConsumerDataMin">
+		<xsd:sequence>
+			<xsd:element name="MonthOfUse" type="oe:Month" minOccurs="0" maxOccurs="11" />
+		</xsd:sequence>
+		<xsd:attribute name="KindOfConsumer" type="oe:KindOfConsumerProducer" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="GasConsumerDataFull">
+		<xsd:sequence>
+			<xsd:element name="MonthOfUse" type="oe:Month" minOccurs="0" maxOccurs="11" />
+			<xsd:element name="GridUsage" type="oe:GridUsage" maxOccurs="10" />
+		</xsd:sequence>
+		<xsd:attribute name="KindOfConsumer" type="oe:KindOfConsumerProducer" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="GasProducerData">
+		<xsd:attribute name="KindOfProducer" type="oe:KindOfConsumerProducer" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="SupplierContractDataMin">
+		<xsd:attribute name="ContractNumber" type="oe:ContractNumber" use="optional" />
+	</xsd:complexType>
+	
+	<xsd:complexType name="SupplierContractDataBasic">
+		<xsd:sequence>
+			<xsd:element name="GridInvoiceRecipient" type="oe:GridInvoiceRecipient" />
+			<xsd:element name="ConsumptionBillingCycle" type="oe:ConsumptionBillingCycle" minOccurs="0"/>
+		</xsd:sequence>
+		<xsd:attribute name="ContractNumber" type="oe:ContractNumber" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="SupplierContractDataExtended">
+		<xsd:sequence>
+			<xsd:element name="GridInvoiceRecipient" type="oe:GridInvoiceRecipient" />
+			<xsd:element name="ConsumptionBillingCycle" type="oe:ConsumptionBillingCycle" minOccurs="0"/>
+			<xsd:element name="SupplyOfLastResort" type="xsd:boolean" />
+		</xsd:sequence>
+		<xsd:attribute name="ContractNumber" type="oe:ContractNumber" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="ContractTerminationInfoDataMin">
+		<xsd:sequence>
+			<xsd:element name="ContractTerminationDeadline" type="xsd:date" />
+		</xsd:sequence>
+	</xsd:complexType>
+	
+	<xsd:complexType name="ContractTerminationInfoDataFull">
+	 	<xsd:choice>
+			<xsd:sequence>
+					<xsd:element name="ContractTerminationDeadline" type="xsd:date" />
+					<xsd:element name="CTTermOfNoticeDataOpt" type="oe:CTTermOfNoticeData" minOccurs="0" />
+			</xsd:sequence>
+			<xsd:sequence>
+					<xsd:element name="CTTermOfNoticeData" type="oe:CTTermOfNoticeData" />
+			</xsd:sequence>
+		</xsd:choice>
+		<xsd:attribute name="RegisteredContractTermination" type="xsd:boolean" use="required" />
+	</xsd:complexType>	
+
+	<xsd:complexType name="CTTermOfNoticeData">
+		<xsd:sequence>
+			<xsd:element name="TimeShare" type="oe:TimeShare" />
+			<xsd:element name="TimeUnit" type="oe:TimeUnit" />
+		</xsd:sequence>
+		<xsd:attribute name="TimeOfNotice" type="oe:TimeOfNotice" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="POADataMin">
+		<xsd:attribute name="POANumber" type="oe:POANumber" use="required" />
+	</xsd:complexType>
+	
+	<xsd:complexType name="POADataBasic">
+		<xsd:sequence>
+			<xsd:element name="POASubstantiationData" type="oe:POASubstantiationDataBasic" />
+		</xsd:sequence>
+		<xsd:attribute name="POANumber" type="oe:POANumber" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="POADataFull">
+		<xsd:sequence>
+			<xsd:element name="POASubstantiationData" type="oe:POASubstantiationDataFull" />
+		</xsd:sequence>
+		<xsd:attribute name="POANumber" type="oe:POANumber" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="POASubstantiationDataBasic">
+		<xsd:attribute name="POAProcess" type="oe:POAProcess" use="required" />
+	</xsd:complexType>
+	
+	<xsd:complexType name="POASubstantiationDataFull">
+		<xsd:choice>
+			<xsd:element name="POAFile" type="xsd:base64Binary" />
+			<xsd:element name="POASubstantiation" type="oe:POASubstantiation" />
+		</xsd:choice>
+		<xsd:attribute name="POAProcess" type="oe:POAProcess" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="RequestedContractTerminationData">
+		<xsd:sequence>
+			<xsd:element name="RequestedContractTerminationDate" type="xsd:date" />
+		</xsd:sequence>
+		<xsd:attribute name="EarliestContractTermination" type="xsd:boolean" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="RequestedStartSupplyDataMin">
+		<xsd:sequence>
+			<xsd:element name="RequestedStartSupplyDate" type="xsd:date" />
+		</xsd:sequence>
+		<xsd:attribute name="RecognitionDate" type="xsd:date" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="RequestedStartSupplyDataFull">
+		<xsd:sequence>
+			<xsd:element name="RequestedStartSupplyDate" type="xsd:date" />
+		</xsd:sequence>
+		<xsd:attribute name="RecognitionDate" type="xsd:date" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="RequestedEndSupplyDataMin">
+		<xsd:attribute name="InsolvencyOrDecease" type="oe:InsolvencyOrDecease" use="required" />
+	</xsd:complexType>
+	
+	<xsd:complexType name="RequestedEndSupplyDataBasic">
+		<xsd:sequence>
+			<xsd:element name="RequestedEndSupplyDate" type="xsd:date" />
+		</xsd:sequence>
+		<xsd:attribute name="InsolvencyOrDecease" type="oe:InsolvencyOrDecease" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="RequestedEndSupplyDataFull">
+		<xsd:sequence>
+			<xsd:element name="RequestedEndSupplyDate" type="xsd:date" />
+		</xsd:sequence>
+		<xsd:attribute name="ContractTerminated" type="xsd:boolean" use="required" />
+		<xsd:attribute name="QualifiedDunningDone" type="xsd:boolean" use="required" />
+		<xsd:attribute name="InsolvencyOrDecease" type="oe:InsolvencyOrDecease" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="AddressSelectionDataMin">
+		<xsd:sequence>
+			<xsd:element name="EnergyDirectionSelection" type="oe:EnergyDirectionSelection" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="AddressSelectionDataFull">
+		<xsd:sequence>
+			<xsd:element name="EnergyDirectionSelection" type="oe:EnergyDirectionSelection" />
+		</xsd:sequence>
+		<xsd:attribute name="AllMeteringPointsToPremise" type="xsd:boolean" use="required" />
+	</xsd:complexType>
+
+	<xsd:complexType name="AdditionalData">
+		<xsd:sequence>
+			<xsd:element name="Value" type="oe:AdditionalDataValue" />
+		</xsd:sequence>
+		<xsd:attribute name="Name" use="required" type="oe:AdditionalDataName" />
+	</xsd:complexType>
+
+</xsd:schema>

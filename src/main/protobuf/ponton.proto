@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "at.energydash.admin";
+option java_outer_classname = "RegisterPontonProto";
+
+package at.energydash;
+
+// The eda communication service definition.
+service RegisterPontonService {
+  // Sends a tenant config to connect the email server of specific tenant
+  rpc register (RegisterPontonRequest) returns (RegisteredPontonReply) {}
+}
+
+// The request message containing the user's name.
+message RegisterPontonRequest {
+  string tenant = 1;
+  string username = 2;
+  string password = 3;
+  string domain = 4;
+}
+
+// The response message containing the greetings
+message RegisteredPontonReply {
+  uint32 status = 1;
+  string message = 2;
+}

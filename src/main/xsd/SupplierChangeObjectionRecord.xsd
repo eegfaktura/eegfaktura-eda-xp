@@ -1,0 +1,95 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:oe="http://www.ebutilities.at/datenplattform/0700" targetNamespace="http://www.ebutilities.at/datenplattform/0700" elementFormDefault="qualified">
+
+	<xsd:include schemaLocation="CommonTypes.xsd" />
+
+	<xsd:element name="SupplierChangeObjectionRecord">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantData" type="oe:MarketParticipantData" />
+				<xsd:element name="MessageData" type="oe:SupplierChangeObjectionRecordMessageData" />
+				<xsd:element name="ProcessData" type="oe:SupplierChangeObjectionRecordProcessData" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:complexType name="SupplierChangeObjectionRecordMessageData">
+		<xsd:complexContent>
+			<xsd:extension base="oe:MessageDataMin">
+				<xsd:sequence>
+					<xsd:element name="MessageCode">
+						<xsd:simpleType>
+							<xsd:restriction base="oe:MessageCode">
+								<xsd:enumeration value="EINWAND_LN_WIES" />
+								<xsd:enumeration value="EINWAND_NB_WIES" />
+							</xsd:restriction>
+						</xsd:simpleType>
+					</xsd:element>
+					<xsd:element name="CasesData" type="oe:CasesDataSingle" />
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+	<xsd:complexType name="SupplierChangeObjectionRecordProcessData">
+		<xsd:sequence>
+			<xsd:element name="ResponseCodeData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:restriction base="oe:ResponseCodeDataMultiple">
+							<xsd:sequence>
+								<xsd:element name="ResponseCode" maxOccurs="3">
+									<xsd:simpleType>
+										<xsd:restriction base="oe:ResponseCode">
+											<xsd:enumeration value="18" />
+											<xsd:enumeration value="23" />
+											<xsd:enumeration value="24" />
+										</xsd:restriction>
+									</xsd:simpleType>
+								</xsd:element>
+							</xsd:sequence>
+							<xsd:attribute name="ResponseCodeGroup" use="required">
+								<xsd:simpleType>
+									<xsd:restriction base="oe:ResponseCodeGroup">
+										<xsd:enumeration value="EINWAND_LN_WIES" />
+										<xsd:enumeration value="EINWAND_NB_WIES" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:attribute>
+						</xsd:restriction>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="MeteringPointData">
+				<xsd:complexType>
+					<xsd:complexContent>
+						<xsd:extension base="oe:MeteringPointDataBasic">
+							<xsd:sequence>
+								<xsd:element name="SupplierContractData">
+									<xsd:complexType>
+										<xsd:complexContent>
+											<xsd:extension base="oe:SupplierContractDataMin">
+												<xsd:sequence>
+														<xsd:element name="ContractTerminationInfoData" type="oe:ContractTerminationInfoDataMin" minOccurs="0" />
+												</xsd:sequence>
+											</xsd:extension>
+										</xsd:complexContent>
+									</xsd:complexType>
+								</xsd:element>
+							</xsd:sequence>
+						</xsd:extension>
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="ProcessControlData">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="RequestedChangeSupplyDate" type="xsd:date" />
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="AdditionalData" type="oe:AdditionalData" minOccurs="0" maxOccurs="1000" />
+		</xsd:sequence>
+	</xsd:complexType>
+
+</xsd:schema>
