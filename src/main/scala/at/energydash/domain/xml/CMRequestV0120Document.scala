@@ -48,7 +48,7 @@ object CMRequestV0120Document {
       ProcessDate = Helper.toCalendar(dateFmt.format(calendar.getTime)),
       MeteringPoint = message.meter.map(x => x.meteringPoint),
       CMRequestId = message.requestId.get,
-      ConsentId = message.meter.map(m => m.consentId.getOrElse("")),
+      ConsentId = message.meter.flatMap(m=>m.consentId),
       CMRequest = v01p20.ReqType(
         ReqDatType = "EnergyCommunityRegistration",
         DateFrom = Helper.toCalendar(dateFmt.format(processCalendar.getTime)),

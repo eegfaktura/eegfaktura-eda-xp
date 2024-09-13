@@ -9,13 +9,10 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
 import akka.util.{ByteString, Timeout}
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish}
-import at.energydash.domain.EbMsMessage
 import at.energydash.domain.eda.EdaErrorMessage
 import at.energydash.domain.enums.EbMsMessageType
-import at.energydash.domain.xml.ECMPListV0110Document
+import at.energydash.domain.{EbMsMessage, XmlParseHandler}
 import com.typesafe.scalalogging.StrictLogging
-import ecmplist.v01p10
-import scalaxb.DataRecord
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
@@ -85,10 +82,12 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
       .map(info => Tuple2(info, parseProcessName(info.processName)))
       .mapAsync(1) {
         case (info, Some(process)) => bodyPart2Xml(info.bodyPart).map(xml => {
-          scalaxb.DataRecord(scalaxb.ElemName(xml)) match {
-            case DataRecord(_, _, x: v01p10.ECMPList) => (process._1, ECMPListV0110Document(x).toMessage)
-            case _ => ("error", edaErrorMessage("Unknown process type").message)
-          }
+          (process._1, XmlParseHandler.mapXmlToEbms(
+            XmlParseHandler.ParseHeader("ADMIN", "ADMIN", MessageType = Some(process._1)), xml))
+//          scalaxb.DataRecord(scalaxb.ElemName(xml)) match {
+//            case DataRecord(_, _, x: v01p10.ECMPList) => (process._1, ECMPListV0110Document(x).toMessage)
+//            case _ => ("error", edaErrorMessage("Unknown process type").message)
+//          }
         })
       }
       .map {

@@ -163,6 +163,11 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
 
     source
       .map(msg => msg.payload.utf8String)
+      .map(msg => {
+          println(s"MSG: $msg")
+          msg
+        }
+      )
       .mapAsync(1)(commandFlow)
       .map(_.withQos(MqttQoS.atLeastOnce))
       .to(responseSink)

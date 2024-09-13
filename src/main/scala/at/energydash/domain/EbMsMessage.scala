@@ -10,7 +10,8 @@ import java.util.Date
 
 case class ResponseData(MeteringPoint: Option[String],
                         ResponseCode: Seq[BigInt],
-                        ConsentEnd: Option[Long] = None)
+                        ConsentEnd: Option[Long] = None,
+                        ConsentId: Option[String] = None)
 
 case class Timeline(from: Date, to: Date)
 

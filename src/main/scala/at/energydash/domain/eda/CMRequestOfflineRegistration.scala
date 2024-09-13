@@ -32,64 +32,9 @@ case class CMRequestOfflineRegistrationXMLMessage(message: EbMsMessage) extends 
   override def toXML: Node = {
     scalaxb.toXML[cmrequest.v01p20.CMRequest](
       toDoc,
-      Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10"),
+      schemaLocation,
       rootNodeLabel,
       toScope,
       true).head
   }
 }
-
-//object CMRequestOfflineRegistrationXMLMessage extends EdaResponseType {
-//  def fromXML(xmlFile: Elem): Try[CMRequestOfflineRegistration] = {
-//    resolveMessageCode(xmlFile) match {
-//      case Success(mc) => mc match {
-//        case EbMsMessageType.OFFLINE_REG_COMPLETION => Try(scalaxb.fromXML[ECMPList](xmlFile)).map(document =>
-//          CMRequestOfflineRegistration(
-//            EbMsMessage(
-//              messageId = Some(document.ProcessDirectory.MessageId),
-//              conversationId = document.ProcessDirectory.ConversationId,
-//              sender = document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-//              receiver = document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-//              messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
-//              messageCodeVersion = Some("01.00"),
-//              meterList = Some(document.ProcessDirectory.MPListData
-//                .map(mp =>
-//                  Meter(
-//                    mp.MeteringPoint,
-//                    Some(MeterDirectionType.withName(mp.MPTimeData.head.EnergyDirection.toString))
-//                  )
-//                )
-//              ),
-//            )
-//          )
-//        )
-//        case _ => Try(scalaxb.fromXML[CMNotification](xmlFile)).map(document =>
-//          CMRequestOfflineRegistration(
-//            EbMsMessage(
-//              messageId=Some(document.ProcessDirectory.MessageId),
-//              conversationId=document.ProcessDirectory.ConversationId,
-//              sender=document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-//              receiver=document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-//              messageCode=EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode),
-//              messageCodeVersion=Some("01.11"),
-//              requestId=Some(document.ProcessDirectory.CMRequestId),
-//              responseData=Some(document.ProcessDirectory.ResponseData.map(r => ResponseData(r.MeteringPoint, r.ResponseCode))),
-//            )
-//          )
-//        )
-//      }
-//      case Failure(exception) =>
-//        Try(CMRequestOfflineRegistration(
-//          EbMsMessage(
-//            messageCode = EbMsMessageType.ERROR_MESSAGE,
-//            messageCodeVersion=Some("01.00"),
-//            conversationId = "1",
-//            messageId = None,
-//            sender = "",
-//            receiver = "",
-//            errorMessage = Some(exception.getMessage)
-//          )
-//        ))
-//    }
-//  }
-//}

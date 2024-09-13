@@ -26,14 +26,14 @@ case class CMRequestRegistrationOnlineXMLMessageV0200(message: EbMsMessage) exte
   override def toDoc: cmrequest.v01p20.CMRequest = CMRequestV0120Document(message).toDoc
 
   override def toScope: NamespaceBinding = scalaxb.toScope(
-//    None -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
-    Some("ns2") -> "http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p20",
+//    Some("ns2") -> "http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p20",
+    None -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
     Some("ct") -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
     Some("xsi") -> "http://www.w3.org/2001/XMLSchema-instance"
   )
 
   override def toXML: Node = {
-    scalaxb.toXML[cmrequest.v01p20.CMRequest](toDoc, Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p20"), rootNodeLabel,
+    scalaxb.toXML[cmrequest.v01p20.CMRequest](toDoc, schemaLocation, rootNodeLabel,
       toScope,
       true).head
   }
@@ -60,119 +60,3 @@ case class CMRequestRegistrationOnlineXMLMessageV0110(message: EbMsMessage) exte
       true).head
   }
 }
-
-
-//object CMRequestRegistrationOnlineXMLMessageV0110 extends EdaResponseType {
-//  def fromXML(xmlFile: Elem): Try[CMRequestRegistrationOnline] = {
-//    resolveMessageCode(xmlFile) match {
-//      case Success(mc) => mc match {
-//        case EbMsMessageType.ONLINE_REG_COMPLETION => Try(scalaxb.fromXML[ecmplist.v01p00.ECMPList](xmlFile)).map(document =>
-//          CMRequestRegistrationOnline(
-//            EbMsMessage(
-//              messageId = Some(document.ProcessDirectory.MessageId),
-//              conversationId = document.ProcessDirectory.ConversationId,
-//              sender = document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-//              receiver = document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-//              messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
-//              messageCodeVersion = Some("01.00"),
-//              meterList = Some(document.ProcessDirectory.MPListData
-//                .flatMap(m =>
-//                  m.MPTimeData.map(mp =>
-//                    Meter(
-//                      meteringPoint=m.MeteringPoint,
-//                      direction=Some(MeterDirectionType.withName(mp.EnergyDirection.toString)),
-//                      activation=Some(mp.DateActivate.toGregorianCalendar.getTime),
-//                    ))
-//                )
-//              ),
-//            )
-//          )
-//        )
-//        case _ => Try(scalaxb.fromXML[CMNotification](xmlFile)).map(document =>
-//          CMRequestRegistrationOnline(
-//            EbMsMessage(
-//              messageId=Some(document.ProcessDirectory.MessageId),
-//              conversationId=document.ProcessDirectory.ConversationId,
-//              sender=document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-//              receiver=document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-//              messageCode=EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode),
-//              messageCodeVersion=Some("01.11"),
-//              requestId=Some(document.ProcessDirectory.CMRequestId),
-//              responseData=Some(document.ProcessDirectory.ResponseData.map(r => ResponseData(r.MeteringPoint, r.ResponseCode))),
-//            )
-//          )
-//        )
-//      }
-//      case Failure(exception) =>
-//        Try(CMRequestRegistrationOnline(
-//          EbMsMessage(
-//            messageCode = EbMsMessageType.ERROR_MESSAGE,
-//            messageCodeVersion=Some("01.00"),
-//            conversationId = "1",
-//            messageId = None,
-//            sender = "",
-//            receiver = "",
-//            errorMessage = Some(exception.getMessage)
-//          )
-//        ))
-//    }
-//  }
-//}
-//
-//object CMRequestRegistrationOnlineXMLMessageV0200 extends EdaResponseType {
-//  def fromXML(xmlFile: Elem): Try[CMRequestRegistrationOnline] = {
-//    resolveMessageCode(xmlFile) match {
-//      case Success(mc) => mc match {
-//        case EbMsMessageType.ONLINE_REG_COMPLETION => Try(scalaxb.fromXML[ecmplist.v01p10.ECMPList](xmlFile)).map(document =>
-//          CMRequestRegistrationOnline(
-//            EbMsMessage(
-//              messageId = Some(document.ProcessDirectory.MessageId),
-//              conversationId = document.ProcessDirectory.ConversationId,
-//              sender = document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-//              receiver = document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-//              messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
-//              messageCodeVersion = Some("02.00"),
-//              meterList = Some(document.ProcessDirectory.MPListData
-//                .flatMap(m =>
-//                  m.MPTimeData.map(mp =>
-//                    Meter(
-//                      meteringPoint=m.MeteringPoint,
-//                      direction=Some(MeterDirectionType.withName(mp.EnergyDirection.toString)),
-//                      activation=Some(mp.DateActivate.toGregorianCalendar.getTime),
-//                      partFact=Some(mp.ECPartFact)
-//                    ))
-//                )
-//              ),
-//            )
-//          )
-//        )
-//        case _ => Try(scalaxb.fromXML[CMNotification](xmlFile)).map(document =>
-//          CMRequestRegistrationOnline(
-//            EbMsMessage(
-//              messageId=Some(document.ProcessDirectory.MessageId),
-//              conversationId=document.ProcessDirectory.ConversationId,
-//              sender=document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-//              receiver=document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-//              messageCode=EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode),
-//              messageCodeVersion=Some("01.11"),
-//              requestId=Some(document.ProcessDirectory.CMRequestId),
-//              responseData=Some(document.ProcessDirectory.ResponseData.map(r => ResponseData(r.MeteringPoint, r.ResponseCode))),
-//            )
-//          )
-//        )
-//      }
-//      case Failure(exception) =>
-//        Try(CMRequestRegistrationOnline(
-//          EbMsMessage(
-//            messageCode = EbMsMessageType.ERROR_MESSAGE,
-//            messageCodeVersion=Some("01.00"),
-//            conversationId = "1",
-//            messageId = None,
-//            sender = "",
-//            receiver = "",
-//            errorMessage = Some(exception.getMessage)
-//          )
-//        ))
-//    }
-//  }
-//}

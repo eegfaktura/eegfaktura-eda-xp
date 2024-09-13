@@ -39,5 +39,5 @@ object Config {
 
   def interfaceMode = config.getString("app.interface.mode")
 
-  def edaKepServer = config.getConfig("app.kepserver")
+  def edaKepServer: AkkaConfig = config.getConfig("app.kepserver")
 }

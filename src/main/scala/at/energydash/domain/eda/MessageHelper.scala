@@ -6,7 +6,7 @@ import at.energydash.domain.enums.EbMsProcessType
 import at.energydash.domain.enums.EbMsProcessType.EbMsProcessType
 import at.energydash.utils.zip.CRC8
 import com.google.common.io.BaseEncoding
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.text.SimpleDateFormat
 import java.util.zip.CRC32
@@ -14,7 +14,7 @@ import java.util.{Calendar, Date, GregorianCalendar, Locale}
 
 object MessageHelper {
 
-  var logger = LoggerFactory.getLogger("MessageHelper")
+  var logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   /**
    * Extract Message Type for Sending to Marktteilnehmer.
@@ -31,12 +31,12 @@ object MessageHelper {
     }
   }
 
-  /**
-   * Lookup for Message object according to Message type. Incoming messages.
-   * @param processCode
-   * @param version
-   * @return
-   */
+//  /**
+//   * Lookup for Message object according to Message type. Incoming messages.
+//   * @param processCode
+//   * @param version
+//   * @return
+//   */
 //  def getEdaMessageFromHeader(processCode: EbMsProcessType, version: String): Option[EdaResponseType] = {
 //    processCode match {
 //      case PROCESS_ENERGY_RESPONSE => {

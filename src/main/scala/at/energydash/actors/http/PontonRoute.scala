@@ -23,7 +23,9 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand])(implicit val system: Act
   implicit val scheduler: Scheduler = system.scheduler
   implicit val ec: ExecutionContext = system.executionContext
 
-  var logger: Logger = LoggerFactory.getLogger("PontonRoute")
+  var logger: Logger = LoggerFactory.getLogger(this.getClass)
+
+  logger.debug("Start Ponton Routes ...")
 
   val pontonRoutes: Route =
     pathPrefix("pontonxp") {

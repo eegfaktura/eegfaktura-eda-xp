@@ -26,8 +26,7 @@ trait AkkaHttpClients extends HttpClientsAsync { this: AkkaHttpHandler =>
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  val kepServerConfig = Config.edaKepServer
-  val kepServerUrl = Uri(Config.edaKepServer.getString("url"))
+  private val kepServerUrl = Uri(Config.edaKepServer.getString("url"))
 
   trait AkkaHttpClient extends HttpClient {
     override def request(in: String, address: URI, headers: Map[String, String])(implicit ec: ExecutionContext): Future[String] = {

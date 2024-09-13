@@ -13,7 +13,7 @@ import javax.mail.internet.InternetAddress
 import scala.concurrent.{ExecutionContext, Future}
 
 object EmailService {
-  var logger: Logger = LoggerFactory.getLogger("EmailService")
+  var logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   case class EmailModel(tenant: String, toEmail: String, subject: String, attachment: ByteString, data: EbMsMessage)
 

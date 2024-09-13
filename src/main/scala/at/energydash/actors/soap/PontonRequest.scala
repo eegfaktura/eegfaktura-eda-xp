@@ -7,7 +7,9 @@ import at.energydash.domain.EbMsMessage
 import at.energydash.domain.eda.MessageHelper
 import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
 import ponton.OutHeaderType
-import scalaxb.{HttpClientsAsync, Soap11ClientsAsync}
+import ponton.`package`.__NodeXMLFormat
+import scalaxb.{DataRecord, HttpClientsAsync, Soap11ClientsAsync}
+import soapenvelope11.{Body, Envelope, Header}
 
 import java.net.URI
 import scala.concurrent.{ExecutionContext, Future}
@@ -27,7 +29,7 @@ trait OutboundDocument4SOAPBindings { this: scalaxb.Soap11ClientsAsync with scal
       soapClient.requestResponse(scalaxb.toXML(ponton.OutboundDocument(header, message), targetNamespace, "OutboundDocument", scope),
         Nil, scope, baseAddress, "POST", Some(new java.net.URI("http://xp.ponton.de/eda/v320/outboundDocument"))).map({ case x => () })
 
-    def sendRequest(edaMessage: EbMsMessage)(implicit ec: ExecutionContext): Future[(scala.xml.NodeSeq, scala.xml.NodeSeq)] = {
+    def sendRequest(edaMessage: EbMsMessage)(implicit ec: ExecutionContext): Future[Envelope] /*Future[(scala.xml.NodeSeq, scala.xml.NodeSeq)]*/ = {
       val xmlObj = MessageHelper.getEdaMessageByType(edaMessage)
       val header = OutHeaderType(
         MessageId = buildMessageId(edaMessage.sender, edaMessage.seqNr.getOrElse(10000)),
@@ -38,10 +40,25 @@ trait OutboundDocument4SOAPBindings { this: scalaxb.Soap11ClientsAsync with scal
         LogInfo = Some("VFEEG-OUT"))
       val body = ponton.Message2(message2option = xmlObj.toRecord)
 
-      soapClient.requestResponse(scalaxb.toXML(ponton.OutboundDocument(header, body), targetNamespace, Some("OutboundDocument"),
-        scalaxb.toScope(scalaxb.fromScope(scope).foldRight(scalaxb.fromScope(xmlObj.toScope)){ (a, b) => a :: b }.reverse : _*/*.distinct: _**/), true
-      ), Nil, scope, baseAddress, "POST", Some(new java.net.URI("http://xp.ponton.de/eda/v320/outboundDocument")))
+      println(s"OUTBOUND MESSAGE HEADER: $header")
 
+//      soapClient.requestResponse(scalaxb.toXML(ponton.OutboundDocument(header, body), targetNamespace, Some("OutboundDocument"),
+//        scalaxb.toScope(scalaxb.fromScope(scope).foldRight(scalaxb.fromScope(xmlObj.toScope)){ (a, b) => a :: b }.reverse : _*/*.distinct: _**/), true
+//      ), Nil, scope, baseAddress, "POST", Some(new java.net.URI("http://xp.ponton.de/eda/v320/outboundDocument")))
+
+
+      val soapBody = scalaxb.toXML(
+        ponton.OutboundDocument(header, body), targetNamespace, Some("OutboundDocument"),
+        scalaxb.toScope(scalaxb.fromScope(scope).foldRight(scalaxb.fromScope(xmlObj.toScope)){ (a, b) => a :: b }.reverse : _*/*.distinct: _**/),
+        typeAttribute = true)
+
+      val bodyRecords = soapBody.toSeq map { DataRecord(None, None, _) }
+      val headerOption = Nil.toSeq.headOption map { _ =>
+        Header(Nil.toSeq map {DataRecord(None, None, _)}, Map())
+      }
+      println(s"HeaderOptions: $headerOption")
+      val envelope = Envelope(None, Body(bodyRecords, Map()), Nil, Map())
+      soapClient.soapRequest(Some(envelope), scope, baseAddress, "POST", Some(new java.net.URI("http://xp.ponton.de/eda/v320/outboundDocument")))
     }
   }
 }
