@@ -30,6 +30,23 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers {
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
     }
+
+    "build from JsonFile" in {
+      val testMessage = """{"conversationId":"12","messageId":"34","requestId":"T672AGJ2","sender":"RC102728","receiver":"AT003000","messageCode":"ANFORDERUNG_ECON","messageCodeVersion":"02.00","meter":{"meteringPoint":"AT0030000000000000000000000179843","direction":"CONSUMPTION","partFact":100,"from":1726444800000},"ecId":"AT00300000000RC102728000000972173"}"""
+
+      val message = decode[EbMsMessage](testMessage)
+
+      val node = message match {
+        case Right(m) => CMRequestRegistrationOnlineXMLMessageV0200(m).toXML
+      }
+
+      (node \ "MarketParticipantDirectory" \ "MessageCode").text shouldBe EbMsMessageType.ONLINE_REG_INIT.toString
+      (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000179843"
+      (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC102728000000972173"
+      (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
+
+      println(node)
+    }
   }
 
   "Energy XML File" should {

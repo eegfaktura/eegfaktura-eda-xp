@@ -8,7 +8,8 @@ import scala.concurrent.{ExecutionContext, Future}
 trait TenantConfigRepository {
   def all(): Future[Seq[TenantConfig]]
   def byTenant(tenant: String): Future[Option[TenantConfig]]
-  def allActivated(): Future[Seq[TenantConfig]]
+  def allActivated(cType: Option[String]): Future[Seq[TenantConfig]]
+  def isActivated(cType: String, tenant: String): Future[Option[TenantConfig]]
   def create(tenant: TenantConfig): Future[TenantConfig]
 //
 //  def update(id: Int, updateInquest: UpdateInquest): Future[TenantConfig]
@@ -26,20 +27,26 @@ class SlickTenantConfigRepository(databaseConfig: DatabaseConfig[PostgresProfile
 
   override def all(): Future[Seq[TenantConfig]] = databaseConfig.db.run(tenantConfigs.result)
 
-  override def allActivated(): Future[Seq[TenantConfig]] = {
-    val q = tenantConfigs.filter(_.active === true)
-    databaseConfig.db.run(q.result)
+  override def allActivated(cType: Option[String] = None): Future[Seq[TenantConfig]] = {
+    val q = tenantConfigs.filter(c => c.active === true)
+    val qq = cType match {
+      case Some(t) => q.filter(_.cType=== t)
+      case _ => q
+    }
+    println(qq.result.statements.toString())
+    databaseConfig.db.run(qq.result)
   }
 
-  override def byTenant(tenant: String): Future[Option[TenantConfig]] = {
-    val q = tenantConfigs.filter(_.tenant === tenant).take(1)
-    databaseConfig.db.run(q.result).map(_.headOption)
+  override def isActivated(cType: String, tenant: String): Future[Option[TenantConfig]] = {
+    databaseConfig.db.run(tenantConfigs.filter(c => c.active=== true && c.cType=== cType &&c.tenant=== tenant).take(1).result.headOption)
   }
 
-  override def create(tenantConfig: TenantConfig): Future[TenantConfig] = /*db.run {
-    (tenantConfigs returning tenantConfigs.map(_.tenant) into ((_, tenant) => tenantConfig.copy(tenant = tenant))) += tenantConfig
-  }*/
+  override def byTenant(tenant: String): Future[Option[TenantConfig]] =
+    databaseConfig.db.run(tenantConfigs.filter(_.tenant === tenant).take(1).result).map(_.headOption)
+
+  override def create(tenantConfig: TenantConfig): Future[TenantConfig] =
     databaseConfig.db.run(tenantConfigs += tenantConfig).map(_=>tenantConfig)
+
 
 
   def init() = {

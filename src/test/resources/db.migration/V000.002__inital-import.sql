@@ -1,6 +1,9 @@
 
-INSERT INTO eda.tenantconfig (tenant, domain, host, imapport, smtpport, smtphost, username, pass, imap_security, smtp_security, active)
-                      VALUES ('myeeg', 'email.com', 'email.com', 143, 25, 'smtp.mail.com', 'sepp', 'password', 'STARTTLS', 'STARTTLS', true);
+INSERT INTO eda.tenantconfig (tenant, type, domain, host, imapport, smtpport, smtphost, username, pass, imap_security, smtp_security, active)
+                      VALUES ('myeeg', 'MAIL', 'email.com', 'email.com', 143, 25, 'smtp.mail.com', 'sepp', 'password', 'STARTTLS', 'STARTTLS', true);
+
+INSERT INTO eda.tenantconfig (tenant, type, active)
+                      VALUES ('myeeg-kep', 'KEP', true);
 
 INSERT INTO eda.conversation (id, conversation)
                       VALUES ('RC100699202407221900383040000107598', '{"conversationId":"RC100699202407221900383040000107598","messageId":"RC100699202407221900383040000107597","sender":"RC100699","receiver":"AT003100","messageCode":"ANFORDERUNG_ECON","messageCodeVersion":"02.00","requestId":"48NaALA","meter":{"meteringPoint":"AT0031000000099000000000000005832","direction":"GENERATION","partFact":100},"ecId":"AT00310000000RC100699EGR000600001"}');

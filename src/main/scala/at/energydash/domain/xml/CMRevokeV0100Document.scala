@@ -24,9 +24,11 @@ class CMRevokeV0100Document(doc: v01p00.CMRevoke) {
     messageCode = EbMsMessageType.withName(doc.MarketParticipantDirectory.MessageCode.toString),
     messageCodeVersion = Some("01.00"),
     responseData = Some(List(ResponseData(
-      Some(doc.ProcessDirectory.MeteringPoint),
-      List(1099),
-      Some(doc.ProcessDirectory.ConsentEnd.toGregorianCalendar().getTime.getTime))))
+      MeteringPoint = Some(doc.ProcessDirectory.MeteringPoint),
+      ResponseCode = List(1099),
+      ConsentEnd = Some(doc.ProcessDirectory.ConsentEnd.toGregorianCalendar().getTime.getTime),
+      ConsentId = Some(doc.ProcessDirectory.ConsentId)
+    )))
   )
 }
 

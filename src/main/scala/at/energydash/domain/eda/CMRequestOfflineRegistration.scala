@@ -24,8 +24,8 @@ case class CMRequestOfflineRegistrationXMLMessage(message: EbMsMessage) extends 
   override def toDoc: cmrequest.v01p20.CMRequest = CMRequestV0120Document(message).toDoc
 
   override def toScope: NamespaceBinding = scalaxb.toScope(
-    None -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
-    Some("ns2") -> "http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10",
+    None -> "http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10",
+    Some("ct") -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
     Some("xsi") -> "http://www.w3.org/2001/XMLSchema-instance"
   )
 

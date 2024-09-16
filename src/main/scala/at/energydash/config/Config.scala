@@ -11,12 +11,15 @@ object Config {
 
   case class MqttMailConfig(url: String, topic: String, qos: Int, consumerId: String)
 
+  case class ServerConfig(host: String, port: Int)
+
 //  lazy val config = ConfigFactory.load("application-test.conf")
   lazy val config = ConfigFactory.load()
   config.checkValid(ConfigFactory.defaultReference)
 
   lazy val emailPersistInbox = config.getString("epmsmail.mail.inbox")
-  lazy val adminSrvConfig: AkkaConfig = config.getConfig(s"epmsmail.admin")
+  lazy val adminSrvConfig: AkkaConfig = config.getConfig("epmsmail.admin")
+  lazy val grpcSrvConfig: AkkaConfig = config.getConfig("app.grpc")
   lazy val emailDomain = (tenant: String) => config.getString(s"epmsmail.mail.${tenant}.domain")
   lazy val interval: String => Duration = (domain: String) => config.getDuration(s"epmsmail.mail.${domain}.interval")
   def getMqttMailConfig: MqttMailConfig = MqttMailConfig(
@@ -40,4 +43,8 @@ object Config {
   def interfaceMode = config.getString("app.interface.mode")
 
   def edaKepServer: AkkaConfig = config.getConfig("app.kepserver")
+
+  def superviseType: Option[String] = config.optionalString("app.supervise-type")
+
+  def serverConfig: ServerConfig = ServerConfig(config.getString("app.server.host"), config.getInt("app.server.port"))
 }

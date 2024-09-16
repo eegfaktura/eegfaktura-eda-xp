@@ -11,7 +11,7 @@ import scalaxb.HttpClientsAsync
 import java.net.URI
 import scala.concurrent.{ExecutionContext, Future}
 
-trait AkkaHttpHandler extends AkkaHttpClients{
+trait AkkaHttpHandler extends AkkaHttpClients {
   def sendRequest(httpRequest: HttpRequest)(implicit actorSystem: ActorSystem[_]): Future[HttpResponse] = {
     Http().singleRequest(httpRequest)
   }

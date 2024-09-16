@@ -40,13 +40,6 @@ trait OutboundDocument4SOAPBindings { this: scalaxb.Soap11ClientsAsync with scal
         LogInfo = Some("VFEEG-OUT"))
       val body = ponton.Message2(message2option = xmlObj.toRecord)
 
-      println(s"OUTBOUND MESSAGE HEADER: $header")
-
-//      soapClient.requestResponse(scalaxb.toXML(ponton.OutboundDocument(header, body), targetNamespace, Some("OutboundDocument"),
-//        scalaxb.toScope(scalaxb.fromScope(scope).foldRight(scalaxb.fromScope(xmlObj.toScope)){ (a, b) => a :: b }.reverse : _*/*.distinct: _**/), true
-//      ), Nil, scope, baseAddress, "POST", Some(new java.net.URI("http://xp.ponton.de/eda/v320/outboundDocument")))
-
-
       val soapBody = scalaxb.toXML(
         ponton.OutboundDocument(header, body), targetNamespace, Some("OutboundDocument"),
         scalaxb.toScope(scalaxb.fromScope(scope).foldRight(scalaxb.fromScope(xmlObj.toScope)){ (a, b) => a :: b }.reverse : _*/*.distinct: _**/),

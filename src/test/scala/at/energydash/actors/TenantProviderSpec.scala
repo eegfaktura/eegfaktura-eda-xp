@@ -29,7 +29,7 @@ class TenantProviderSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       val edaResponse = createTestProbe[EdaCommand]
       val tenantActor = spawn(TenantProvider(mailActorProbe.ref))
       val testMessage = EbMsMessage(messageId = Some("1234"), conversationId = "con",
-        sender = "sender",
+        sender = "myeeg",
         receiver = "rec",
         messageCode = EbMsMessageType.OFFLINE_REG_INIT,
         messageCodeVersion = Some("02.00"),
@@ -58,8 +58,26 @@ class TenantProviderSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
         requestId = Some("567890"))
       tenantActor ! TenantStart
 
-      tenantActor ! PassEdaCommand("unreg", testMessage, edaResponse.ref)
-      edaResponse.expectMessage[SendResponseError](SendResponseError("unreg", "Tenant not registered"))
+      tenantActor ! PassEdaCommand("sender", testMessage, edaResponse.ref)
+      val errorResponse = edaResponse.expectMessage[SendResponseError](SendResponseError("sender", "rec", "Tenant not registered"))
+      println(errorResponse)
+    }
+
+    "Handle malformed Eda Message" in {
+      val mailActorProbe = createTestProbe[MqttCommand]()
+      val edaResponse = createTestProbe[EdaCommand]
+      val tenantActor = spawn(TenantProvider(mailActorProbe.ref))
+      val testMessage = EbMsMessage(messageId = Some("1234"), conversationId = "con",
+        sender = "myeeg",
+        receiver = "netz ooe",
+        messageCode = EbMsMessageType.OFFLINE_REG_INIT,
+        messageCodeVersion = Some("02.00"),
+        requestId = Some("567890"))
+      tenantActor ! TenantStart
+
+      tenantActor ! PassEdaCommand("myeeg", testMessage, edaResponse.ref)
+      val errorResponse = edaResponse.expectMessage[SendResponseError](SendResponseError("myeeg", "Local address contains control or whitespace", "Send Mail"))
+      println(errorResponse)
     }
   }
 }

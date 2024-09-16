@@ -35,8 +35,11 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand])(implicit val system: Act
             extractRequest { request =>
               println("Notification")
               println(request.headers)
-              println(request.entity.toStrict(1 second).map(_.data.utf8String))
-              complete(StatusCodes.OK)
+              request.entity.toStrict(1 second).onComplete {
+                case Success(d) => println(d.data.utf8String)
+                case Failure(f) => println(f)
+              }
+              complete(HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
             }
           }
         } ~
@@ -45,8 +48,10 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand])(implicit val system: Act
               extractRequest { request =>
                 println("Status")
                 println(request.headers)
-                println(request.entity.toStrict(1 second).map(_.data.utf8String))
-                //                complete(StatusCodes.OK)
+                request.entity.toStrict(1 second).onComplete {
+                  case Success(d) => println(d.data.utf8String)
+                  case Failure(f) => println(f)
+                }
                 complete(HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
               }
             }

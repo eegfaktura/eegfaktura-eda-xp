@@ -2,24 +2,34 @@ package at.energydash.domain.xml
 
 import at.energydash.config.Config
 import at.energydash.domain.eda.MessageHelper
+import at.energydash.domain.eda.MessageHelper.{buildCalendar, buildCalendarDate, getProcessDate}
 import at.energydash.domain.enums.{EbMsMessageType, EcDisModelEnum, EcTypeEnum, MeterDirectionType}
-import at.energydash.domain.xml.ECMPListV0110Document.now
 import at.energydash.domain.{EbMsMessage, Meter}
+import ecmplist.v01p10.ECMPList
 import ponton.`package`.{Commontypesv01p20_AddressTypeFormat, Commontypesv01p20_DocumentModeFormat, Ecmplistv01p10_SchemaVersionFormat, __BooleanXMLFormat}
 import scalaxb.Helper
 
-import java.util.{Calendar, Date}
+import java.util.{Calendar, Date, GregorianCalendar, Locale}
 
 case class ECMPListV0110Document(doc: ecmplist.v01p10.ECMPList) {
-  def toDoc() = doc
+  private def calcDateFrom(): Date = {
+    val now = new GregorianCalendar(new Locale("de", "AT"))
+    now.add(Calendar.DAY_OF_MONTH, 1)
+    if (now.get(Calendar.HOUR_OF_DAY) > 16) {
+      now.add(Calendar.DAY_OF_MONTH, 1)
+    }
+    now.getTime
+  }
 
-  def withMeterList(mList: Option[Seq[Meter]]) =
+  def toDoc: ECMPList = doc
+
+  def withMeterList(mList: Option[Seq[Meter]]): ECMPListV0110Document =
     copy(doc=doc.copy(ProcessDirectory =
       doc.ProcessDirectory.copy(MPListData = mList match {
         case Some(ml) => ml.map(m=>ecmplist.v01p10.MPListData(
           MeteringPoint = m.meteringPoint,
           MPTimeData = Seq(ecmplist.v01p10.MPTimeData(
-            DateFrom = Helper.toCalendar(MessageHelper.buildCalendarDate(now)),
+            DateFrom = Helper.toCalendar(buildCalendarDate(calcDateFrom())),
             DateTo = Helper.toCalendar("2099-12-31"),
             EnergyDirection = m.direction match {
               case Some(MeterDirectionType.CONSUMPTION) => ecmplist.v01p10.CONSUMPTION
@@ -62,9 +72,7 @@ case class ECMPListV0110Document(doc: ecmplist.v01p10.ECMPList) {
 }
 
 object ECMPListV0110Document {
-  val now = new Date
-  val processDate = Calendar.getInstance
-  processDate.add(Calendar.DATE, 1)
+  val processDate: GregorianCalendar = getProcessDate
 
   def apply(doc: ecmplist.v01p10.ECMPList) = new ECMPListV0110Document(doc)
 
@@ -74,10 +82,10 @@ object ECMPListV0110Document {
       RoutingHeader=commontypes.v01p20.RoutingHeader(
         commontypes.v01p20.RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[commontypes.v01p20.AddressType](commontypes.v01p20.ECNumber)))),
         commontypes.v01p20.RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[commontypes.v01p20.AddressType](commontypes.v01p20.ECNumber)))),
-        Helper.toCalendar(MessageHelper.buildCalendar(now))
+        Helper.toCalendar(buildCalendar(new Date))
       ),
       Sector=commontypes.v01p20.Number01,
-      MessageCode="ANFORDERUNG_CPF",
+      MessageCode=message.messageCode.toString,
       attributes=Map(
         ("@DocumentMode", scalaxb.DataRecord[commontypes.v01p20.DocumentMode](Config.interfaceMode match {
           case "SIMU" => commontypes.v01p20.SIMU
@@ -90,7 +98,7 @@ object ECMPListV0110Document {
       ProcessDirectory=ecmplist.v01p10.ProcessDirectory(
         MessageId = message.messageId.get,
         ConversationId = message.conversationId,
-        ProcessDate = Helper.toCalendar(MessageHelper.buildCalendarDate(processDate.getTime)),
+        ProcessDate = Helper.toCalendar(buildCalendarDate(processDate.getTime)),
         ECID = message.ecId.get,
         ECType = message.ecType match {
           case Some(EcTypeEnum.GEA) => ecmplist.v01p10.GC

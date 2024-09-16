@@ -24,7 +24,7 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   implicit def stringToInternetAddress(string:String):InternetAddress = new InternetAddress(string)
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val tenantConfig = TenantConfig("myeeg", "email.com", "email.com", 0, "smtp.mail.com", 0, "sepp", "password", "", "", true)
+  val tenantConfig = TenantConfig("myeeg", "KEP", Some("email.com"), Some("email.com"), Some(0), Some("smtp.mail.com"), Some(0), Some("sepp"), Some("password"), Some(""), Some(""), true)
   val emailRepo = new SlickEmailOutboxRepository(Db.getConfig)
   val rand = new scala.util.Random
 

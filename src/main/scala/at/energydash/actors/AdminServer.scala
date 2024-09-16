@@ -9,7 +9,7 @@ import at.energydash.admin.mail.SendMailServiceHandler
 import at.energydash.config.Config
 import at.energydash.mailer.ConfiguredMailer
 import at.energydash.service.{AdminServiceImpl, SendMailServiceImpl}
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 
 import javax.mail.Session
 import scala.concurrent.duration.DurationInt
@@ -19,12 +19,13 @@ import scala.util.{Failure, Success}
 object AdminServer {
 
   private def adminSrvConfig = Config.adminSrvConfig
+  private def grpcSrvConfig = Config.grpcSrvConfig
   def mailSession: Session = ConfiguredMailer.getAdminSession(adminSrvConfig)
   def apply(mailService: ActorRef[EdaCommand], system: ActorSystem[_]): Future[Http.ServerBinding] = new AdminServer(mailService, system).run()
 }
 
 class AdminServer(tenantProvider: ActorRef[EdaCommand], system: ActorSystem[_]) {
-  val logger = LoggerFactory.getLogger(this.getClass)
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
   def run(): Future[Http.ServerBinding] = {
     implicit val sys: ActorSystem[_] = system
     implicit val ec: ExecutionContext = system.executionContext
@@ -38,10 +39,11 @@ class AdminServer(tenantProvider: ActorRef[EdaCommand], system: ActorSystem[_]) 
     }
 
     val services: HttpRequest => Future[HttpResponse] = ServiceHandler.concatOrNotFound(mailerService, adminService)
-    val srvPort = AdminServer.adminSrvConfig.getConfig("grpc").getInt("port")
+    val grpcPort = AdminServer.grpcSrvConfig.getInt("port")
+    val grpcHost = AdminServer.grpcSrvConfig.getString("host")
 
     val bound: Future[Http.ServerBinding] = Http(system)
-      .newServerAt(interface = "0.0.0.0", port = srvPort)
+      .newServerAt(interface = grpcHost, port = grpcPort)
 //      .enableHttps(serverHttpContext)
       .bind(services)
       .map(_.addToCoordinatedShutdown(hardTerminationDeadline = 20.seconds))

@@ -19,10 +19,10 @@ class AdminServiceImpl(actorRef: ActorRef[EdaCommand])(implicit val sch: Schedul
    */
   override def register(in: RegisterPontonRequest): Future[RegisteredPontonReply] = {
 
-    val tenantConfig = TenantConfig(tenant = in.tenant,
-      domain = in.domain, host = s"mail.${in.domain}", imapPort = 143,
-      smtpHost = s"mail.${in.domain}", smtpPort = 25,
-      user = in.tenant.toLowerCase, passwd = in.password, imapSecurity = "STARTTLS", smtpSecurity ="STARTTLS", active = true)
+    val tenantConfig = TenantConfig(tenant = in.tenant, "KEP",
+      domain = Some(in.domain), host = Some(s"mail.${in.domain}"), imapPort = Some(143),
+      smtpHost = Some(s"mail.${in.domain}"), smtpPort = Some(25),
+      user = Some(in.tenant.toLowerCase), passwd = Some(in.password), imapSecurity = Some("STARTTLS"), smtpSecurity = Some("STARTTLS"), active = true)
 
     actorRef.ask(ref => AddTenant(tenantConfig, ref)).transform {
       case Success(res) => res match {

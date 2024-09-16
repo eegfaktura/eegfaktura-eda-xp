@@ -1,3 +1,4 @@
+import com.typesafe.sbt.packager.docker.{Cmd, DockerChmodType, ExecCmd}
 
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
@@ -10,6 +11,8 @@ lazy val alpakkaVersion  = "8.0.0"
 lazy val circeVersion    = "0.14.3"
 lazy val akkaHttpCirceVersion    = "1.39.2"
 lazy val slickVersion = "3.5.1"
+
+val dockerVersion      = "v0.1.0"
 
 lazy val scalaxbSettings = Seq(
   Compile / scalaxbJaxbPackage := JaxbPackage.Jakarta,
@@ -40,10 +43,35 @@ lazy val scalaxbSettings = Seq(
   //  Compile / scalaxb / scalaxbProtocolPackageName := Some("sepp")
 )
 
+lazy val dockerSettings = Seq(
+  Docker / packageName := "eda-xp-connector",
+  Docker / maintainer := "vfeeg <vfeeg.org>",
+  Docker / version := dockerVersion,
+
+  dockerBaseImage := "openjdk:17-slim-buster",
+  dockerExposedVolumes := Seq("/conf", "/storage/prod"),
+  dockerRepository := Some("ghcr.io"),
+  dockerUsername := Some("vfeeg-development"),
+  dockerUpdateLatest := true,
+  dockerExposedPorts := Seq(6090, 9093),
+  dockerCommands := dockerCommands.value.filterNot {
+    case ExecCmd("ENTRYPOINT", _) => true
+    case cmd => false
+  },
+  dockerEnvVars := Map("TZ" -> "Europe/Berlin"),
+  dockerCommands ++= Seq(
+    Cmd("LABEL", s"""version="${dockerVersion}""""),
+    ExecCmd("CMD", "/opt/docker/bin/xpadapter", "-Dconfig.file=/conf/application.conf")
+  ),
+  dockerChmodType := DockerChmodType.UserGroupWriteExecute
+)
+
 lazy val root = (project in file("."))
   .enablePlugins(ScalaxbPlugin)
   .enablePlugins(AkkaGrpcPlugin)
+  .enablePlugins(JavaAppPackaging)
   .settings(scalaxbSettings)
+  .settings(dockerSettings)
   .settings(
     name := "XPAdapter",
 

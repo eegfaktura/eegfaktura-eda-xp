@@ -3,6 +3,7 @@ package at.energydash.actors
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import at.energydash.actors.MqttPublisher.{MqttCommand, MqttPublishCommand}
+import at.energydash.config.Config
 import at.energydash.domain.dao.{Db, SlickEmailOutboxRepository, SlickTenantConfigRepository}
 import at.energydash.mailer.EmailService.EmailModel
 import at.energydash.mqtt.CommandMessage
@@ -25,30 +26,29 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
     val dbConfig = Db.getConfig
     val mailRepo = new SlickEmailOutboxRepository(dbConfig)
     val tenantConfigRepository = new SlickTenantConfigRepository(dbConfig)
-    //    tenantConfigRepository.init()
 
     val pontonMessager = context.spawn(PontonService(), name = "worker-ponton-messenager")
 
     def setup(): Behavior[EdaCommand] = {
       Behaviors.receiveMessage {
         case TenantStart =>
-          logger.info("Start Tenant Actor")
-          val mailTenants = Await.result(tenantConfigRepository.allActivated(), 3.seconds)
-          val a = mailTenants.map(t => t.domain.toUpperCase match {
+          logger.info(s"Start Tenant Actor for type ${Config.superviseType}")
+          val kepTenants = Await.result(tenantConfigRepository.allActivated(Config.superviseType), 3.seconds)
+          val a = kepTenants.map(t => t.cType.toUpperCase match {
             case "KEP" => (t.tenant.toUpperCase() -> pontonMessager)
-            case _ => (t.tenant.toUpperCase() -> context.spawn(FetchMailTenantWorker(t, mqttPublisher, mailRepo), s"worker-${t.tenant}"))
+            case "MAIL" => (t.tenant.toUpperCase() -> context.spawn(FetchMailTenantWorker(t, mqttPublisher, mailRepo), s"worker-${t.tenant}"))
           }).toMap
           provide(a)
       }
     }
 
     def provide(tenantActors: Map[String, ActorRef[EdaCommand]]): Behavior[EdaCommand] = {
-      logger.info(s"Start Tenant Actor with teanants ${tenantActors}")
+      logger.info(s"Start Tenant Actor with tenants ${tenantActors.keys}")
       Behaviors.receiveMessage {
         case PassEdaCommand(tenant, message, replyTo) =>
           tenantActors.get(tenant.toUpperCase()) match {
             case Some(a) => a ! SendEdaCommand(message, replyTo)
-            case None => replyTo ! SendResponseError(tenant, "Tenant not registered")
+            case None => replyTo ! SendResponseError(tenant, message.receiver, "Tenant not registered")
           }
           Behaviors.same
 //        case DeleteMail(tenant, messageId) =>

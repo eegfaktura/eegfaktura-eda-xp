@@ -21,7 +21,7 @@ case class ECPartitionChangeXMLMessage(message: EbMsMessage) extends EdaXMLMessa
     Some("http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p10 " +
       "http://www.ebutilities.at/schemata/customerprocesses/EC_PRTFACT_CHANGE/01.00/ANFORDERUNG_CPF")
 
-  override def toDoc: ecmplist.v01p10.ECMPList = ECMPListV0110Document(message).withMeterList(message.meterList).toDoc()
+  override def toDoc: ecmplist.v01p10.ECMPList = ECMPListV0110Document(message).withMeterList(message.meterList).toDoc
 
   override def toScope: NamespaceBinding = scalaxb.toScope(
 //    Some("rv") -> "http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p10",

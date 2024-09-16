@@ -30,7 +30,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
   var logger: Logger = LoggerFactory.getLogger(classOf[FetchMailTenantWorker])
 
   val rand = new scala.util.Random
-  val interval: FiniteDuration = Config.interval(tenant.domain)
+  val interval: FiniteDuration = Config.interval(tenant.domain.getOrElse(""))
 
   private def setup(): Behavior[EdaCommand] = {
     Behaviors.setup { context => {
@@ -55,7 +55,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
             val email = prepareEmail(message)
             context.log.debug(s"Forward mail to Mail Actor ${email.toEmail}")
 
-            mailActor ! SendEmailCommand(email, tenant.domain, replyTo)
+            mailActor ! SendEmailCommand(email, tenant.domain.getOrElse(""), replyTo)
             timers.startSingleTimer(Refresh, 1.minute)
 
             Behaviors.same

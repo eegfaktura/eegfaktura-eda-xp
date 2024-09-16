@@ -28,7 +28,8 @@ object SupervisorActor {
     // Akka HTTP still needs a classic ActorSystem to start
     import system.executionContext
 
-    val futureBinding = Http().newServerAt("localhost", 6090).bind(routes)
+    val serverConfig = Config.serverConfig
+    val futureBinding = Http().newServerAt(serverConfig.host, serverConfig.port).bind(routes)
     futureBinding.onComplete {
       case Success(binding) =>
         val address = binding.localAddress

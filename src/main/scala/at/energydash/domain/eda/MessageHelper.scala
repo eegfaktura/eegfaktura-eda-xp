@@ -4,8 +4,8 @@ import at.energydash.domain.EbMsMessage
 import at.energydash.domain.enums.EbMsMessageType._
 import at.energydash.domain.enums.EbMsProcessType
 import at.energydash.domain.enums.EbMsProcessType.EbMsProcessType
+import at.energydash.utils.Base58
 import at.energydash.utils.zip.CRC8
-import com.google.common.io.BaseEncoding
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.text.SimpleDateFormat
@@ -70,6 +70,7 @@ object MessageHelper {
 
   def EDAMessageCodeToProcessCode(msCode: EbMsMessageType): EbMsProcessType = {
     msCode match {
+      case ENERGY_FILE_RESPONSE => EbMsProcessType.PROCESS_ENERGY_RESPONSE
       case ZP_LIST | ZP_LIST_RESPONSE | ZP_LIST_REJECTION => EbMsProcessType.PROCESS_LIST_METERINGPOINTS
       case EEG_BASE_DATA | EEG_BASE_RESPONSRE | EEG_BASE_REJECTION => EbMsProcessType.PROCESS_MASTER_DATA
       case ONLINE_REG_INIT | ONLINE_REG_ANSWER | ONLINE_REG_REJECTION | ONLINE_REG_APPROVAL | ONLINE_REG_COMPLETION => EbMsProcessType.PROCESS_REGISTER_ONLINE
@@ -79,7 +80,7 @@ object MessageHelper {
       case EDA_MSG_AUFHEBUNG_CCMC => EbMsProcessType.PROCESS_REVOKE_CUS
       case EDA_MSG_AUFHEBUNG_CCMS | EDA_MSG_ANTWORT_CCMS | EDA_MSG_ABLEHNUNG_CCMS => EbMsProcessType.PROCESS_REVOKE_SP
       case CHANGE_METER_PARTITION | CHANGE_METER_PARTITION_REJECTION | CHANGE_METER_PARTITION_ANSWER => EbMsProcessType.PROCESS_EC_PRTFACT_CHANGE
-      case _ => throw new RuntimeException("Not able to find Message -> Process mapping")
+      case _ => throw new RuntimeException(s"Not able to find Message -> Process mapping ${msCode.toString}")
     }
   }
 
@@ -93,7 +94,7 @@ object MessageHelper {
     crc8.update(BigInt(crc32Val).toByteArray)
 
     val compose = BigInt((crc32Val << 8) + crc8.getValue).toByteArray
-    BaseEncoding.base32().encode(compose.takeRight(5))
+    Base58.encode(compose.takeRight(5))
   }
 
   def buildMessageId(participant: String, seqNumber: Long): String = {
@@ -115,7 +116,7 @@ object MessageHelper {
   def formatSeqNumber(seqNumber: Long) = f"${seqNumber}%010d"
 
   def buildCalendar(date: Date): GregorianCalendar = {
-    val calendar: GregorianCalendar = new GregorianCalendar
+    val calendar: GregorianCalendar = new GregorianCalendar(new Locale("de", "AT"))
     calendar.setTime(date)
     calendar.set(Calendar.MILLISECOND, 0)
     calendar
@@ -130,6 +131,24 @@ object MessageHelper {
     val processDate = new GregorianCalendar(new Locale("de", "AT"))
     processDate.set(Calendar.MILLISECOND, 0)
     processDate.add(Calendar.DATE, 1)
+    processDate
+  }
+
+  def getProcessTime(message: String): GregorianCalendar = {
+    val processDate = new GregorianCalendar(new Locale("de", "AT"))
+    processDate.set(Calendar.MILLISECOND, 0)
+
+    message match {
+      case "ANFORDERUNG_CPF" =>
+        processDate.add(Calendar.DAY_OF_MONTH, 1)
+        if (processDate.get(Calendar.HOUR_OF_DAY) > 16) {
+          processDate.set(Calendar.HOUR_OF_DAY, 16)
+          processDate.set(Calendar.MINUTE, 59)
+          processDate.set(Calendar.SECOND, 0)
+        }
+      case _ =>
+        processDate.add(Calendar.DATE, 1)
+    }
     processDate
   }
 }
