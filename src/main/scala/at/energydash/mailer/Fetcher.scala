@@ -181,6 +181,7 @@ class Fetcher {
             )))
 //            case _ => (m, None)
           }
+        case _ => (m, None)
       }
     }
   }

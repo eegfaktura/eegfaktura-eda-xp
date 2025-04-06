@@ -45,7 +45,7 @@ case class EbMsMessage(
                         ecType: Option[EcTypeEnum] = None,
                         ecDisModel: Option[EcDisModelEnum] = None,
                         responseData: Option[Seq[ResponseData]] = None,
-                        energy: Option[Energy] = None,
+                        energy: Option[Seq[Energy]] = None,
                         timeline: Option[Timeline] = None,
                         meterList: Option[Seq[Meter]] = None,
                         errorMessage: Option[String] = None,

@@ -11,14 +11,14 @@ import akka.{Done, NotUsed}
 import at.energydash.actors.ConversationEntity.{InitConversation, InitDone}
 import at.energydash.actors._
 import at.energydash.config.Config
-import at.energydash.domain.{DefaultEbMsMessage, EbMsMessage}
 import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
+import at.energydash.domain.{DefaultEbMsMessage, EbMsMessage}
 import at.energydash.mqtt.path.MqttPaths
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.circe.syntax._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
-import org.slf4j.Logger
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContextExecutor, Future}
@@ -32,25 +32,14 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
 
   import at.energydash.domain.JsonImplicit._
 
-  implicit val timeout: Timeout = Timeout(15.seconds)
+  implicit val timeout: Timeout = Timeout(3.seconds)
   implicit val ec: ExecutionContextExecutor = system.executionContext
-  var logger: Logger = system.log
-
-//  val dbConfig = Db.getConfig
-//  val tenantConfigRepository = new SlickTenantConfigRepository(dbConfig)
+  var logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   private case class MqttException(errorMsg: MqttMessage, s: String = "", cause: Option[Throwable] = None) extends RuntimeException(s) {
     cause.foreach(initCause)
   }
 
-  private val extractTenantFromTopic = (topic: String) => topic.split("/")(3)
-
-  //  private val decodingFlow: Flow[String, Either[MqttMessage, EbMsMessage], NotUsed] = {
-  //    Flow.fromFunction(msg => decode[EbMsMessage](msg).left.map(error => {
-  //      MqttMessage(s"${Config.errorTopic}", ByteString(error.getMessage))
-  //    })
-  //    )
-  //  }
   private val decodingFlow: Flow[String, EbMsMessage, NotUsed] = {
     Flow.fromFunction(msg => decode[EbMsMessage](msg) match {
       case Right(m) => m
@@ -68,19 +57,6 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
         message
     }
 
-  //  private val storeMessageFlow: Flow[EbMsMessage, MqttMessage, NotUsed] =
-  //    ActorFlow.ask(messageStore)(MessageStorage.AddMessage).collect {
-  //      case MessageStorage.Added(id) => Try {
-  //        edaReqResPath(id.sender, EDAMessageCodeToProcessCode(id.messageCode).toString)
-  //      } fold(
-  //        exc => throw exc,
-  //        topic => {
-  //          MqttMessage(
-  //            topic,
-  //            ByteString(id.asJson.toString()))
-  //            .withQos(MqttQoS.atMostOnce).withRetained(false)
-  //        })
-  //    }
   private val storeMessageFlow: Flow[EbMsMessage, MqttMessage, NotUsed] =
     ActorFlow.ask(conversationEntity)(InitConversation).collect {
       case InitDone(id) => Try {
@@ -91,54 +67,13 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
           MqttMessage(
             topic,
             ByteString(id.asJson.toString()))
-            .withQos(MqttQoS.atMostOnce).withRetained(false)
+//            .withQos(MqttQoS.atLeastOnce).withRetained(false)
         })
     }
-
-  //  private def buildHeader(data: EbMsMessage) = {
-  //
-  //    val msgCode = EDAMessageCodeToProcessCode(data.messageCode)
-  //    val msgCodeVersion: Option[String] = msgCode match {
-  //      case EbMsProcessType.PROCESS_EC_PRTFACT_CHANGE => Some("_01.00")
-  //      case _ if data.messageCodeVersion.isDefined => data.messageCodeVersion.map("_" + _)
-  //      case _ => None
-  //    }
-  //    s"[${msgCode}${
-  //      msgCodeVersion match {
-  //        case Some(v) => v
-  //        case None => ""
-  //      }
-  //    } MessageId=${data.messageId.getOrElse("")}]"
-  //  }
-
-  //  private val prepareEmailMessageFlow: Flow[EbMsMessage, EmailService.EmailModel, NotUsed] =
-  //    Flow.fromFunction(data => {
-  //      MessageHelper.getEdaMessageByType(data).toByte.fold(
-  //        e => throw e,
-  //        attachment => {
-  //          //          val subject = s"[${EDAMessageCodeToProcessCode(data.messageCode).toString}${if(data.messageCodeVersion.isDefined) "_"+data.messageCodeVersion else ""} MessageId=${data.messageId.getOrElse("")}]"
-  //          val subject = buildHeader(data)
-  //          val to = data.receiver.toUpperCase()
-  //          val tenant = data.sender.toUpperCase()
-  //
-  //          logger.debug(s"Prepare Email Message Flow: $data")
-  //          EmailService.EmailModel(tenant = tenant, toEmail = to,
-  //            subject = subject, attachment = attachment, data = data)
-  //        }
-  //      )
-  //    })
 
   private def commandFlow(input: String): Future[MqttMessage] = {
     Source.single[String](input)
       .via(decodingFlow)
-//      .mapAsync(1) { msg =>
-//        tenantConfigRepository.isActivated("KEP", msg.sender).collect {
-//          case Some(c) => Some(msg)
-//          case _ => None
-//        }
-//      }
-//      .filter(msg => msg.isDefined)
-//      .map(msg => msg.get)
       .via(prepareMessageFlow)
       .via(
         ActorFlow.ask(parallelism = 1)(tenantService)((msg: EbMsMessage, replyTo: ActorRef[EdaCommand]) =>
@@ -155,7 +90,7 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
       .recover {
         case me: MqttException =>
           logger.error(s"Error Stream handling - ${me.getMessage} (${input})")
-          me.errorMsg.withQos(MqttQoS.AtMostOnce)
+          me.errorMsg
         case e =>
           logger.error(s"Recover: ${e.getMessage} (${input})")
           MqttMessage("eda/response/error", ByteString(e.getMessage))
@@ -165,8 +100,6 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
   def startCommand(): Future[Done] = runCommand(MqttRequestStream.mqttSource, MqttRequestStream.mqttSink)
 
   def runCommand(source: Source[MqttMessage, Future[Done]], responseSink: Sink[MqttMessage, _]): Future[Done] = {
-    implicit val timeout: Timeout = Timeout(15.seconds)
-
     val decider: Supervision.Decider = {
       case e: MqttException => {
         logger.error(s"Supervision Decider - Resume $e")
@@ -176,7 +109,8 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
       case _ => Supervision.Stop
     }
 
-    source
+    logger.info("Start EDA command listener")
+    source.throttle(5, 1.second)
       .map(msg => msg.payload.utf8String)
 //      .map(msg => {
 //        println(s"MSG: $msg")
@@ -184,6 +118,10 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
 //      })
       .mapAsync(1)(commandFlow)
       .map(_.withQos(MqttQoS.atLeastOnce))
+      .map(msg => {
+        logger.debug(s"Answer Message to -> ${msg.topic}")
+        msg
+      })
       .to(responseSink)
       .withAttributes(ActorAttributes.supervisionStrategy(decider))
       .run()
@@ -211,7 +149,7 @@ object MqttRequestStream {
   private def mqttSource: Source[MqttMessage, Future[Done]] = MqttSource.atMostOnce(
     consumerSettings,
     MqttSubscriptions(Map(Config.getMqttMailConfig.topic -> MqttQoS.AtLeastOnce)),
-    bufferSize = 20
+    bufferSize = 10
   )
 
   private def mqttSink: Sink[MqttMessage, Future[Done]] =

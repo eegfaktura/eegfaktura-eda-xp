@@ -5,13 +5,14 @@ import at.energydash.domain.xml.{CMRequestV0110Document, CMRequestV0120Document}
 import ponton.`package`._
 import scalaxb.CanWriteXML
 
+import scala.util.Try
 import scala.xml.{NamespaceBinding, Node}
 
 
 case class CMRequestRegistrationOnline(message: EbMsMessage) extends EdaMessage {
-  override def getVersion(version: Option[String] = None): EdaXMLMessage[_] = message.messageCodeVersion match {
-    case Some("02.00") => CMRequestRegistrationOnlineXMLMessageV0200(message)
-    case _ => CMRequestRegistrationOnlineXMLMessageV0110(message)
+  override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
+    case Some("02.00") => Try(CMRequestRegistrationOnlineXMLMessageV0200(message))
+    case _ => Try(CMRequestRegistrationOnlineXMLMessageV0110(message))
   }
 }
 

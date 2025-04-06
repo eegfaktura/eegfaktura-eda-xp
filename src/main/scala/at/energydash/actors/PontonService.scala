@@ -23,12 +23,12 @@ class PontonService(context: ActorContext[EdaCommand]) extends AbstractBehavior[
       case SendEdaCommand(ebmsMessage, replyTo) =>
         service.sendRequest(ebmsMessage)(context.executionContext) onComplete {
           case Success(_) => replyTo ! SendEdaResponse(ebmsMessage)
-          case Failure(exception) => SendResponseError(ebmsMessage.sender, ebmsMessage.receiver, exception.getMessage, "Send KEP")
+          case Failure(exception) => replyTo ! SendResponseError(ebmsMessage.sender, ebmsMessage.receiver, exception.getMessage, "Send KEP")
         }
         Behaviors.same
-      case TestSendEdaCommand(edaMessage) =>
-        service.sendRequest(edaMessage)(context.executionContext)
-        Behaviors.same
+//      case TestSendEdaCommand(edaMessage) =>
+//        service.sendRequest(edaMessage)(context.executionContext)
+//        Behaviors.same
 
     }
   }

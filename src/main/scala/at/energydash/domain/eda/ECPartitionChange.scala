@@ -5,11 +5,12 @@ import at.energydash.domain.xml.ECMPListV0110Document
 import ponton.`package`.Ecmplistv01p10_ECMPListFormat
 import scalaxb.CanWriteXML
 
+import scala.util.Try
 import scala.xml.{NamespaceBinding, Node}
 
 
 case class ECPartitionChangeMessage(message: EbMsMessage) extends EdaMessage {
-  override def getVersion(version: Option[String] = None): EdaXMLMessage[_] = ECPartitionChangeXMLMessage(message)
+  override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = Try(ECPartitionChangeXMLMessage(message))
 }
 
 case class ECPartitionChangeXMLMessage(message: EbMsMessage) extends EdaXMLMessage[ecmplist.v01p10.ECMPList] {
@@ -21,7 +22,10 @@ case class ECPartitionChangeXMLMessage(message: EbMsMessage) extends EdaXMLMessa
     Some("http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p10 " +
       "http://www.ebutilities.at/schemata/customerprocesses/EC_PRTFACT_CHANGE/01.00/ANFORDERUNG_CPF")
 
-  override def toDoc: ecmplist.v01p10.ECMPList = ECMPListV0110Document(message).withMeterList(message.meterList).toDoc
+  override def toDoc: ecmplist.v01p10.ECMPList = ECMPListV0110Document(message)
+    .withMeterList(message.meterList)
+    .withRestrictedProcessDate()
+    .toDoc
 
   override def toScope: NamespaceBinding = scalaxb.toScope(
 //    Some("rv") -> "http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p10",

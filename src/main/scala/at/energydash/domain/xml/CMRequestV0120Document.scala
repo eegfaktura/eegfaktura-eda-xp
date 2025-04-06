@@ -2,8 +2,7 @@ package at.energydash.domain.xml
 
 import at.energydash.config.Config
 import at.energydash.domain.EbMsMessage
-import at.energydash.domain.eda.MessageHelper
-import at.energydash.domain.eda.MessageHelper.{buildCalendarDate, getProcessDate}
+import at.energydash.domain.eda.MessageHelper.{buildCalendar, buildCalendarDate, getProcessDate}
 import at.energydash.domain.enums.MeterDirectionType
 import cmrequest._
 import commontypes.v01p20._
@@ -22,7 +21,7 @@ object CMRequestV0120Document {
       RoutingHeader(
         RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
         RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
-        Helper.toCalendar(MessageHelper.buildCalendar(new Date))
+        Helper.toCalendar(buildCalendar(new Date))
       ),
       Number01,
       message.messageCode.toString,

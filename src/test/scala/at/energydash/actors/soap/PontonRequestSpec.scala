@@ -13,6 +13,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AnyWordSpecLike
 import ponton.{Message2, OutHeaderType}
+import soapenvelope11.Envelope
 
 import scala.concurrent.Future
 import scala.xml.NodeSeq
@@ -89,11 +90,11 @@ class PontonRequestSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike w
         LogInfo = Some("VFEEG-OUT"))
 
       val message = Message2(
-        message2option = MessageHelper.getEdaMessageByType(edaMessage).toRecord
+        message2option = MessageHelper.getEdaMessageByType(edaMessage).get.toRecord
       )
 
-      whenReady(testService.service.sendRequest(edaMessage)) { _ =>
-        "test" shouldBe "test"
+      whenReady(testService.service.sendRequest(edaMessage)) { e =>
+        e shouldBe a [Envelope]
       }
 
     }

@@ -3,6 +3,7 @@ package at.energydash.domain.xml
 import at.energydash.config.Config
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.eda.MessageHelper
+import at.energydash.domain.eda.MessageHelper.buildCalendar
 import cprequest.v01p12.{CPRequest, Extension}
 import ponton.`package`.{Commontypesv01p20_AddressTypeFormat, Commontypesv01p20_DocumentModeFormat, Cprequestv01p12_SchemaVersionFormat, __BooleanXMLFormat}
 import scalaxb.Helper
@@ -28,7 +29,7 @@ object CPRequestV0112Document {
         commontypes.v01p20.RoutingHeader(
           commontypes.v01p20.RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[commontypes.v01p20.AddressType](commontypes.v01p20.ECNumber)))),
           commontypes.v01p20.RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[commontypes.v01p20.AddressType](commontypes.v01p20.ECNumber)))),
-          Helper.toCalendar(MessageHelper.buildCalendar(new Date))
+          Helper.toCalendar(buildCalendar(new Date))
         ),
         commontypes.v01p20.Number01,
         message.messageCode.toString,

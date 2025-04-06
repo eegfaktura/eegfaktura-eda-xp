@@ -6,10 +6,11 @@ import ponton.`package`.Cprequestv01p12_CPRequestFormat
 import scalaxb.{CanWriteXML, Helper}
 
 import java.util.{Calendar, TimeZone}
+import scala.util.Try
 import scala.xml.{NamespaceBinding, Node, TopScope}
 
 case class CPRequestMeteringValue(message: EbMsMessage) extends EdaMessage {
-  override def getVersion(version: Option[String] = None): EdaXMLMessage[_] = CPRequestMeteringValueXMLMessage(message)
+  override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = Try(CPRequestMeteringValueXMLMessage(message))
 }
 
 case class CPRequestMeteringValueXMLMessage(message: EbMsMessage) extends EdaXMLMessage[cprequest.v01p12.CPRequest] {

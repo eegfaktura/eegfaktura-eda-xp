@@ -26,7 +26,7 @@
 
     </appender>
 
-    <logger name="akka" level="INFO"/>
+    <logger name="akka" level="DEBUG"/>
     <logger name="slick.pgsql.local" level="INFO"/>
     <logger name="scala.slick" level="INFO"/>
     <logger name="slick.jdbc.DriverDataSource" level="INFO"/>

@@ -9,7 +9,7 @@ import scala.xml.{Elem, NamespaceBinding, Node, NodeSeq}
 
 case class EdaErrorMessage(message: EbMsMessage) extends EdaMessage {
 
-  override def getVersion(version: Option[String]): EdaXMLMessage[_] = EdaErrorXMLMessage(message)
+  override def getVersion(version: Option[String]): Try[EdaXMLMessage[_]] = Try(EdaErrorXMLMessage(message))
 }
 
 

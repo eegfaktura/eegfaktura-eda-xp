@@ -10,6 +10,7 @@ package at.energydash;
 service RegisterPontonService {
   // Sends a tenant config to connect the email server of specific tenant
   rpc register (RegisterPontonRequest) returns (RegisteredPontonReply) {}
+  rpc update (RegisterPontonRequest) returns (RegisteredPontonReply) {}
 }
 
 // The request message containing the user's name.
@@ -18,6 +19,7 @@ message RegisterPontonRequest {
   string username = 2;
   string password = 3;
   string domain = 4;
+  string pontonCommType = 5;
 }
 
 // The response message containing the greetings

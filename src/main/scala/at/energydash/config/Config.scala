@@ -46,5 +46,8 @@ object Config {
 
   def superviseType: Option[String] = config.optionalString("app.supervise-type")
 
-  def serverConfig: ServerConfig = ServerConfig(config.getString("app.server.host"), config.getInt("app.server.port"))
+  def serverConfig: ServerConfig = ServerConfig(
+    config.getString("app.server.host"),
+    config.getInt("app.server.port")
+  )
 }

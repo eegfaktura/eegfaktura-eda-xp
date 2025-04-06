@@ -6,10 +6,11 @@ import cmnotification.v01p11._
 import ponton.`package`.Cmrevokev01p00_CMRevokeFormat
 import scalaxb.CanWriteXML
 
+import scala.util.Try
 import scala.xml.{NamespaceBinding, Node}
 
 case class CMRevokeRequest(message: EbMsMessage) extends EdaMessage {
-  override def getVersion(version: Option[String] = None): EdaXMLMessage[_] = CMRevokeRequestV0100(message)
+  override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = Try(CMRevokeRequestV0100(message))
 }
 
 case class CMRevokeRequestV0100(message: EbMsMessage) extends EdaXMLMessage[cmrevoke.v01p00.CMRevoke] {

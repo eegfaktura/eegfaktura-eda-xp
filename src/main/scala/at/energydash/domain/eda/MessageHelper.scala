@@ -9,64 +9,83 @@ import at.energydash.utils.zip.CRC8
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, ZoneId}
 import java.util.zip.CRC32
 import java.util.{Calendar, Date, GregorianCalendar, Locale}
+import scala.language.implicitConversions
+import scala.util.{Failure, Success, Try}
+
 
 object MessageHelper {
 
   var logger: Logger = LoggerFactory.getLogger(this.getClass)
 
+    implicit def toOptionSE(t: Try[EdaXMLMessage[_]]): Option[EdaXMLMessage[_]] = t match {
+      case Success(s) => Some(s)
+      case Failure(ex) =>
+        println(s"SEPP############### $ex")
+        logger.error(ex.getMessage, ex)
+        None
+    }
+
   /**
    * Extract Message Type for Sending to Marktteilnehmer.
    */
-  def getEdaMessageByType(message: EbMsMessage): EdaXMLMessage[_] = {
-    message.messageCode match {
+  def getEdaMessageByType(message: EbMsMessage): Option[EdaXMLMessage[_]] = {
+    (message.messageCode match {
       case ONLINE_REG_INIT => CMRequestRegistrationOnline(message).getVersion()
       case OFFLINE_REG_INIT => CMRequestOfflineRegistration(message).getVersion()
       case ZP_LIST => CPRequestZPList(message).getVersion()
       case EEG_BASE_DATA => CPRequestBaseData(message).getVersion()
       case ENERGY_SYNC_REQ => CPRequestMeteringValue(message).getVersion()
-      case EDA_MSG_AUFHEBUNG_CCMS => CMRevokeRequest(message).getVersion()
+      case EDA_MSG_AUFHEBUNG_CCMS => toOptionSE(CMRevokeRequest(message).getVersion())
       case CHANGE_METER_PARTITION => ECPartitionChangeMessage(message).getVersion()
-    }
+      case _ => None
+    })
+//    matcn {
+//      case Success(obj) => Some(obj)
+//      case Failure(exception) => None
+//
+//    }
   }
 
-//  /**
-//   * Lookup for Message object according to Message type. Incoming messages.
-//   * @param processCode
-//   * @param version
-//   * @return
-//   */
-//  def getEdaMessageFromHeader(processCode: EbMsProcessType, version: String): Option[EdaResponseType] = {
-//    processCode match {
-//      case PROCESS_ENERGY_RESPONSE => {
-//        version match {
-//          case "03.03" => Some(ConsumptionRecordMessageV0303)
-//          case "03.10" => Some(ConsumptionRecordMessageV0410)
-//          case _ => Some(ConsumptionRecordMessageV0130)
-//        }
-//      }
-//      case EbMsProcessType.PROCESS_REGISTER_ONLINE =>
-//        version match {
-//          case "02.00" => Some(CMRequestRegistrationOnlineXMLMessageV0200)
-//          case _ => Some(CMRequestRegistrationOnlineXMLMessageV0110)
-//        }
-//      case EbMsProcessType.PROCESS_REGISTER_OFFLINE => Some(CMRequestOfflineRegistrationXMLMessage)
-//      case EbMsProcessType.PROCESS_LIST_METERINGPOINTS => Some(CPRequestZPListXMLMessage)
-//      case EbMsProcessType.PROCESS_METERINGPOINTS_VALUE => Some(CPRequestMeteringValueXMLMessage)
-//      case EbMsProcessType.PROCESS_REVOKE_VALUE | EbMsProcessType.PROCESS_REVOKE_CUS => Some(CMRevokeXMLMessageV0100)
-//      case EbMsProcessType.PROCESS_REVOKE_SP => Some(CMRevokeRequestV0100)
-//      case EbMsProcessType.PROCESS_EC_PRTFACT_CHANGE => {
-//        version match {
-//          case "01.00" => Some(ECPartitionChangeXMLMessage)
-//          case _ => Some(EdaWrongVersionXMLMessage)
-//        }
-//      }
-//      case _ =>
-//        logger.warn(s"Wrong ProcessCode: ${processCode}")
-//        None
-//    }
-//  }
+  //  /**
+  //   * Lookup for Message object according to Message type. Incoming messages.
+  //   * @param processCode
+  //   * @param version
+  //   * @return
+  //   */
+  //  def getEdaMessageFromHeader(processCode: EbMsProcessType, version: String): Option[EdaResponseType] = {
+  //    processCode match {
+  //      case PROCESS_ENERGY_RESPONSE => {
+  //        version match {
+  //          case "03.03" => Some(ConsumptionRecordMessageV0303)
+  //          case "03.10" => Some(ConsumptionRecordMessageV0410)
+  //          case _ => Some(ConsumptionRecordMessageV0130)
+  //        }
+  //      }
+  //      case EbMsProcessType.PROCESS_REGISTER_ONLINE =>
+  //        version match {
+  //          case "02.00" => Some(CMRequestRegistrationOnlineXMLMessageV0200)
+  //          case _ => Some(CMRequestRegistrationOnlineXMLMessageV0110)
+  //        }
+  //      case EbMsProcessType.PROCESS_REGISTER_OFFLINE => Some(CMRequestOfflineRegistrationXMLMessage)
+  //      case EbMsProcessType.PROCESS_LIST_METERINGPOINTS => Some(CPRequestZPListXMLMessage)
+  //      case EbMsProcessType.PROCESS_METERINGPOINTS_VALUE => Some(CPRequestMeteringValueXMLMessage)
+  //      case EbMsProcessType.PROCESS_REVOKE_VALUE | EbMsProcessType.PROCESS_REVOKE_CUS => Some(CMRevokeXMLMessageV0100)
+  //      case EbMsProcessType.PROCESS_REVOKE_SP => Some(CMRevokeRequestV0100)
+  //      case EbMsProcessType.PROCESS_EC_PRTFACT_CHANGE => {
+  //        version match {
+  //          case "01.00" => Some(ECPartitionChangeXMLMessage)
+  //          case _ => Some(EdaWrongVersionXMLMessage)
+  //        }
+  //      }
+  //      case _ =>
+  //        logger.warn(s"Wrong ProcessCode: ${processCode}")
+  //        None
+  //    }
+  //  }
 
   def EDAMessageCodeToProcessCode(msCode: EbMsMessageType): EbMsProcessType = {
     msCode match {
@@ -129,10 +148,18 @@ object MessageHelper {
 
   def getProcessDate: GregorianCalendar = {
     val processDate = new GregorianCalendar(new Locale("de", "AT"))
-    processDate.set(Calendar.MILLISECOND, 0)
-    processDate.add(Calendar.DATE, 1)
+    //    processDate.setTime(new Date())
+    //   processDate.set(Calendar.MILLISECOND, 0)
+    processDate.add(Calendar.DAY_OF_MONTH, 1)
     processDate
   }
+
+  def getProcessDate1(add: Option[Long] = None): LocalDate = {
+    val z = ZoneId.of("Europe/Vienna")
+    LocalDate.now(z).plusDays(add.getOrElse(0L))
+  }
+
+  def formatLocalDate(l: LocalDate):String = l.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
   def getProcessTime(message: String): GregorianCalendar = {
     val processDate = new GregorianCalendar(new Locale("de", "AT"))

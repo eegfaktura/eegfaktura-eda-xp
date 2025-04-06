@@ -10,6 +10,10 @@ trait EmbeddedDb extends LazyLogging {
 
   val server: EmbeddedPostgres = EmbeddedPostgres
     .builder()
+//    .setTag("16.4")
+//    .setServerConfig("host", "localhost")
+//    .setServerConfig("port", "54325")
+//.setDatabaseName("postgres")
     .setPort(54325)
     .start()
 

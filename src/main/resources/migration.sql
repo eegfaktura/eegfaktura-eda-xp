@@ -32,10 +32,11 @@ CREATE TABLE IF NOT EXISTS eda.outbox
     tenant   VARCHAR NOT NULL,
     content  bytea NOT NULL,
     sent     TIMESTAMP NOT NULL
-)
+);
 
 CREATE TABLE IF NOT EXISTS eda.conversation
 (
     id       VARCHAR PRIMARY KEY,
-    conversation JSON
-)
+    conversation JSON,
+    createtime timestamp NOT NULL DEFAULT now()
+);

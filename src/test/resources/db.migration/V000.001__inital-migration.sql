@@ -37,5 +37,6 @@ CREATE TABLE IF NOT EXISTS eda.outbox
 CREATE TABLE IF NOT EXISTS eda.conversation
 (
     id       VARCHAR PRIMARY KEY,
-    conversation JSON
+    conversation JSON,
+    createtime timestamp NOT NULL DEFAULT now()
 );

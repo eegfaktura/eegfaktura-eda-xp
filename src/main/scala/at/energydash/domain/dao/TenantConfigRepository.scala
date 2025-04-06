@@ -11,6 +11,7 @@ trait TenantConfigRepository {
   def allActivated(cType: Option[String]): Future[Seq[TenantConfig]]
   def isActivated(cType: String, tenant: String): Future[Option[TenantConfig]]
   def create(tenant: TenantConfig): Future[TenantConfig]
+  def update(tenant: TenantConfig): Future[Option[TenantConfig]]
 //
 //  def update(id: Int, updateInquest: UpdateInquest): Future[TenantConfig]
 
@@ -45,8 +46,13 @@ class SlickTenantConfigRepository(databaseConfig: DatabaseConfig[PostgresProfile
     databaseConfig.db.run(tenantConfigs.filter(_.tenant === tenant).take(1).result).map(_.headOption)
 
   override def create(tenantConfig: TenantConfig): Future[TenantConfig] =
-    databaseConfig.db.run(tenantConfigs += tenantConfig).map(_=>tenantConfig)
+//    databaseConfig.db.run(tenantConfigs += tenantConfig).map(_=>tenantConfig)
+      databaseConfig.db.run(
+          (tenantConfigs returning tenantConfigs).insertOrUpdate(tenantConfig).map(_.head)
+      )
 
+  override def update(tenantConfig: TenantConfig): Future[Option[TenantConfig]] =
+    databaseConfig.db.run((tenantConfigs returning tenantConfigs).insertOrUpdate(tenantConfig))
 
 
   def init() = {
