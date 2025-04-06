@@ -14,7 +14,11 @@ class CMNotificationV0111Document(doc: CMNotification) {
     messageCode=EbMsMessageType.withName(doc.MarketParticipantDirectory.MessageCode),
     messageCodeVersion=Some("01.11"),
     requestId=Some(doc.ProcessDirectory.CMRequestId),
-    responseData=Some(doc.ProcessDirectory.ResponseData.map(r => ResponseData(r.MeteringPoint, r.ResponseCode))),
+    responseData=Some(doc.ProcessDirectory.ResponseData.map(r => ResponseData(
+      MeteringPoint=r.MeteringPoint,
+      ResponseCode=r.ResponseCode,
+      ConsentId=r.ConsentId,
+    ))),
   )
 }
 

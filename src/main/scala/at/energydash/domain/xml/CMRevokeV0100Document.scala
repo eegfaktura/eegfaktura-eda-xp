@@ -1,7 +1,7 @@
 package at.energydash.domain.xml
 
 import at.energydash.config.Config
-import at.energydash.domain.eda.MessageHelper.{buildCalendar, buildCalendarDate}
+import at.energydash.domain.eda.MessageHelper.{buildCalendar, buildCalendarDate, getProcessDate}
 import at.energydash.domain.enums.EbMsMessageType
 import at.energydash.domain.{EbMsMessage, ResponseData}
 import cmrevoke._
@@ -24,9 +24,11 @@ class CMRevokeV0100Document(doc: v01p00.CMRevoke) {
     messageCode = EbMsMessageType.withName(doc.MarketParticipantDirectory.MessageCode.toString),
     messageCodeVersion = Some("01.00"),
     responseData = Some(List(ResponseData(
-      Some(doc.ProcessDirectory.MeteringPoint),
-      List(1099),
-      Some(doc.ProcessDirectory.ConsentEnd.toGregorianCalendar().getTime.getTime))))
+      MeteringPoint = Some(doc.ProcessDirectory.MeteringPoint),
+      ResponseCode = List(1099),
+      ConsentEnd = Some(doc.ProcessDirectory.ConsentEnd.toGregorianCalendar().getTime.getTime),
+      ConsentId = Some(doc.ProcessDirectory.ConsentId)
+    )))
   )
 }
 
@@ -39,7 +41,7 @@ object CMRevokeV0100Document {
       RoutingHeader = RoutingHeader(
         Sender = RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
         Receiver = RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
-        DocumentCreationDateTime = Helper.toCalendar(buildCalendar(new Date))
+        DocumentCreationDateTime = Helper.toCalendar(buildCalendar(getProcessDate.getTime))
       ),
       Sector = Number01,
       MessageCode = MessageCode.fromString(message.messageCode.toString, TopScope),
@@ -55,7 +57,7 @@ object CMRevokeV0100Document {
     ProcessDirectory = v01p00.ProcessDirectory(
       MessageId = message.messageId.get,
       ConversationId = message.conversationId,
-      ConsentId = message.requestId.get,
+      ConsentId = message.meter.flatMap(_.consentId).get,
       MeteringPoint = message.meter.map(x => x.meteringPoint).get,
       ConsentEnd = Helper.toCalendar(buildCalendarDate(message.consentEnd.getOrElse(new Date))),
       Reason = message.reason,

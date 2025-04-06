@@ -82,7 +82,6 @@ object ConversationEntity {
               replyTo ! InitDone(message)
             }
           }
-
           Behaviors.same
         case MergeConversation(message, replyTo) =>
           merge(message) onComplete {

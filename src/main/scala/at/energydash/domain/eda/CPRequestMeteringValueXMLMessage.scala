@@ -1,18 +1,16 @@
 package at.energydash.domain.eda
 
-import at.energydash.domain.enums.EbMsMessageType
+import at.energydash.domain.EbMsMessage
 import at.energydash.domain.xml.CPRequestV0112Document
-import at.energydash.domain.{EbMsMessage, ResponseData}
-import cpnotification.v01p13.CPNotification
-import ponton.`package`.{Cpnotificationv01p13_CPNotificationFormat, Cprequestv01p12_CPRequestFormat}
+import ponton.`package`.Cprequestv01p12_CPRequestFormat
 import scalaxb.{CanWriteXML, Helper}
 
 import java.util.{Calendar, TimeZone}
 import scala.util.Try
-import scala.xml.{Elem, NamespaceBinding, Node, TopScope}
+import scala.xml.{NamespaceBinding, Node, TopScope}
 
 case class CPRequestMeteringValue(message: EbMsMessage) extends EdaMessage {
-  override def getVersion(version: Option[String] = None): EdaXMLMessage[_] = CPRequestMeteringValueXMLMessage(message)
+  override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = Try(CPRequestMeteringValueXMLMessage(message))
 }
 
 case class CPRequestMeteringValueXMLMessage(message: EbMsMessage) extends EdaXMLMessage[cprequest.v01p12.CPRequest] {
@@ -36,13 +34,14 @@ case class CPRequestMeteringValueXMLMessage(message: EbMsMessage) extends EdaXML
     })).toDoc()
 
   override def toScope: NamespaceBinding = scalaxb.toScope(
-    Some("cp") -> "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12",
+//    Some("cp") -> "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12",
+    None -> "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12",
     Some("ct") -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
     Some("xsi") -> "http://www.w3.org/2001/XMLSchema-instance",
   )
 
   def toXML: Node = {
-    scalaxb.toXML[cprequest.v01p12.CPRequest](toDoc, Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12"), rootNodeLabel,
+    scalaxb.toXML[cprequest.v01p12.CPRequest](toDoc, schemaLocation, rootNodeLabel,
       toScope,
       true).head
   }

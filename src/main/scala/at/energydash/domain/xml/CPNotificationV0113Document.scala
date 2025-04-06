@@ -12,7 +12,8 @@ class CPNotificationV0113Document(doc: cpnotification.v01p13.CPNotification) {
     receiver = doc.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
     messageCode = EbMsMessageType.withName(doc.MarketParticipantDirectory.MessageCode),
     messageCodeVersion = Some("01.13"),
-    responseData = Some(doc.ProcessDirectory.ResponseData.ResponseCode.map(r => ResponseData(None, List(r)))),
+    responseData = Some(doc.ProcessDirectory.ResponseData.ResponseCode.map(r =>
+      ResponseData(None, List(r)))),
   )
 }
 

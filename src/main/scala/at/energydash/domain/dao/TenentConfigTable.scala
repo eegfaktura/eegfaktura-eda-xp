@@ -8,17 +8,18 @@ trait TenentConfigTable {
 
   class TenantConfigs(tag: Tag) extends Table[TenantConfig](tag, Some("eda"), "tenantconfig") {
     def tenant: Rep[String] = column[String]("tenant", O.PrimaryKey)
-    def domain: Rep[String] = column[String]("domain")
-    def host: Rep[String] = column[String]("host")
-    def imapPort: Rep[Int] = column[Int]("imapport")
-    def smtpHost: Rep[String] = column[String]("smtphost")
-    def smtpPort: Rep[Int] = column[Int]("smtpport")
-    def user: Rep[String] = column[String]("username")
-    def passwd: Rep[String] = column[String]("pass")
-    def imapSecurity: Rep[String] = column[String]("imap_security")
-    def smtpSecurity: Rep[String] = column[String]("smtp_security")
+    def cType: Rep[String] = column[String]("type")
+    def domain: Rep[Option[String]] = column[Option[String]]("domain")
+    def host: Rep[Option[String]] = column[Option[String]]("host")
+    def imapPort: Rep[Option[Int]] = column[Option[Int]]("imapport")
+    def smtpHost: Rep[Option[String]] = column[Option[String]]("smtphost")
+    def smtpPort: Rep[Option[Int]] = column[Option[Int]]("smtpport")
+    def user: Rep[Option[String]] = column[Option[String]]("username")
+    def passwd: Rep[Option[String]] = column[Option[String]]("pass")
+    def imapSecurity: Rep[Option[String]] = column[Option[String]]("imap_security")
+    def smtpSecurity: Rep[Option[String]] = column[Option[String]]("smtp_security")
     def active: Rep[Boolean] = column[Boolean]("active")
-    def * : ProvenShape[TenantConfig] = (tenant, domain, host, imapPort, smtpHost, smtpPort, user, passwd, imapSecurity, smtpSecurity, active) <> (TenantConfig.tupled, TenantConfig.unapply)
+    def * : ProvenShape[TenantConfig] = (tenant, cType, domain, host, imapPort, smtpHost, smtpPort, user, passwd, imapSecurity, smtpSecurity, active) <> (TenantConfig.tupled, TenantConfig.unapply)
   }
 
   val tenantConfigs = TableQuery[TenantConfigs]

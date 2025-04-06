@@ -10,7 +10,8 @@ import java.util.Date
 
 case class ResponseData(MeteringPoint: Option[String],
                         ResponseCode: Seq[BigInt],
-                        ConsentEnd: Option[Long] = None)
+                        ConsentEnd: Option[Long] = None,
+                        ConsentId: Option[String] = None)
 
 case class Timeline(from: Date, to: Date)
 
@@ -20,7 +21,7 @@ case class Meter(meteringPoint: String,
                  partFact: Option[BigDecimal] = None,
                  from: Option[Date] = None,
                  to: Option[Date] = None,
-                 share: Option[BigDecimal] = None,
+                 share: Option[BigDecimal] = None, // distribution factor in percent for static distribution model
                  plantCategory: Option[String] = None,
                  consentId: Option[String] = None,
                 )
@@ -44,7 +45,7 @@ case class EbMsMessage(
                         ecType: Option[EcTypeEnum] = None,
                         ecDisModel: Option[EcDisModelEnum] = None,
                         responseData: Option[Seq[ResponseData]] = None,
-                        energy: Option[Energy] = None,
+                        energy: Option[Seq[Energy]] = None,
                         timeline: Option[Timeline] = None,
                         meterList: Option[Seq[Meter]] = None,
                         errorMessage: Option[String] = None,
@@ -54,11 +55,11 @@ case class EbMsMessage(
                       )
 
 object DefaultEbMsMessage {
-  def Error(error: String, conversationId: String, sender: String, receiver: String): EbMsMessage = EbMsMessage(
+  def Error(conversationId: String, sender: String, receiver: String, error: String, reason: Option[String]): EbMsMessage = EbMsMessage(
     conversationId = conversationId, sender = sender, receiver = receiver,
-    messageCode = EbMsMessageType.ERROR_MESSAGE, errorMessage = Some(error))
+    messageCode = EbMsMessageType.ERROR_MESSAGE, errorMessage = Some(error), reason=reason)
 
-  def Error(error: String): EbMsMessage = Error(error, "ERROR", "ERROR", "ERROR")
+  def Error(error: String, reason: Option[String] = None): EbMsMessage = Error("ERROR", "ERROR", "ERROR", error, reason)
 }
 
 object JsonImplicit {

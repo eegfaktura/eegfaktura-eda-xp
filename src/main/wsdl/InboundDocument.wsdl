@@ -4,7 +4,7 @@
 >
     <wsdl:types>
         <xsd:schema targetNamespace="http://xp.ponton.de/eda/v320">
-            <xsd:include schemaLocation="../xsd_org/InboundDocument.xsd" />
+            <xsd:include schemaLocation="../xsd/InboundDocument.xsd" />
         </xsd:schema>
     </wsdl:types>
     <wsdl:message name="sendDocumentRequest">

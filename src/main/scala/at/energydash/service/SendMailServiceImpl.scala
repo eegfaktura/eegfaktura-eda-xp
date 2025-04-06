@@ -14,7 +14,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 case class InlineAttachment(contentId: String, filename: String, mimeType: String, content: ByteString)
-case class MailInlineMessage(from: String, to: String, cc: Option[String], subject: String, htmlBody: String, inlineContent: Seq[InlineAttachment])
+case class MailInlineMessage(from: String, to: String, cc: Option[String], subject: String, htmlBody: String, inlineContent: Seq[InlineAttachment], attachment: Option[MailAttachment])
 case class MailContent(from: String, to: String, cc: Option[String], subject: String, content: Option[Multipart])
 
 case class MailAttachment(filename: String, mimeType: String, content: ByteString)
@@ -30,10 +30,20 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
    * Sends a greeting
    */
   override def sendMailWithInlineAttachment(in: SendMailWithInlineAttachmentsRequest): Future[SendMailReply] = {
+    system.log.info(s"Send Inline Mail: To:${in.recipient} CC:${in.cc} - ${in.subject}")
     val from = "no-reply@eegfaktura.at"
     val inlineMail = MailInlineMessage(
       from = from, to = in.recipient, in.cc, subject = in.subject,
-      htmlBody = in.htmlBody, inlineContent = in.attachments.flatMap(a => if (a.contentId.isEmpty) None else Some(InlineAttachment(a.contentId.get, a.filename, a.mimeType, ByteString(a.content.toByteArray)))))
+      htmlBody = in.htmlBody,
+      inlineContent = in.inlineContent
+        .flatMap(a =>
+          if (a.contentId.isEmpty) None
+          else Some(InlineAttachment(a.contentId.get, a.filename, a.mimeType, ByteString(a.content.toByteArray)))),
+      attachment = in.attachment match {
+        case Some(a) => Some(MailAttachment(a.filename, a.mimeType, ByteString(a.content.toByteArray)))
+        case None => None
+      }
+    )
 
     shippingInlineHtmlEmail(ConfiguredMailer.createMailerFromSession(session), inlineMail).transformWith {
       case Success(_) => Future(SendMailReply(200, Some("Email sent")))
@@ -75,7 +85,9 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
       imagePart.setContent(b.content.toArray, b.mimeType)
       a.add(imagePart)
     })
-    executeMail(mailer, MailContent(email.from, email.to, email.cc, email.subject, Some(mailContent)))(ec)
+
+    executeMail(mailer, MailContent(email.from, email.to, email.cc, email.subject,
+      Some(email.attachment.map(a => mailContent.attachBytes(a.content.toArray, a.filename, a.mimeType)).getOrElse(mailContent))))(ec)
   }
 
   private def shippingEmail(mailer: Mailer, email: AdminMail)(implicit ex: ExecutionContext): Future[Unit] = {

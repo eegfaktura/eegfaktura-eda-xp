@@ -4,11 +4,11 @@ import at.energydash.config.Config
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.eda.MessageHelper
 import at.energydash.domain.eda.MessageHelper.getProcessDate
-import at.energydash.domain.xml.ECMPListV0110Document.now
 import gcrequest.v01p00.{GCRequest, MarketParticipantDirectory, MessageCode, ProcessDirectory}
 import ponton.`package`.{Commontypesv01p20_AddressTypeFormat, Commontypesv01p20_DocumentModeFormat, Gcrequestv01p00_MessageCodeFormat, Gcrequestv01p00_SchemaVersionFormat, __BooleanXMLFormat}
 import scalaxb.Helper
 
+import java.util.Date
 import scala.xml.TopScope
 
 
@@ -23,7 +23,7 @@ object GCRequestV0100Document {
         RoutingHeader = commontypes.v01p20.RoutingHeader(
           commontypes.v01p20.RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[commontypes.v01p20.AddressType](commontypes.v01p20.ECNumber)))),
           commontypes.v01p20.RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[commontypes.v01p20.AddressType](commontypes.v01p20.ECNumber)))),
-          Helper.toCalendar(MessageHelper.buildCalendar(now))
+          Helper.toCalendar(MessageHelper.buildCalendar(new Date))
         ),
         Sector = commontypes.v01p20.Number01,
         MessageCode = MessageCode.fromString(message.messageCode.toString, TopScope),

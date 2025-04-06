@@ -4,15 +4,16 @@ CREATE SCHEMA IF NOT EXISTS eda;
 CREATE TABLE IF NOT EXISTS eda.tenantconfig
 (
     tenant   VARCHAR PRIMARY KEY,
-    domain   VARCHAR NOT NULL,
-    host     VARCHAR NOT NULL,
-    imapPort INTEGER NOT NULL,
-    smtpPort INTEGER NOT NULL,
-    smtpHost VARCHAR NOT NULL,
-    username VARCHAR NOT NULL,
-    pass     VARCHAR NOT NULL,
-    imap_security VARCHAR NOT NULL,
-    smtp_security VARCHAR NOT NULL,
+    type     VARCHAR NOT NULL DEFAULT 'MAIL',
+    domain   VARCHAR,
+    host     VARCHAR,
+    imapPort INTEGER,
+    smtpPort INTEGER,
+    smtpHost VARCHAR,
+    username VARCHAR,
+    pass     VARCHAR,
+    imap_security VARCHAR,
+    smtp_security VARCHAR,
     active BOOLEAN NOT NULL
 );
 
@@ -36,5 +37,6 @@ CREATE TABLE IF NOT EXISTS eda.outbox
 CREATE TABLE IF NOT EXISTS eda.conversation
 (
     id       VARCHAR PRIMARY KEY,
-    conversation JSON
+    conversation JSON,
+    createtime timestamp NOT NULL DEFAULT now()
 );

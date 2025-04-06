@@ -2,9 +2,10 @@ package at.energydash.actors
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
-import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
+import akka.pki.pem.{DERPrivateKeyLoader, PEMDecoder}
 import akka.util.Timeout
 import at.energydash.actors.TenantProvider.TenantStart
 import at.energydash.actors.http.{PontonRoute, ServiceRoute}
@@ -13,8 +14,12 @@ import at.energydash.mqtt.MqttSystem
 import at.energydash.service.FileService
 import at.energydash.stream.MqttRequestStream
 
+import java.security.cert.{Certificate, CertificateFactory}
+import java.security.{KeyStore, SecureRandom}
+import javax.net.ssl.{KeyManagerFactory, SSLContext}
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
+import scala.io.Source
 import scala.util.{Failure, Success}
 
 //sealed trait Command
@@ -28,7 +33,10 @@ object SupervisorActor {
     // Akka HTTP still needs a classic ActorSystem to start
     import system.executionContext
 
-    val futureBinding = Http().newServerAt("localhost", 6090).bind(routes)
+    val serverConfig = Config.serverConfig
+    val futureBinding = Http().newServerAt(serverConfig.host, serverConfig.port)/*.enableHttps(serverHttpContext)*/
+      .adaptSettings(settings => settings.withHttp2Enabled(false))
+      .bind(routes)
     futureBinding.onComplete {
       case Success(binding) =>
         val address = binding.localAddress
@@ -43,12 +51,38 @@ object SupervisorActor {
     AdminServer.apply(tenantProvider, system)
   }
 
+    private def serverHttpContext: HttpsConnectionContext = {
+      val privateKey =
+        DERPrivateKeyLoader.load(PEMDecoder.decode(readPrivateKeyPem()))
+      val fact = CertificateFactory.getInstance("X.509")
+      val cer = fact.generateCertificate(
+        classOf[AdminServer].getResourceAsStream("/certs/xpadapter-prod.pem")
+      )
+      val ks = KeyStore.getInstance("PKCS12")
+      ks.load(null)
+      ks.setKeyEntry(
+        "private",
+        privateKey,
+        new Array[Char](0),
+        Array[Certificate](cer)
+      )
+      val keyManagerFactory = KeyManagerFactory.getInstance("SunX509")
+      keyManagerFactory.init(ks, null)
+      val context = SSLContext.getInstance("TLS")
+      context.init(keyManagerFactory.getKeyManagers, null, new SecureRandom)
+      ConnectionContext.httpsServer(context)
+    }
+
+    private def readPrivateKeyPem(): String =
+      Source.fromResource("certs/xpadapter-prod.key").mkString
+
   def apply(): Behavior[Command] =
     Behaviors.setup { implicit ctx =>
       implicit val system: ActorSystem[Nothing] = ctx.system
       implicit val timeout: Timeout = Timeout(5.seconds)
       implicit val ex: ExecutionContextExecutor = system.executionContext
 
+      ctx.setLoggerName("Supervisor")
 //      val messageStore = ctx.spawn(MessageStorage(), name = "message-storage")
       val conversationEntity = ctx.spawn(ConversationEntity(), name = "conversationentity")
 
@@ -88,6 +122,9 @@ object SupervisorActor {
 //            pontonPublisher ! TestSendEdaCommand(edaMessage)
             Behaviors.same
           case Shutdown =>
+            Behaviors.same
+          case m =>
+          ctx.log.warn(s"Supervisor: Can not handle message -> ${m}")
             Behaviors.same
         }
       process()

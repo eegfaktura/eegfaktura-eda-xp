@@ -1,19 +1,16 @@
 package at.energydash.domain.eda
 
-import at.energydash.domain.enums.{EbMsMessageType, MeterDirectionType}
+import at.energydash.domain.EbMsMessage
 import at.energydash.domain.xml.CPRequestV0112Document
-import at.energydash.domain.{EbMsMessage, Meter, ResponseData}
-import cpnotification.v01p13.CPNotification
-import ecmplist.v01p10.ECMPList
-import ponton.`package`.{Cpnotificationv01p13_CPNotificationFormat, Cprequestv01p12_CPRequestFormat, Ecmplistv01p10_ECMPListFormat}
+import ponton.`package`.Cprequestv01p12_CPRequestFormat
 import scalaxb.{CanWriteXML, Helper}
 
 import java.util.{Calendar, TimeZone}
-import scala.util.{Failure, Success, Try}
-import scala.xml.{Elem, NamespaceBinding, Node, TopScope}
+import scala.util.Try
+import scala.xml.{NamespaceBinding, Node, TopScope}
 
 case class CPRequestZPList(message: EbMsMessage) extends EdaMessage {
-  override def getVersion(version: Option[String] = None): EdaXMLMessage[_] = CPRequestZPListXMLMessage(message)
+  override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = Try(CPRequestZPListXMLMessage(message))
 }
 
 case class CPRequestZPListXMLMessage(message: EbMsMessage) extends EdaXMLMessage[cprequest.v01p12.CPRequest] {

@@ -2,17 +2,16 @@ package at.energydash.domain.eda
 
 import akka.util.ByteString
 import at.energydash.domain.EbMsMessage
-import at.energydash.domain.enums.EbMsMessageType
 import at.energydash.domain.xml.CPRequestV0112Document
 import ponton.`package`.Cprequestv01p12_CPRequestFormat
 import scalaxb.CanWriteXML
 
 import java.io.StringWriter
 import scala.util.Try
-import scala.xml.{Elem, NamespaceBinding, Node, XML}
+import scala.xml.{NamespaceBinding, Node, XML}
 
 case class CPRequestBaseData(message: EbMsMessage) extends EdaMessage {
-  override def getVersion(version: Option[String] = None): EdaXMLMessage[_] = CPRequestBaseDataXMLMessage(message)
+  override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = Try(CPRequestBaseDataXMLMessage(message))
 }
 
 case class CPRequestBaseDataXMLMessage(message: EbMsMessage) extends EdaXMLMessage[cprequest.v01p12.CPRequest] {
@@ -26,7 +25,7 @@ case class CPRequestBaseDataXMLMessage(message: EbMsMessage) extends EdaXMLMessa
   override def toDoc: cprequest.v01p12.CPRequest = CPRequestV0112Document(message).withExtention(Some(cprequest.v01p12.Extension(AssumptionOfCosts = false))).toDoc
 
   override def toScope: NamespaceBinding = scalaxb.toScope(
-    Some("cp") -> "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12",
+    None -> "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12",
     Some("ct") -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
     Some("xsi") -> "http://www.w3.org/2001/XMLSchema-instance",
   )

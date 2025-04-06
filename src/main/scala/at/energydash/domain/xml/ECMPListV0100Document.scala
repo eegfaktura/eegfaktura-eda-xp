@@ -3,23 +3,32 @@ package at.energydash.domain.xml
 import at.energydash.config.Config
 import at.energydash.domain.eda.MessageHelper
 import at.energydash.domain.enums.{EbMsMessageType, EcDisModelEnum, EcTypeEnum, MeterDirectionType}
-import at.energydash.domain.xml.ECMPListV0110Document.now
 import at.energydash.domain.{EbMsMessage, Meter}
+import ecmplist.v01p00.ECMPList
 import ponton.`package`.{Commontypesv01p20_AddressTypeFormat, Commontypesv01p20_DocumentModeFormat, Ecmplistv01p10_SchemaVersionFormat, __BooleanXMLFormat}
 import scalaxb.Helper
 
-import java.util.{Calendar, Date}
+import java.util.{Calendar, Date, GregorianCalendar, Locale}
 
 case class ECMPListV0100Document(doc: ecmplist.v01p00.ECMPList) {
-  def toDoc() = doc
+  private def calcDateFrom(): Date = {
+    val now = new GregorianCalendar(new Locale("de", "AT"))
+    now.add(Calendar.DAY_OF_MONTH, 1)
+    if (now.get(Calendar.HOUR_OF_DAY) > 16) {
+      now.add(Calendar.DAY_OF_MONTH, 1)
+    }
+    now.getTime
+  }
 
-  def withMeterList(mList: Option[Seq[Meter]]) =
+  def toDoc: ECMPList = doc
+
+  def withMeterList(mList: Option[Seq[Meter]]): ECMPListV0100Document =
     copy(doc=doc.copy(ProcessDirectory =
       doc.ProcessDirectory.copy(MPListData = mList match {
         case Some(ml) => ml.map(m=>ecmplist.v01p00.MPListData(
           MeteringPoint = m.meteringPoint,
           MPTimeData = Seq(ecmplist.v01p00.MPTimeData(
-            DateFrom = Helper.toCalendar(MessageHelper.buildCalendarDate(now)),
+            DateFrom = Helper.toCalendar(MessageHelper.buildCalendarDate(calcDateFrom())),
             DateTo = Helper.toCalendar("2099-12-31"),
             EnergyDirection = m.direction match {
               case Some(MeterDirectionType.CONSUMPTION) => ecmplist.v01p00.CONSUMPTION

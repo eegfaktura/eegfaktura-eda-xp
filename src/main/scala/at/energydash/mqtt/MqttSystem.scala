@@ -172,7 +172,7 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
       .filter(_.isDefined)
       .map(_.get)
       .log("MQTT SERVER", x => {
-        logger.info(s"Send MQTT Message to ${x.message.topic} [${x.message.qos.get.value}]")
+        s"Send MQTT Message to ${x.message.topic} [${x.message.qos.get.value}]"
       })
       .viaMat(mqttFlow)(Keep.both)
       .toMat(Sink.ignore)(Keep.both)

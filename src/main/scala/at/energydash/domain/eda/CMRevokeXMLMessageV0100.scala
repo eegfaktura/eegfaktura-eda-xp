@@ -1,16 +1,15 @@
 package at.energydash.domain.eda
 
-import at.energydash.domain.enums.EbMsMessageType
+import at.energydash.domain.EbMsMessage
 import at.energydash.domain.xml.CMRevokeV0100Document
-import at.energydash.domain.{EbMsMessage, ResponseData}
 import ponton.`package`.Cmrevokev01p00_CMRevokeFormat
 import scalaxb.CanWriteXML
 
 import scala.util.Try
-import scala.xml.{Elem, NamespaceBinding, Node}
+import scala.xml.{NamespaceBinding, Node}
 
 case class CMRevokeMessage(message: EbMsMessage) extends EdaMessage {
-  override def getVersion(version: Option[String]=None): EdaXMLMessage[_] = CMRevokeXMLMessageV0100(message)
+  override def getVersion(version: Option[String]=None): Try[EdaXMLMessage[_]] = Try(CMRevokeXMLMessageV0100(message))
 }
 
 case class CMRevokeXMLMessageV0100(message: EbMsMessage) extends EdaXMLMessage[cmrevoke.v01p00.CMRevoke] {
@@ -25,13 +24,13 @@ case class CMRevokeXMLMessageV0100(message: EbMsMessage) extends EdaXMLMessage[c
   override def toDoc: cmrevoke.v01p00.CMRevoke = CMRevokeV0100Document(message).toDoc
 
   override def toScope: NamespaceBinding = scalaxb.toScope(
-    Some("rv") -> "http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p00",
+    None -> "http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p00",
     Some("ct") -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
     Some("xsi") -> "http://www.w3.org/2001/XMLSchema-instance",
   )
 
   def toXML: Node = {
-    scalaxb.toXML[cmrevoke.v01p00.CMRevoke](toDoc, Some("http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p00"), rootNodeLabel,
+    scalaxb.toXML[cmrevoke.v01p00.CMRevoke](toDoc, schemaLocation, rootNodeLabel,
       toScope,
       true).head
 
