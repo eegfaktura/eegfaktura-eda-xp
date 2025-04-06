@@ -44,7 +44,7 @@ trait MqttBaseSpec extends ScalaTestWithActorTestKit {
       subscriptions
     )
 
-    val server = new Server()
+    val mqttServer = new Server()
 //    val authenticator = new IAuthenticator {
 //      override def checkValid(username: String, password: Array[Byte]): Boolean =
 //        serverAuth.fold(true) { case (u, p) => username == u && new String(password) == p }
@@ -52,11 +52,11 @@ trait MqttBaseSpec extends ScalaTestWithActorTestKit {
     val filePathLoader = new FileResourceLoader(new File(getClass.getResource("/moquette.conf").getPath))
     val classPathConfig = new ResourceLoaderConfig(filePathLoader);
 
-    server.startServer(classPathConfig, null, null, null, null)
+    mqttServer.startServer(classPathConfig, null, null, null, null)
     try {
-      test(FixtureParam(settings, server, system, mat))
+      test(FixtureParam(settings, mqttServer, system, mat))
     } finally {
-      server.stopServer()
+      mqttServer.stopServer()
     }
 
 //    Await.ready(system.whenTerminated, 5.seconds)
@@ -70,11 +70,11 @@ trait MqttBaseSpec extends ScalaTestWithActorTestKit {
 object MqttSourceSpec {
 
   def fixture(p: FixtureParam) = new {
-    implicit val server = p.server
+    implicit val mqttServer = p.mqttServer
     implicit val system = p.sys
     implicit val materializer = p.mat
   }
 
-  case class FixtureParam(settings: MqttSourceSettings, server: Server, sys: ActorSystem[_], mat: Materializer)
+  case class FixtureParam(settings: MqttSourceSettings, mqttServer: Server, sys: ActorSystem[_], mat: Materializer)
 
 }

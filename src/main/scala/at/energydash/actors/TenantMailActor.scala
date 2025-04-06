@@ -57,7 +57,7 @@ class TenantMailActor(tenantConfig: TenantConfig, mailRepo: SlickEmailOutboxRepo
                 logger.info(s"Sent Mail to ${req.email.toEmail}")
                 req.replyTo ! SendEdaResponse(req.email.data)
               case Failure(ex) =>
-                req.replyTo ! SendErrorResponse(tenant, "Error Occured  " + ex.getMessage)
+                req.replyTo ! SendResponseError(tenant, req.email.toEmail, ex.getMessage, "Send Mail")
             }
             Behaviors.same
           case req: DeleteEmailCommand =>

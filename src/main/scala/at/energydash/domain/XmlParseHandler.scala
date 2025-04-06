@@ -4,6 +4,7 @@ import at.energydash.domain.enums.EbMsMessageType
 import at.energydash.domain.xml._
 import ecmplist.v01p10
 import ecmplist.v01p00
+import org.slf4j.LoggerFactory
 import ponton.InboundDocument
 import scalaxb.DataRecord
 import soapenvelope11.Envelope
@@ -13,6 +14,8 @@ import scala.xml.NodeSeq
 
 object XmlParseHandler {
   import ponton.`package`.fromAnySchemaType
+
+  val logger = LoggerFactory.getLogger("XmlParseHandler")
 
   private[this] val SOAP_ENVELOPE_URI =
     "http://www.w3.org/2003/05/soap-envelope"
@@ -29,6 +32,7 @@ object XmlParseHandler {
             (x.scope.getURI(x.prefix) == SOAP_ENVELOPE_URI) =>
           // TODO: much advance failure handling
           // val fault = scalaxb.fromXML[soapenvelope12.Fault](x)
+          logger.error(s"Error in Body Message: ${x}")
           Nil
         case _ =>
           envelope.Body.any.collect {

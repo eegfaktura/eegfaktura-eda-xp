@@ -17,11 +17,12 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
           |  "conversationId" : "TE100001202306071686177700000000008",
           |  "sender" : "TE000001",
           |  "receiver" : "AT009999",
-          |  "messageCode" : "AUFHEBUNG_CCMI",
+          |  "messageCode" : "AUFHEBUNG_CCMS",
           |  "messageCodeVersion": "01.01",
           |  "requestId" : "CHKWFJ5N",
           |  "meter" : {
           |    "meteringPoint" : "AT0030000000000000000000000000101",
+          |    "consentId": "1",
           |    "direction" : null
           |  },
           |  "consentEnd": 1680219900000
@@ -31,7 +32,7 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
       val message = decode[EbMsMessage](jsonObjectStr)
 
       val node = message match {
-        case Right(m) => CMRevokeXMLMessageV0100(m).toXML
+        case Right(m) => MessageHelper.getEdaMessageByType(m).get.toXML
       }
 
       (node \ "ProcessDirectory" \ "ConsentEnd" ).text should fullyMatch regex """[12][0-9]{3}-[01][0-9]-[0-3][0-9]"""
@@ -71,7 +72,9 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
       val message = decode[EbMsMessage](jsonObjectStr)
 
       val node = message match {
-        case Right(m) => CMRevokeRequestV0100(m).toXML
+        case Right(m) =>
+          println(s"################ $m")
+          CMRevokeRequest(m).getVersion().get.toXML
       }
 
       //      (node \ "ProcessDirectory" \ "ConsentEnd" ).text should fullyMatch regex """[12][0-9]{3}-[01][0-9]-[0-3][0-9]T[012][0-9]:[0-5][0-9]:00[\+]0[12]:00"""

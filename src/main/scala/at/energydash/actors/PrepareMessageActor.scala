@@ -1,11 +1,13 @@
 package at.energydash.actors
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.actor.typed.{ActorRef, Behavior}
+import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import akka.persistence.typed.PersistenceId
-import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, ReplyEffect}
+import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, ReplyEffect, RetentionCriteria}
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.eda.MessageHelper
+
+import scala.concurrent.duration.DurationInt
 
 object PrepareMessageActor {
   sealed trait Command[Reply <: CommandReply] {
@@ -46,5 +48,7 @@ object PrepareMessageActor {
       emptyState = Storage(),
       commandHandler = (state, cmd) => state.applyCommand(context, cmd),
       eventHandler = (state, evt) => state.applyEvent(evt))
+      .withRetention(RetentionCriteria.snapshotEvery(numberOfEvents = 10, keepNSnapshots = 1).withDeleteEventsOnSnapshot)
+      .onPersistFailure(SupervisorStrategy.restartWithBackoff(200.millis, 2.seconds, 0.1))
   }
 }

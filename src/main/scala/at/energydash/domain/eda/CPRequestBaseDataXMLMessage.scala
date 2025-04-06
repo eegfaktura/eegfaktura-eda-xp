@@ -11,7 +11,7 @@ import scala.util.Try
 import scala.xml.{NamespaceBinding, Node, XML}
 
 case class CPRequestBaseData(message: EbMsMessage) extends EdaMessage {
-  override def getVersion(version: Option[String] = None): EdaXMLMessage[_] = CPRequestBaseDataXMLMessage(message)
+  override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = Try(CPRequestBaseDataXMLMessage(message))
 }
 
 case class CPRequestBaseDataXMLMessage(message: EbMsMessage) extends EdaXMLMessage[cprequest.v01p12.CPRequest] {

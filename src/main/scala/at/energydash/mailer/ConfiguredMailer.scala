@@ -28,7 +28,7 @@ object ConfiguredMailer {
 
     val properties = new Properties()
 
-    val mergedMap:Map[String, Object] = config.toMap() ++ AppConfig.getDomain(config.domain)
+    val mergedMap:Map[String, Object] = config.toMap ++ AppConfig.getDomain(config.domain.getOrElse(""))
 
     properties.putAll(mergedMap.asJava)
 //    println(s"Mail Properties: ${properties}")
@@ -41,7 +41,7 @@ object ConfiguredMailer {
     def getOptionConfigured[T](user: String, pass: String, constructor: (String, String) => T): Option[T] = {
      Some(constructor(user, pass))
     }
-    val configAuthenticator = getOptionConfigured(config.toAuthMap().getOrElse("username", ""), config.toAuthMap().getOrElse("password", ""), authenticatorFromConfig)
+    val configAuthenticator = getOptionConfigured(config.toAuthMap.getOrElse("username", ""), config.toAuthMap.getOrElse("password", ""), authenticatorFromConfig)
     //Then make the session
     val session = configAuthenticator.fold(Session.getInstance(properties))(
       authenticator => Session.getInstance(properties, authenticator))

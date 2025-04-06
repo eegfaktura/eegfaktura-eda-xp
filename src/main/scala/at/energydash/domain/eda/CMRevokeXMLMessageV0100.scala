@@ -5,10 +5,11 @@ import at.energydash.domain.xml.CMRevokeV0100Document
 import ponton.`package`.Cmrevokev01p00_CMRevokeFormat
 import scalaxb.CanWriteXML
 
+import scala.util.Try
 import scala.xml.{NamespaceBinding, Node}
 
 case class CMRevokeMessage(message: EbMsMessage) extends EdaMessage {
-  override def getVersion(version: Option[String]=None): EdaXMLMessage[_] = CMRevokeXMLMessageV0100(message)
+  override def getVersion(version: Option[String]=None): Try[EdaXMLMessage[_]] = Try(CMRevokeXMLMessageV0100(message))
 }
 
 case class CMRevokeXMLMessageV0100(message: EbMsMessage) extends EdaXMLMessage[cmrevoke.v01p00.CMRevoke] {

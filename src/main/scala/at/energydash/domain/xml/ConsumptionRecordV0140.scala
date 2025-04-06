@@ -30,8 +30,7 @@ class ConsumptionRecordV0140(doc: consumptionrecord.v01p40.ConsumptionRecord) {
           ))
         )
       )
-    )).head
-    ),
+    ))),
   )
 }
 

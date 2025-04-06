@@ -18,6 +18,12 @@ package object config {
       getOption(key, _.getConfig).map(constructor)
     }
 
+    def optionalString(path: String): Option[String] = if (self.hasPath(path)) {
+      Some(self.getString(path))
+    } else {
+      None
+    }
+
     def getOptionConfiguredIf[T](key:String,constructor: Config => T,createFlag:String = "create"):Option[T] = {
       if(self.getBoolean(s"$key.$createFlag")) self.getOptionConfigured(key,constructor)
       else None

@@ -22,17 +22,13 @@ class PontonService(context: ActorContext[EdaCommand]) extends AbstractBehavior[
     msg match {
       case SendEdaCommand(ebmsMessage, replyTo) =>
         service.sendRequest(ebmsMessage)(context.executionContext) onComplete {
-//          case Success((header, body)) =>
-//            println(s"Response From SendRequest: $header - $body")
-          case Success(envelope) =>
-            println(s"Response From SendRequest: $envelope")
-            replyTo ! SendEdaResponse(ebmsMessage)
-          case Failure(exception) => SendErrorResponse(ebmsMessage.sender, exception.getMessage)
+          case Success(_) => replyTo ! SendEdaResponse(ebmsMessage)
+          case Failure(exception) => replyTo ! SendResponseError(ebmsMessage.sender, ebmsMessage.receiver, exception.getMessage, "Send KEP")
         }
         Behaviors.same
-      case TestSendEdaCommand(edaMessage) =>
-        service.sendRequest(edaMessage)(context.executionContext)
-        Behaviors.same
+//      case TestSendEdaCommand(edaMessage) =>
+//        service.sendRequest(edaMessage)(context.executionContext)
+//        Behaviors.same
 
     }
   }

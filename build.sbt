@@ -1,3 +1,4 @@
+import com.typesafe.sbt.packager.docker.{Cmd, DockerChmodType, ExecCmd}
 
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
@@ -10,6 +11,8 @@ lazy val alpakkaVersion  = "8.0.0"
 lazy val circeVersion    = "0.14.3"
 lazy val akkaHttpCirceVersion    = "1.39.2"
 lazy val slickVersion = "3.5.1"
+
+val dockerVersion      = "v0.1.11"
 
 lazy val scalaxbSettings = Seq(
   Compile / scalaxbJaxbPackage := JaxbPackage.Jakarta,
@@ -42,10 +45,35 @@ lazy val scalaxbSettings = Seq(
   //  Compile / scalaxb / scalaxbProtocolPackageName := Some("sepp")
 )
 
+lazy val dockerSettings = Seq(
+  Docker / packageName := "eda-xp-connector",
+  Docker / maintainer := "vfeeg <vfeeg.org>",
+  Docker / version := dockerVersion,
+
+  dockerBaseImage := "openjdk:17-slim-buster",
+  dockerExposedVolumes := Seq("/conf", "/storage/prod"),
+  dockerRepository := Some("ghcr.io"),
+  dockerUsername := Some("vfeeg-development"),
+  dockerUpdateLatest := true,
+  dockerExposedPorts := Seq(6090, 9093),
+  dockerCommands := dockerCommands.value.filterNot {
+    case ExecCmd("ENTRYPOINT", _) => true
+    case cmd => false
+  },
+  dockerEnvVars := Map("TZ" -> "Europe/Vienna", "JAVA_OPTS" -> "-Xmx4g"),
+  dockerCommands ++= Seq(
+    Cmd("LABEL", s"""version="${dockerVersion}""""),
+    ExecCmd("CMD", "/opt/docker/bin/xpadapter", "-Dconfig.file=/conf/application.conf")
+  ),
+  dockerChmodType := DockerChmodType.UserGroupWriteExecute
+)
+
 lazy val root = (project in file("."))
   .enablePlugins(ScalaxbPlugin)
   .enablePlugins(AkkaGrpcPlugin)
+  .enablePlugins(JavaAppPackaging)
   .settings(scalaxbSettings)
+  .settings(dockerSettings)
   .settings(
     name := "XPAdapter",
 
@@ -68,7 +96,7 @@ lazy val root = (project in file("."))
 
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
       "ch.qos.logback" % "logback-classic" % "1.5.6",
-      "org.slf4j" % "jcl-over-slf4j" % "1.7.22",
+      "org.slf4j" % "jcl-over-slf4j" % "2.0.13",
 
       "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
 
@@ -77,11 +105,11 @@ lazy val root = (project in file("."))
       "org.scala-lang.modules" %% "scala-xml" % "2.3.0",
 //      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2",
 
-      "com.google.guava" % "guava" % "31.1-jre"
+      "com.google.guava" % "guava" % "33.2.1-jre"
     ),
 
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % "3.2.14",
+      "org.scalatest" %% "scalatest" % "3.2.19",
       "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion,
       "org.jvnet.mock-javamail" % "mock-javamail" % "1.12",
@@ -92,7 +120,7 @@ lazy val root = (project in file("."))
       "org.mockito" %% "mockito-scala" % "1.17.31",
       "org.scalamock" %% "scalamock" % "6.0.0",
       "com.typesafe.slick" %% "slick-testkit" % slickVersion,
-      "io.moquette"      % "moquette-broker"  % "0.15",
+      "io.moquette"      % "moquette-broker"  % "0.17",
     ).map(_ % Test),
 
     libraryDependencies ++= Seq(
@@ -104,7 +132,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "com.typesafe.slick" %% "slick" % slickVersion,
       "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
-      "org.postgresql" % "postgresql" % "42.2.5",
+      "org.postgresql" % "postgresql" % "42.7.3",
       "com.github.tminglei" %% "slick-pg" % "0.22.2",
       "com.github.tminglei" %% "slick-pg_circe-json" % "0.22.2"
     ),

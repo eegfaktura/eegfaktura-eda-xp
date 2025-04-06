@@ -4,6 +4,7 @@ import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import at.energydash.actors.MqttPublisher.MqttCommand
 import at.energydash.actors.TenantProvider.TenantStart
 import at.energydash.domain.EbMsMessage
+import at.energydash.domain.dao.TenantConfig
 import at.energydash.domain.enums.EbMsMessageType
 import at.energydash.{EmailMock, EmbeddedDb}
 import com.typesafe.slick.testkit.util.ProfileTest
@@ -25,11 +26,11 @@ class TenantProviderSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 
   "Tenant Provider Actor" should {
     "Handle Eda Message OFFLINE Reg" in {
-      val mailActorProbe = createTestProbe[MqttCommand]()
+      val mqttPublisherProbe = createTestProbe[MqttCommand]()
       val edaResponse = createTestProbe[EdaCommand]
-      val tenantActor = spawn(TenantProvider(mailActorProbe.ref))
+      val tenantActor = spawn(TenantProvider(mqttPublisherProbe.ref))
       val testMessage = EbMsMessage(messageId = Some("1234"), conversationId = "con",
-        sender = "sender",
+        sender = "myeeg",
         receiver = "rec",
         messageCode = EbMsMessageType.OFFLINE_REG_INIT,
         messageCodeVersion = Some("02.00"),
@@ -47,9 +48,9 @@ class TenantProviderSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
     }
 
     "Handle Eda Message with unregistered participant" in {
-      val mailActorProbe = createTestProbe[MqttCommand]()
+      val mqttPublisherProbe = createTestProbe[MqttCommand]()
       val edaResponse = createTestProbe[EdaCommand]
-      val tenantActor = spawn(TenantProvider(mailActorProbe.ref))
+      val tenantActor = spawn(TenantProvider(mqttPublisherProbe.ref))
       val testMessage = EbMsMessage(messageId = Some("1234"), conversationId = "con",
         sender = "sender",
         receiver = "rec",
@@ -58,8 +59,44 @@ class TenantProviderSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
         requestId = Some("567890"))
       tenantActor ! TenantStart
 
-      tenantActor ! PassEdaCommand("unreg", testMessage, edaResponse.ref)
-      edaResponse.expectMessage[SendResponseError](SendResponseError("unreg", "Tenant not registered"))
+      tenantActor ! PassEdaCommand("sender", testMessage, edaResponse.ref)
+      val errorResponse = edaResponse.expectMessage[SendResponseError](SendResponseError("sender", "rec", "Tenant not registered"))
+      println(errorResponse)
+    }
+
+    "Handle malformed Eda Message" in {
+      val mqttPublisherProbe = createTestProbe[MqttCommand]()
+      val edaResponse = createTestProbe[EdaCommand]
+      val tenantActor = spawn(TenantProvider(mqttPublisherProbe.ref))
+      val testMessage = EbMsMessage(messageId = Some("1234"), conversationId = "con",
+        sender = "myeeg",
+        receiver = "netz ooe",
+        messageCode = EbMsMessageType.OFFLINE_REG_INIT,
+        messageCodeVersion = Some("02.00"),
+        requestId = Some("567890"))
+      tenantActor ! TenantStart
+
+      tenantActor ! PassEdaCommand("myeeg", testMessage, edaResponse.ref)
+      val errorResponse = edaResponse.expectMessage[SendResponseError](SendResponseError("myeeg", "NETZ OOE","Local address contains control or whitespace", "Send Mail"))
+      println(errorResponse)
+    }
+
+    "Handle reconfigure Tenant Settings" in {
+      val mqttPublisherProbe = createTestProbe[MqttCommand]()
+      val configResponse = createTestProbe[EdaCommand]
+      val tenantActor = spawn(TenantProvider(mqttPublisherProbe.ref))
+      val testMessage = TenantConfig(
+        tenant = "mymaileeg", cType = "KEP", active = true, domain = None, host = None, imapPort = None, smtpHost = None, smtpPort = None, user = None, passwd = None, imapSecurity = None, smtpSecurity = None)
+      tenantActor ! TenantStart
+      Thread.sleep(5000)
+
+      println(s"TREE1: ${system.printTree}")
+
+      tenantActor ! TenantModified(testMessage, configResponse.ref)
+      val errorResponse = configResponse.expectMessageType[at.energydash.actors.ResponseOk]
+      Thread.sleep(5000)
+      println(s"TREE2: ${system.printTree}")
+      println(errorResponse)
     }
   }
 }
