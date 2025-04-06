@@ -37,7 +37,7 @@ case class CMRequestRegistrationOnlineXMLMessageV0210(message: EbMsMessage) exte
   override def toXML: Node = {
     scalaxb.toXML[cmrequest.v01p21.CMRequest](toDoc, schemaLocation, rootNodeLabel,
       toScope,
-      true).head
+      typeAttribute = true).head
   }
 }
 
@@ -61,7 +61,7 @@ case class CMRequestRegistrationOnlineXMLMessageV0200(message: EbMsMessage) exte
   override def toXML: Node = {
     scalaxb.toXML[cmrequest.v01p20.CMRequest](toDoc, schemaLocation, rootNodeLabel,
       toScope,
-      true).head
+      typeAttribute = true).head
   }
 }
 
@@ -83,6 +83,6 @@ case class CMRequestRegistrationOnlineXMLMessageV0110(message: EbMsMessage) exte
   override def toXML: Node = {
     scalaxb.toXML[cmrequest.v01p10.CMRequest](toDoc, Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10"), rootNodeLabel,
       toScope,
-      true).head
+      typeAttribute = true).head
   }
 }
