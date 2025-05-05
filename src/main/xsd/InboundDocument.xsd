@@ -4,6 +4,7 @@
         xmlns:dp7="http://www.ebutilities.at/datenplattform/0700"
         xmlns:cplist="http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p10"
         xmlns:cmnot="http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p11"
+        xmlns:cmnotv12="http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p12"
         xmlns:cmrev="http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p00"
         xmlns:cpnot="http://www.ebutilities.at/schemata/customerprocesses/cpnotification/01p13"
         xmlns:cmmsg="http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p40"
@@ -104,6 +105,7 @@
                         <element ref="dp7:VOLLPRUEF_EINS_VP" />
                         <element ref="cplist:ECMPList" />
                         <element ref="cmnot:CMNotification" />
+                        <element ref="cmnotv12:CMNotification" />
                         <element ref="cmrev:CMRevoke" />
                         <element ref="cpnot:CPNotification" />
                         <element ref="cmmsg:ConsumptionRecord" />

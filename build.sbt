@@ -12,7 +12,7 @@ lazy val circeVersion    = "0.14.3"
 lazy val akkaHttpCirceVersion    = "1.39.2"
 lazy val slickVersion = "3.5.1"
 
-val dockerVersion      = "v0.1.11"
+val dockerVersion      = "v0.2.00"
 
 lazy val scalaxbSettings = Seq(
   Compile / scalaxbJaxbPackage := JaxbPackage.Jakarta,
