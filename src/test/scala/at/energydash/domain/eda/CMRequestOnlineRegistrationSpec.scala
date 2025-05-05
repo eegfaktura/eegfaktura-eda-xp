@@ -1,5 +1,6 @@
 package at.energydash.domain.eda
 
+import at.energydash.domain.eda.MessageHelper.{buildCalendarDate, getProcessDate}
 import at.energydash.domain.enums.{EbMsMessageType, MeterDirectionType}
 import at.energydash.domain.{EbMsMessage, Meter, XmlParseHandler}
 import io.circe.generic.auto._
@@ -29,6 +30,25 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers {
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
+      (node \ "ProcessDirectory" \ "ProcessDate").text shouldBe buildCalendarDate(getProcessDate.getTime)
+    }
+
+    "build 02.10 XML File" in {
+
+      val testMessage = EbMsMessage(
+        conversationId = "AT003000202303041506076450000003761",
+        requestId = Some("5JWLV5Z3"),
+        messageId = Some("RC100181202303041506080740000003762"),
+        sender = "RC100130", receiver = "AT003000", messageCode = EbMsMessageType.ONLINE_REG_INIT, messageCodeVersion = Some("02.10"),
+        meter = Some(Meter("AT0030000000000000000000000655856", Some(MeterDirectionType.CONSUMPTION))), ecId = Some("AT00300000000RC100181000000956509"))
+
+      val node = CMRequestRegistrationOnlineXMLMessageV0210(testMessage).toXML
+
+      (node \ "MarketParticipantDirectory" \ "MessageCode").text shouldBe EbMsMessageType.ONLINE_REG_INIT.toString
+      (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
+      (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
+      (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
+      (node \ "ProcessDirectory" \ "ProcessDate").text shouldBe buildCalendarDate(getProcessDate.getTime)
     }
 
     "build from JsonFile" in {

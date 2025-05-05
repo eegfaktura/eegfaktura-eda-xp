@@ -35,7 +35,7 @@ object SupervisorActor {
 
     val serverConfig = Config.serverConfig
     val futureBinding = Http().newServerAt(serverConfig.host, serverConfig.port)/*.enableHttps(serverHttpContext)*/
-      .adaptSettings(settings => settings.withHttp2Enabled(false))
+//      .adaptSettings(settings => settings.withHttp2Enabled(false))
       .bind(routes)
     futureBinding.onComplete {
       case Success(binding) =>

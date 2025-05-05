@@ -12,7 +12,7 @@ lazy val circeVersion    = "0.14.3"
 lazy val akkaHttpCirceVersion    = "1.39.2"
 lazy val slickVersion = "3.5.1"
 
-val dockerVersion      = "v0.1.11"
+val dockerVersion      = "v0.2.00"
 
 lazy val scalaxbSettings = Seq(
   Compile / scalaxbJaxbPackage := JaxbPackage.Jakarta,
@@ -21,6 +21,7 @@ lazy val scalaxbSettings = Seq(
     uri("http://xp.ponton.de/eda/v320") -> "ponton",
     uri("http://www.ebutilities.at/datenplattform/0700") -> "dataplatform",
     uri("http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p11") -> "cmnotification.v01p11",
+    uri("http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p12") -> "cmnotification.v01p12",
     uri("http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p00") -> "ecmplist.v01p00",
     uri("http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p10") -> "ecmplist.v01p10",
     uri("http://www.ebutilities.at/schemata/customerprocesses/gc/gcrequestap/01p00") -> "gcrequestap.v01p00",
@@ -30,6 +31,7 @@ lazy val scalaxbSettings = Seq(
     uri("http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p40") -> "consumptionrecord.v01p40",
     uri("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10") -> "cmrequest.v01p10",
     uri("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p20") -> "cmrequest.v01p20",
+    uri("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p21") -> "cmrequest.v01p21",
     uri("http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p00") -> "cmrevoke.v01p00",
     uri("http://www.ebutilities.at/schemata/customerprocesses/cpnotification/01p13") -> "cpnotification.v01p13",
     uri("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12") -> "cprequest.v01p12",
