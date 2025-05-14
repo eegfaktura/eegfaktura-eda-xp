@@ -5,7 +5,7 @@ import at.energydash.domain.eda.MessageHelper.{buildCalendar, buildCalendarDate,
 import at.energydash.domain.enums.EbMsMessageType
 import at.energydash.domain.{EbMsMessage, ResponseData}
 import cmrevoke._
-import cmrevoke.v01p00.MessageCode
+//import cmrevoke.v01p00.MessageCode
 import commontypes.v01p20._
 import ponton.`package`.{Cmrevokev01p00_MessageCodeFormat, Cmrevokev01p00_SchemaVersionFormat, Commontypesv01p20_AddressTypeFormat, Commontypesv01p20_DocumentModeFormat, __BooleanXMLFormat}
 import scalaxb.Helper
@@ -44,7 +44,7 @@ object CMRevokeV0100Document {
         DocumentCreationDateTime = Helper.toCalendar(buildCalendar(getProcessDate.getTime))
       ),
       Sector = Number01,
-      MessageCode = MessageCode.fromString(message.messageCode.toString, TopScope),
+      MessageCode = v01p00.MessageCode.fromString(message.messageCode.toString, TopScope),
       attributes = Map(
         ("@DocumentMode", scalaxb.DataRecord[DocumentMode](Config.interfaceMode match {
           case "SIMU" => SIMU

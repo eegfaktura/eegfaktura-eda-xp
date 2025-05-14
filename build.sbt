@@ -1,6 +1,6 @@
 import com.typesafe.sbt.packager.docker.{Cmd, DockerChmodType, ExecCmd}
 
-ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / version := "0.2.01-SNAPSHOT"
 
 ThisBuild / scalaVersion := "2.13.9"
 
@@ -12,7 +12,7 @@ lazy val circeVersion    = "0.14.3"
 lazy val akkaHttpCirceVersion    = "1.39.2"
 lazy val slickVersion = "3.5.1"
 
-val dockerVersion      = "v0.2.00"
+val dockerVersion      = "v0.2.01"
 
 lazy val scalaxbSettings = Seq(
   Compile / scalaxbJaxbPackage := JaxbPackage.Jakarta,
@@ -89,6 +89,7 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
 //      "com.typesafe.akka" %% "akka-persistence-query" % akkaVersion,
       "com.typesafe.akka" %% "akka-serialization-jackson"  % akkaVersion,
+      "com.typesafe.akka" %% "akka-http-xml" % akkaHttpVersion,
       "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % alpakkaVersion,
       "com.lightbend.akka" %% "akka-stream-alpakka-mqtt-streaming" % alpakkaVersion,
       "jakarta.xml.bind" % "jakarta.xml.bind-api" % "4.0.2",

@@ -39,7 +39,7 @@ object MessageHelper {
       case ZP_LIST => CPRequestZPList(message).getVersion()
       case EEG_BASE_DATA => CPRequestBaseData(message).getVersion()
       case ENERGY_SYNC_REQ => CPRequestMeteringValue(message).getVersion()
-      case EDA_MSG_AUFHEBUNG_CCMS => toOptionSE(CMRevokeRequest(message).getVersion())
+      case EDA_MSG_AUFHEBUNG_CCMS => CMRevokeRequest(message).getVersion()
       case CHANGE_METER_PARTITION => ECPartitionChangeMessage(message).getVersion()
       case _ => None
     })

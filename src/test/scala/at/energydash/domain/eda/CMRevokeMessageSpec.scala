@@ -61,7 +61,7 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
           | "sender":"CC100063",
           | "receiver":"AT003000",
           | "messageCode":"AUFHEBUNG_CCMS",
-          | "messageCodeVersion":"",
+          | "messageCodeVersion":"01.10",
           | "requestId":"KOTH2QYO",
           | "meter":{
           |   "meteringPoint":"AT0030000000000000000000000749984",
