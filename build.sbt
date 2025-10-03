@@ -12,7 +12,7 @@ lazy val circeVersion    = "0.14.3"
 lazy val akkaHttpCirceVersion    = "1.39.2"
 lazy val slickVersion = "3.5.1"
 
-val dockerVersion      = "v0.2.01"
+val dockerVersion      = "v0.2.10"
 
 lazy val scalaxbSettings = Seq(
   Compile / scalaxbJaxbPackage := JaxbPackage.Jakarta,
@@ -29,6 +29,7 @@ lazy val scalaxbSettings = Seq(
     uri("http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p30") -> "consumptionrecord.v01p30",
     uri("http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p31") -> "consumptionrecord.v01p31",
     uri("http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p40") -> "consumptionrecord.v01p40",
+    uri("http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p41") -> "consumptionrecord.v01p41",
     uri("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10") -> "cmrequest.v01p10",
     uri("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p20") -> "cmrequest.v01p20",
     uri("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p21") -> "cmrequest.v01p21",
@@ -46,15 +47,18 @@ lazy val scalaxbSettings = Seq(
 )
 
 lazy val dockerSettings = Seq(
-  Docker / packageName := "eda-xp-connector",
-  Docker / maintainer := "vfeeg <vfeeg.org>",
-  Docker / version := dockerVersion,
+//  Docker / packageName := "eda-xp-connector",
+//  Docker / maintainer := "vfeeg <vfeeg.org>",
+//  Docker / version := dockerVersion,
 
+  packageName := "eda-xp-connector",
+  maintainer := "vfeeg <vfeeg.org>",
+  version := dockerVersion,
   dockerBaseImage := "openjdk:17-slim-buster",
   dockerExposedVolumes := Seq("/conf", "/storage/prod"),
   dockerRepository := Some("ghcr.io"),
   dockerUsername := Some("vfeeg-development"),
-  dockerUpdateLatest := true,
+//  dockerUpdateLatest := true,
   dockerExposedPorts := Seq(6090, 9093),
   dockerCommands := dockerCommands.value.filterNot {
     case ExecCmd("ENTRYPOINT", _) => true
@@ -65,7 +69,17 @@ lazy val dockerSettings = Seq(
     Cmd("LABEL", s"""version="${dockerVersion}""""),
     ExecCmd("CMD", "/opt/docker/bin/xpadapter", "-Dconfig.file=/conf/application.conf")
   ),
-  dockerChmodType := DockerChmodType.UserGroupWriteExecute
+  dockerChmodType := DockerChmodType.UserGroupWriteExecute,
+  dockerAliases ++= {
+    val repo = dockerRepository.value
+
+    Seq(
+//      DockerAlias(repo, Some("vfeeg-development"), name, Some(dockerVersion)),      // e.g. ghcr.io/eegfaktura/app:1.0.0
+//      DockerAlias(repo, Some("vfeeg-development"), name, Some("latest")),
+      DockerAlias(repo, Some("eegfaktura"), "eegfaktura-kep", Some(dockerVersion)),
+      DockerAlias(repo, Some("eegfaktura"), "eegfaktura-kep", Some("latest")),
+    )
+  }
 )
 
 lazy val root = (project in file("."))
@@ -137,5 +151,11 @@ lazy val root = (project in file("."))
       "com.github.tminglei" %% "slick-pg" % "0.22.2",
       "com.github.tminglei" %% "slick-pg_circe-json" % "0.22.2"
     ),
+
+    libraryDependencies ++= Seq(
+      "org.flywaydb" % "flyway-core" % "10.20.0",
+      "org.flywaydb" % "flyway-database-postgresql" % "10.20.0"
+    ),
+
     testOptions += Tests.Argument(TestFrameworks.JUnit, "-q", "-v", "-s", "-a")
   )
