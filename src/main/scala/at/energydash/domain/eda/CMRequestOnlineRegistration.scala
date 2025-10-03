@@ -12,13 +12,12 @@ import scala.xml.{NamespaceBinding, Node}
 case class CMRequestRegistrationOnline(message: EbMsMessage) extends EdaMessage {
   override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
     case Some("02.00") => Try(CMRequestRegistrationOnlineXMLMessageV0200(message))
-    case Some("02.10") => Try(CMRequestRegistrationOnlineXMLMessageV0210(message))
+    case Some("02.10") => Try(new CMRequestRegistrationOnlineXMLMessageV0210(message))
     case _ => Try(CMRequestRegistrationOnlineXMLMessageV0110(message))
   }
 }
 
-
-case class CMRequestRegistrationOnlineXMLMessageV0210(message: EbMsMessage) extends EdaXMLMessage[cmrequest.v01p21.CMRequest] {
+class CMRequestRegistrationOnlineXMLMessageV0210(val message: EbMsMessage) extends EdaXMLMessage[cmrequest.v01p21.CMRequest] {
   override implicit val edaTypeCanWrite: CanWriteXML[cmrequest.v01p21.CMRequest] = Cmrequestv01p21_CMRequestFormat
 
   override def rootNodeLabel: Option[String] = Some("CMRequest")
@@ -65,13 +64,6 @@ case class CMRequestRegistrationOnlineXMLMessageV0200(message: EbMsMessage) exte
       toScope,
       typeAttribute = true).head
   }
-
-//  scalaxb.toXML[CMRequest2](doc, Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p20"), rootNodeLabel,
-//    scalaxb.toScope(
-//      None -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
-//      Some("ns2") -> "http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p20",
-//      Some("xsi") -> "http://www.w3.org/2001/XMLSchema-instance"),
-//    true).head
 }
 
 case class CMRequestRegistrationOnlineXMLMessageV0110(message: EbMsMessage) extends EdaXMLMessage[cmrequest.v01p10.CMRequest] {

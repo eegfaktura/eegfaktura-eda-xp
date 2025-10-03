@@ -10,8 +10,6 @@ import scala.util.Try
 import scala.xml.{NamespaceBinding, Node}
 
 case class CMRevokeRequest(message: EbMsMessage) extends EdaMessage {
-  //  override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = Try(CMRevokeRequestV0100(message))
-
   override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
     case Some("01.02") => Try(CMRevokeRequestV0100(message))
     case Some("01.10") => Try(CMRevokeRequestV0110(message))
@@ -19,31 +17,21 @@ case class CMRevokeRequest(message: EbMsMessage) extends EdaMessage {
   }
 }
 
-case class CMRevokeRequestV0110(message: EbMsMessage) extends EdaXMLMessage[cmrevoke.v01p00.CMRevoke] {
-  override implicit val edaTypeCanWrite: CanWriteXML[cmrevoke.v01p00.CMRevoke] = Cmrevokev01p00_CMRevokeFormat
+object CMRevokeRequestV0110 {
+  def apply(message: EbMsMessage) = new CMRevokeRequestV0110(message)
+}
 
-  override def rootNodeLabel: Some[String] = Some("CMRevoke")
-
+class CMRevokeRequestV0110(override val message: EbMsMessage) extends CMRevokeRequestV0100(message) {
   override def schemaLocation: Option[String] =
   Some("http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p00 " +
     "http://www.ebutilities.at/schemata/customerprocesses/CM_REV_SP/01.10/AUFHEBUNG_CCMS")
-
-  override def toDoc: cmrevoke.v01p00.CMRevoke = CMRevokeV0100Document(message).toDoc
-
-  override def toScope: NamespaceBinding = scalaxb.toScope(
-    None -> "http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p00",
-    Some("ct") -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
-    Some("xsi") -> "http://www.w3.org/2001/XMLSchema-instance"
-  )
-
-  def toXML: Node = {
-    scalaxb.toXML[cmrevoke.v01p00.CMRevoke](toDoc, schemaLocation, rootNodeLabel,
-      toScope,
-      typeAttribute = true).head
-  }
 }
 
-case class CMRevokeRequestV0100(message: EbMsMessage) extends EdaXMLMessage[cmrevoke.v01p00.CMRevoke] {
+object CMRevokeRequestV0100 {
+  def apply(message: EbMsMessage) = new CMRevokeRequestV0100(message)
+}
+
+class CMRevokeRequestV0100(val message: EbMsMessage) extends EdaXMLMessage[cmrevoke.v01p00.CMRevoke] {
   override implicit val edaTypeCanWrite: CanWriteXML[cmrevoke.v01p00.CMRevoke] = Cmrevokev01p00_CMRevokeFormat
 
   override def rootNodeLabel: Some[String] = Some("CMRevoke")
