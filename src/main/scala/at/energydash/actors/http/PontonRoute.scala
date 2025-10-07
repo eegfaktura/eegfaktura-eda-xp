@@ -77,6 +77,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand])(implicit val system: Act
                   scalaxb.fromXML[Envelope](response.head)
                 }.flatMap(e => XmlParseHandler.reponseEbMsMessage(e))) {
                   case Success(x) =>
+                    logger.info(s"Received MessageCode: ${x.messageCode}")
                     mqttPublisher ! MqttPublish(EdaNotification(EDAMessageCodeToProcessCode(x.messageCode).toString, x) :: Nil)
                     complete(HttpResponse(StatusCodes.NoContent))
                   case Failure(ex) =>

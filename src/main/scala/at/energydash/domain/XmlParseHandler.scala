@@ -67,6 +67,7 @@ object XmlParseHandler {
       case DataRecord(_, _, x: cpnotification.v01p13.CPNotification) => CPNotificationV0113Document(x).toMessage
       case DataRecord(_, _, x: consumptionrecord.v01p30.ConsumptionRecord) => ConsumptionRecordV0130(x).toMessage
       case DataRecord(_, _, x: consumptionrecord.v01p40.ConsumptionRecord) => ConsumptionRecordV0140(x).toMessage
+      case DataRecord(_, _, x: consumptionrecord.v01p41.ConsumptionRecord) => ConsumptionRecordV0141(x).toMessage
       case _ => EbMsMessage(
         conversationId = header.ConversationId.getOrElse("MISSING"),
         sender = header.SenderId,

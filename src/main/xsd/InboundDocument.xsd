@@ -7,7 +7,8 @@
         xmlns:cmnotv12="http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p12"
         xmlns:cmrev="http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p00"
         xmlns:cpnot="http://www.ebutilities.at/schemata/customerprocesses/cpnotification/01p13"
-        xmlns:cmmsg="http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p40"
+        xmlns:cmmsg40="http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p40"
+        xmlns:cmmsg="http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p41"
         xmlns:cpreq="http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12"
         elementFormDefault="qualified">
     <import schemaLocation="../xsd/ebUtilities.xsd" namespace="http://www.ebutilities.at/datenplattform/0700"/>
@@ -109,6 +110,7 @@
                         <element ref="cmrev:CMRevoke" />
                         <element ref="cpnot:CPNotification" />
                         <element ref="cmmsg:ConsumptionRecord" />
+                        <element ref="cmmsg40:ConsumptionRecord" />
                         <element ref="cpreq:CPRequest" />
                     </choice>
                 </complexType>
