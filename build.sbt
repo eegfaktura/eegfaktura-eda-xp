@@ -1,6 +1,6 @@
 import com.typesafe.sbt.packager.docker.{Cmd, DockerChmodType, ExecCmd}
 
-ThisBuild / version := "0.2.01-SNAPSHOT"
+ThisBuild / version := "0.2.13-SNAPSHOT"
 
 ThisBuild / scalaVersion := "2.13.9"
 
@@ -12,7 +12,7 @@ lazy val circeVersion    = "0.14.3"
 lazy val akkaHttpCirceVersion    = "1.39.2"
 lazy val slickVersion = "3.5.1"
 
-val dockerVersion      = "v0.2.10"
+val dockerVersion      = "v0.2.13"
 
 lazy val scalaxbSettings = Seq(
   Compile / scalaxbJaxbPackage := JaxbPackage.Jakarta,
@@ -54,7 +54,7 @@ lazy val dockerSettings = Seq(
   packageName := "eda-xp-connector",
   maintainer := "vfeeg <vfeeg.org>",
   version := dockerVersion,
-  dockerBaseImage := "openjdk:17-slim-buster",
+  dockerBaseImage := "eclipse-temurin:17-jre",
   dockerExposedVolumes := Seq("/conf", "/storage/prod"),
   dockerRepository := Some("ghcr.io"),
   dockerUsername := Some("vfeeg-development"),

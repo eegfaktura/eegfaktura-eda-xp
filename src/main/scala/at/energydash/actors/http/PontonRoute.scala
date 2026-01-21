@@ -40,6 +40,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand])(implicit val system: Act
               }.flatMap(_=>request.entity.toStrict(1 second))) {
                 case Success(d) =>
 //                  println(d.data.utf8String)
+                  logger.info(s"Notification from EDA: ${d.data.utf8String}")
                   complete(HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                 case Failure(f) =>
                   logger.error(f.getMessage)
@@ -58,6 +59,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand])(implicit val system: Act
               } {
                 case Success(d) =>
 //                    println(d.data.utf8String)
+                  logger.info(s"Status from EDA: ${d.data.utf8String}")
                   complete(HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                 case Failure(e) =>
                   logger.error(e.toString)
@@ -77,7 +79,6 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand])(implicit val system: Act
                   scalaxb.fromXML[Envelope](response.head)
                 }.flatMap(e => XmlParseHandler.reponseEbMsMessage(e))) {
                   case Success(x) =>
-                    logger.info(s"Received MessageCode: ${x.messageCode}")
                     mqttPublisher ! MqttPublish(EdaNotification(EDAMessageCodeToProcessCode(x.messageCode).toString, x) :: Nil)
                     complete(HttpResponse(StatusCodes.NoContent))
                   case Failure(ex) =>

@@ -27,7 +27,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
   import system._
 
   /**
-   * Sends a greeting
+   * Send Mail with inline images/pdfs
    */
   override def sendMailWithInlineAttachment(in: SendMailWithInlineAttachmentsRequest): Future[SendMailReply] = {
     system.log.info(s"Send Inline Mail: To:${in.recipient} CC:${in.cc} - ${in.subject}")

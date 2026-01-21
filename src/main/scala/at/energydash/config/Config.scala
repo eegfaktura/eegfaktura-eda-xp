@@ -21,6 +21,8 @@ object Config {
   lazy val adminSrvConfig: AkkaConfig = config.getConfig("epmsmail.admin")
   lazy val grpcSrvConfig: AkkaConfig = config.getConfig("app.grpc")
   lazy val emailDomain = (tenant: String) => config.getString(s"epmsmail.mail.${tenant}.domain")
+  lazy val testReceiver: String = config.getString("epmsmail.mail.test.receiver")
+  lazy val testEnabled: Boolean = config.getBoolean("epmsmail.mail.test.enable")
   lazy val interval: String => Duration = (domain: String) => config.getDuration(s"epmsmail.mail.${domain}.interval")
   def getMqttMailConfig: MqttMailConfig = MqttMailConfig(
     s"tcp://${config.getString("epmsmail.mqtt.host")}:${config.getInt("epmsmail.mqtt.port")}",

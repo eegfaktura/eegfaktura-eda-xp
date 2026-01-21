@@ -182,13 +182,11 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
   private def connectionSettings(cfg: MqttConfig): MqttConnectionSettings = {
     Option(MqttConnectionSettings(
       s"${if (cfg.ssl) "ssl" else "tcp"}://${cfg.host}:${cfg.port}",
-//      s"eda2mqtt-client-${System.currentTimeMillis()}",
       s"eda2mqtt-client-messages",
       new MemoryPersistence()
-    ).withAutomaticReconnect(true)
-      .withCleanSession(false)).map { v =>
-      if (cfg.ssl) v.withSocketFactory(SSLContext.getDefault.getSocketFactory) else v
-    }.get
+    )
+      .withAutomaticReconnect(true)
+      .withCleanSession(false)).map { v => if (cfg.ssl) v.withSocketFactory(SSLContext.getDefault.getSocketFactory) else v}.get
   }
 
   private def event2Mqtt(ev: MqttMessageCmd)(implicit _btp: MqttBaseTopicProvider): Option[MqttMessage] = (ev match {
@@ -205,7 +203,7 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
 
   private def eventToMqttMessage(event: EdaEvent): Option[MqttMessage] = {
     val value = event.message.asJson.deepDropNullValues.noSpaces
-    Some(MqttMessage(s"${edaProtocolModulePath(event.message.receiver, event.protocol)}", ByteString(value)).withQos(MqttQoS.atLeastOnce))
+    Some(MqttMessage(s"${edaProtocolModulePath(event.message.receiver, event.protocol)}", ByteString(value)).withQos(MqttQoS.atLeastOnce).withRetained(false))
   }
 
   private def commandToMqttMessage(command: CommandMessage): Option[MqttMessage] = {
