@@ -1,7 +1,7 @@
 package at.energydash.actors
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, Behavior}
+import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import at.energydash.actors.FetchMailTenantWorker.GracefulShutdown
 import at.energydash.actors.MqttPublisher.{MqttCommand, MqttPublishCommand}
 import at.energydash.config.Config
@@ -19,6 +19,9 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
   import TenantProvider._
   var logger: Logger = LoggerFactory.getLogger(classOf[TenantProvider])
 
+  def supervised: Behavior[EdaCommand] =
+    Behaviors.supervise(start).onFailure(SupervisorStrategy.restart)
+
   def start: Behavior[EdaCommand] = Behaviors.setup[EdaCommand] { context => {
 
     import context.executionContext
@@ -27,15 +30,15 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
     val mailRepo = new SlickEmailOutboxRepository(dbConfig)
     val tenantConfigRepository = new SlickTenantConfigRepository(dbConfig)
 
-    val pontonMessager = context.spawn(PontonService(), name = "worker-ponton-messenager")
+    val pontonMessenger = context.spawn(PontonService(), name = "worker-ponton-messenger")
 
     def setup(): Behavior[EdaCommand] = {
       Behaviors.receiveMessage {
         case TenantStart =>
           logger.info(s"Start Tenant Actor for type ${Config.superviseType}")
-          val kepTenants = Await.result(tenantConfigRepository.allActivated(Config.superviseType), 3.seconds)
+          val kepTenants = Await.result(tenantConfigRepository.allActivated(Config.superviseType), 5.seconds)
           val a = kepTenants.map(t => t.cType.toUpperCase match {
-            case "KEP" => Some(t.tenant.toUpperCase() -> pontonMessager)
+            case "KEP" => Some(t.tenant.toUpperCase() -> pontonMessenger)
             case "MAIL" => Some(t.tenant.toUpperCase() -> context.spawn(FetchMailTenantWorker(t, mqttPublisher, mailRepo), s"worker-${t.tenant}"))
             case _ =>
               logger.warn(s"Tenant ${t.tenant} has no type definition.")
@@ -54,12 +57,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
             case None => replyTo ! SendResponseError(tenant, message.receiver, "Tenant not registered")
           }
           Behaviors.same
-//        case DeleteMail(tenant, messageId) =>
-//          tenantActors.get(tenant) match {
-//            case Some(a) => a ! DeleteEmailCommand(tenant, messageId)
-//            case None =>
-//          }
-//          Behaviors.same
+
         case AddTenant(tenantConfig, replyTo) =>
           tenantConfigRepository.create(tenantConfig).onComplete {
             case Success(_) =>
@@ -88,7 +86,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
           }
 
           tenantActors.get(tenantConfig.tenant.toUpperCase()).foreach(a => {
-            if (a.compareTo(pontonMessager) != 0) {
+            if (a.compareTo(pontonMessenger) != 0) {
               a ! GracefulShutdown
             }
           }
@@ -97,7 +95,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
           logger.info(s"Adapt tenant according to new configuration: $tenantConfig")
           tenantConfig.cType match {
             case "KEP" =>
-              provide(tenantActors + (tenantConfig.tenant.toUpperCase() -> pontonMessager))
+              provide(tenantActors + (tenantConfig.tenant.toUpperCase() -> pontonMessenger))
             case _ =>
               provide(
                 tenantActors + (tenantConfig.tenant.toUpperCase() -> context.spawn(FetchMailTenantWorker(tenantConfig, mqttPublisher, mailRepo), s"worker-${tenantConfig.tenant}")))
@@ -115,5 +113,5 @@ object TenantProvider {
 //  case class DistributeMail(tenant: String, mail: EmailModel, replyTo: ActorRef[EdaCommand]) extends EdaCommand
 
   def apply(mqttPublisher: ActorRef[MqttCommand]): Behavior[EdaCommand] =
-    new TenantProvider(mqttPublisher).start
+    new TenantProvider(mqttPublisher).supervised
 }

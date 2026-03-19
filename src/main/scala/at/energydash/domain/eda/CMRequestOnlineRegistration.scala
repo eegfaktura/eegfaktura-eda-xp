@@ -1,7 +1,7 @@
 package at.energydash.domain.eda
 
 import at.energydash.domain.EbMsMessage
-import at.energydash.domain.xml.{CMRequestV0110Document, CMRequestV0120Document,  CMRequestV0121Document}
+import at.energydash.domain.xml.{CMRequestV0110Document, CMRequestV0120Document,  CMRequestV0121Document, CMRequestV0130Document}
 import ponton.`package`._
 import scalaxb.CanWriteXML
 
@@ -13,6 +13,7 @@ case class CMRequestRegistrationOnline(message: EbMsMessage) extends EdaMessage 
   override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
     case Some("02.00") => Try(CMRequestRegistrationOnlineXMLMessageV0200(message))
     case Some("02.10") => Try(new CMRequestRegistrationOnlineXMLMessageV0210(message))
+    case Some("02.30") => Try(CMRequestRegistrationOnlineXMLMessageV0230(message))
     case _ => Try(CMRequestRegistrationOnlineXMLMessageV0110(message))
   }
 }
@@ -71,7 +72,8 @@ case class CMRequestRegistrationOnlineXMLMessageV0110(message: EbMsMessage) exte
   override def rootNodeLabel: Option[String] = Some("ns2:CMRequest")
 
   override def schemaLocation: Option[String] =
-    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10 http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_ONL/01.00/ANFORDERUNG_ECON")
+    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10 " +
+      "http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_ONL/01.00/ANFORDERUNG_ECON")
 
   override def toDoc: cmrequest.v01p10.CMRequest = CMRequestV0110Document(message).toDoc
 
@@ -83,6 +85,29 @@ case class CMRequestRegistrationOnlineXMLMessageV0110(message: EbMsMessage) exte
 
   override def toXML: Node = {
     scalaxb.toXML[cmrequest.v01p10.CMRequest](toDoc, schemaLocation, rootNodeLabel,
+      toScope,
+      typeAttribute = true).head
+  }
+}
+
+case class CMRequestRegistrationOnlineXMLMessageV0230(message: EbMsMessage) extends EdaXMLMessage[cmrequest.v01p30.CMRequest] {
+  override implicit val edaTypeCanWrite: CanWriteXML[cmrequest.v01p30.CMRequest] = Cmrequestv01p30_CMRequestFormat
+  override def rootNodeLabel: Option[String] = Some("CMRequest")
+
+  override def schemaLocation: Option[String] =
+    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p30 " +
+      "http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_ONL/02.30/ANFORDERUNG_ECON")
+
+  override def toDoc: cmrequest.v01p30.CMRequest = CMRequestV0130Document(message).toDoc
+
+  override def toScope: NamespaceBinding = scalaxb.toScope(
+    None -> "http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p30",
+    Some("ct") -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
+    Some("xsi") -> "http://www.w3.org/2001/XMLSchema-instance"
+  )
+
+  override def toXML: Node = {
+    scalaxb.toXML[cmrequest.v01p30.CMRequest](toDoc, schemaLocation, rootNodeLabel,
       toScope,
       typeAttribute = true).head
   }

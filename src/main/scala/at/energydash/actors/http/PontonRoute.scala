@@ -73,7 +73,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand])(implicit val system: Act
             withoutSizeLimit {
               entity(as[NodeSeq]) { response =>
                 onComplete(Future {
-                  logger.info(s"Receive message from edaAdapter. Length ${response.head.length}")
+                  logger.debug(s"Receive message from edaAdapter. Length ${response.head.length}")
 //                  logger.info(response.head.toString())
 //                  logger.info("--------------")
                   scalaxb.fromXML[Envelope](response.head)

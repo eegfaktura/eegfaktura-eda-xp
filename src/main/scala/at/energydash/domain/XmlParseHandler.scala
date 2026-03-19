@@ -63,7 +63,9 @@ object XmlParseHandler {
       //      case DataRecord(_, _, x: v01p00.ECMPList) => ECMPListV0110Document(x).toMessage
       case DataRecord(_, _, x: cmnotification.v01p11.CMNotification) => CMNotificationV0111Document(x).toMessage
       case DataRecord(_, _, x: cmnotification.v01p12.CMNotification) => CMNotificationV0112Document(x).toMessage
+      case DataRecord(_, _, x: cmnotification.v01p20.CMNotification) => CMNotificationV0120Document(x).toMessage
       case DataRecord(_, _, x: cmrevoke.v01p00.CMRevoke) => CMRevokeV0100Document(x).toMessage
+      case DataRecord(_, _, x: cmrevoke.v01p10.CMRevoke) => CMRevokeV0110Document(x).toMessage
       case DataRecord(_, _, x: cpnotification.v01p13.CPNotification) => CPNotificationV0113Document(x).toMessage
       case DataRecord(_, _, x: consumptionrecord.v01p30.ConsumptionRecord) => ConsumptionRecordV0130(x).toMessage
       case DataRecord(_, _, x: consumptionrecord.v01p40.ConsumptionRecord) => ConsumptionRecordV0140(x).toMessage
