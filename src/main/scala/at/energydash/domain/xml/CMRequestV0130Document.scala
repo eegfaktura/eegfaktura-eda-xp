@@ -2,11 +2,11 @@ package at.energydash.domain.xml
 
 import at.energydash.config.Config
 import at.energydash.domain.EbMsMessage
-import at.energydash.domain.eda.MessageHelper.{buildCalendar, buildCalendarDate, getProcessDate}
+import at.energydash.domain.eda.MessageHelper.{buildCalendar, buildCalendarDate, getProcessDate, getNow}
 import at.energydash.domain.enums.MeterDirectionType
-import cmrequest._
+import cmrequest.v01p30
 import commontypes.v01p20._
-import ponton.`package`.{Cmrequestv01p21_SchemaVersionFormat, Commontypesv01p20_AddressTypeFormat, Commontypesv01p20_DocumentModeFormat, __BooleanXMLFormat}
+import ponton.`package`.{Cmrequestv01p30_SchemaVersionFormat, Commontypesv01p20_AddressTypeFormat, Commontypesv01p20_DocumentModeFormat, __BooleanXMLFormat}
 import scalaxb.Helper
 
 import java.util.{Date, GregorianCalendar}
@@ -31,13 +31,13 @@ object CMRequestV0130Document {
           case _ => PROD
         })),
         ("@Duplicate", scalaxb.DataRecord(false)),
-        ("@SchemaVersion", scalaxb.DataRecord[v01p21.SchemaVersion](v01p21.Number01u4621)),
+        ("@SchemaVersion", scalaxb.DataRecord[v01p30.SchemaVersion](v01p30.Number01u4630)),
       )
     ),
     ProcessDirectory = v01p30.ProcessDirectory(
       MessageId = message.messageId.get,
       ConversationId = message.conversationId,
-      ProcessDate = Helper.toCalendar(buildCalendarDate(getProcessDate.getTime)),
+      ProcessDate = Helper.toCalendar(getProcessDate),
       MeteringPoint = message.meter.map(x => x.meteringPoint),
       CMRequestId = message.requestId.get,
       ConsentId = message.meter.flatMap(m=>m.consentId),
@@ -45,11 +45,11 @@ object CMRequestV0130Document {
         ReqDatType = "EnergyCommunityRegistration",
         DateFrom = Helper.toCalendar(
           message.meter.flatMap(m => m.from.map (f => buildCalendarDate(f)))
-            .getOrElse(buildCalendarDate(getProcessDate.getTime))),
+            .getOrElse(getNow(Some(1)).toString)),
         DateTo = Some(Helper.toCalendar(buildCalendarDate(new GregorianCalendar(2099, 12, 31).getTime))),
         ECPartFact=message.meter.map { m => m.partFact.getOrElse(100)},
-        MeteringIntervall = None, //Some(QHValue),
-        TransmissionCycle = None, //Some(DValue2),
+        MeteringIntervall = Some(v01p30.QH),
+        TransmissionCycle = None, //Some(v01p30.D),
         ECID = message.ecId,
         ECShare = message.meter.flatMap(_.share),
         EnergyDirection = message.meter.map { m =>

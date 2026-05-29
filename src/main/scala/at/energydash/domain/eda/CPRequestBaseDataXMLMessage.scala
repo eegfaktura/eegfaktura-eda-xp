@@ -22,7 +22,7 @@ case class CPRequestBaseDataXMLMessage(message: EbMsMessage) extends EdaXMLMessa
   override def schemaLocation: Option[String] = Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12 " +
     "http://www.ebutilities.at/schemata/customerprocesses/MD_REQ_GN/03.12/ANFORDERUNG_GN")
 
-  override def toDoc: cprequest.v01p12.CPRequest = CPRequestV0112Document(message).withExtention(Some(cprequest.v01p12.Extension(AssumptionOfCosts = false))).toDoc
+  override def toDoc: cprequest.v01p12.CPRequest = CPRequestV0112Document(message).withExtension(Some(cprequest.v01p12.Extension(AssumptionOfCosts = false))).toDoc
 
   override def toScope: NamespaceBinding = scalaxb.toScope(
     None -> "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12",

@@ -10,7 +10,10 @@ import scala.util.Try
 import scala.xml.{NamespaceBinding, Node, TopScope}
 
 case class CPRequestMeteringValue(message: EbMsMessage) extends EdaMessage {
-  override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = Try(CPRequestMeteringValueXMLMessage(message))
+  override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
+    case Some("03.00") => Try(CPRequestMeteringValueXMLMessage(message))
+    case _ => Try(CPRequestMeteringValueXMLMessage(message))
+  }
 }
 
 case class CPRequestMeteringValueXMLMessage(message: EbMsMessage) extends EdaXMLMessage[cprequest.v01p12.CPRequest] {
@@ -23,7 +26,7 @@ case class CPRequestMeteringValueXMLMessage(message: EbMsMessage) extends EdaXML
     "http://www.ebutilities.at/schemata/customerprocesses/CR_REQ_PT/03.00/ANFORDERUNG_PT")
 
   def toDoc:cprequest.v01p12.CPRequest = CPRequestV0112Document(message)
-    .withExtention(message.timeline.map(t => {
+    .withExtension(message.timeline.map(t => {
       val tz = TimeZone.getTimeZone("Europe/Vienna")
       val from = new GregorianCalendar(tz);from.setTime(t.from);from.set(Calendar.MILLISECOND, 0)
       val to = new GregorianCalendar(tz);to.setTime(t.to);to.set(Calendar.MILLISECOND, 0)
@@ -31,7 +34,7 @@ case class CPRequestMeteringValueXMLMessage(message: EbMsMessage) extends EdaXML
         DateTimeFrom = Some(Helper.toCalendar(from)),
         DateTimeTo = Some(Helper.toCalendar(to)),
         AssumptionOfCosts = false)
-    })).toDoc()
+    })).toDoc
 
   override def toScope: NamespaceBinding = scalaxb.toScope(
 //    Some("cp") -> "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12",

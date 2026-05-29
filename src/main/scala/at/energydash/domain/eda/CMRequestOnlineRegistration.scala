@@ -24,7 +24,8 @@ class CMRequestRegistrationOnlineXMLMessageV0210(val message: EbMsMessage) exten
   override def rootNodeLabel: Option[String] = Some("CMRequest")
 
   override def schemaLocation: Option[String] =
-    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p21 http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_ONL/02.10/ANFORDERUNG_ECON")
+    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p21 " +
+      "http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_ONL/02.10/ANFORDERUNG_ECON")
 
   override def toDoc: cmrequest.v01p21.CMRequest = CMRequestV0121Document(message).toDoc
 

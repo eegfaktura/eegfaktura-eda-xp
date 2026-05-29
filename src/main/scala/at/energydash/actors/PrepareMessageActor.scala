@@ -26,7 +26,7 @@ object PrepareMessageActor {
     extends Command[PrepareMessageResult]
 
   // state definition
-  final case class Storage(messageId: Long = 0) {
+  final case class Storage(messageId: Long = 0) extends CborSerializable {
     def applyEvent(event: Event): Storage = event match {
       case IdInkremented(messageId) =>
         copy(messageId = messageId)

@@ -74,8 +74,6 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand])(implicit val system: Act
               entity(as[NodeSeq]) { response =>
                 onComplete(Future {
                   logger.debug(s"Receive message from edaAdapter. Length ${response.head.length}")
-//                  logger.info(response.head.toString())
-//                  logger.info("--------------")
                   scalaxb.fromXML[Envelope](response.head)
                 }.flatMap(e => XmlParseHandler.reponseEbMsMessage(e))) {
                   case Success(x) =>
@@ -93,33 +91,6 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand])(implicit val system: Act
             }
           }
         }
-
-        //          } ~
-        //          path("message") {
-        //            post {
-        //              withoutSizeLimit {
-        //                extractStrictEntity(60.seconds) { entity =>
-        //                  onComplete(Future {
-        //                    //                    println(s"Message from EDA $entity")
-        //                    logger.info(s"Receive message from edaAdapter. ${entity.contentLength}")
-        //                    val response = scala.xml.XML.loadString(entity.data.utf8String)
-        //                    scalaxb.fromXML[Envelope](response)
-        //                  }.flatMap(e => XmlParseHandler.reponseEbMsMessage(e).map(Tuple2(_, entity.data)))) {
-        //                    case Success((x, b)) =>
-        //                      mqttPublisher ! MqttPublish(EdaNotification(EDAMessageCodeToProcessCode(x.messageCode).toString, x) :: Nil)
-        //                      complete(HttpResponse(StatusCodes.NoContent))
-        //                    case Failure(ex) =>
-        //                      logger.error(s"Error while parsing message from edaAdapter {}", ex.getMessage)
-        //                      mqttPublisher ! MqttPublishError("NotSpecified", ex.getMessage)
-        //                      complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
-        //                    case _ =>
-        //                      logger.error(s"Undefined Error while parsing message from edaAdapter ")
-        //                      complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
-        //                  }
-        //                }
-        //              }
-        //            }
-
       )
     }
   }

@@ -27,8 +27,8 @@ object EbMsAggregator {
   private def checkEcIdIsNecessary(t: EbMsMessageType) = t match {
     case EbMsMessageType.CHANGE_METER_PARTITION_ANSWER | EbMsMessageType.CHANGE_METER_PARTITION_REJECTION => true
     case EbMsMessageType.ENERGY_FILE_RESPONSE => true
-    case EbMsMessageType.ONLINE_REG_ANSWER | EbMsMessageType.ONLINE_REG_APPROVAL | EbMsMessageType.ONLINE_REG_COMPLETION | EbMsMessageType.ONLINE_REG_REJECTION => true
-    case EbMsMessageType.OFFLINE_REG_ANSWER | EbMsMessageType.OFFLINE_REG_APPROVAL | EbMsMessageType.OFFLINE_REG_COMPLETION | EbMsMessageType.OFFLINE_REG_REJECTION => true
+    case EbMsMessageType.ONLINE_REG_ANSWER | EbMsMessageType.ONLINE_REG_ANSWER | EbMsMessageType.ONLINE_REG_APPROVAL | EbMsMessageType.ONLINE_REG_COMPLETION | EbMsMessageType.ONLINE_REG_REJECTION => true
+    case EbMsMessageType.OFFLINE_REG_ANSWER | EbMsMessageType.OFFLINE_REG_ANSWER | EbMsMessageType.OFFLINE_REG_APPROVAL | EbMsMessageType.OFFLINE_REG_COMPLETION | EbMsMessageType.OFFLINE_REG_REJECTION => true
     case EbMsMessageType.ENERGY_SYNC_RES | EbMsMessageType.ENERGY_SYNC_REJECTION => true
     case _ => false
 

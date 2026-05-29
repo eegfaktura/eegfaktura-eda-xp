@@ -1,8 +1,7 @@
 package at.energydash.domain.xml
 
 import at.energydash.config.Config
-import at.energydash.domain.eda.MessageHelper
-import at.energydash.domain.eda.MessageHelper.{buildCalendar, buildCalendarDate, getProcessDate, getProcessDate1}
+import at.energydash.domain.eda.MessageHelper.{buildCalendar, buildCalendarDate, getNow, getProcessDate}
 import at.energydash.domain.enums.{EbMsMessageType, EcDisModelEnum, EcTypeEnum, MeterDirectionType}
 import at.energydash.domain.{EbMsMessage, Meter}
 import ecmplist.v01p10.ECMPList
@@ -25,12 +24,12 @@ case class ECMPListV0110Document(doc: ecmplist.v01p10.ECMPList) {
   def withRestrictedProcessDate(): ECMPListV0110Document = {
     copy(doc=doc.copy(
       ProcessDirectory = doc.ProcessDirectory.copy(
-        ProcessDate = Helper.toCalendar(getProcessDate1(Some(1)).toString),
+        ProcessDate = Helper.toCalendar(getProcessDate),
         MPListData = doc.ProcessDirectory.MPListData.map(mpdata => ecmplist.v01p10.MPListData(
           MeteringPoint = mpdata.MeteringPoint,
           ConsentId = mpdata.ConsentId,
           MPTimeData = mpdata.MPTimeData.map(timeData => ecmplist.v01p10.MPTimeData(
-            DateFrom =Helper.toCalendar(getProcessDate1(Some(1)).toString),
+            DateFrom =Helper.toCalendar(getNow(Some(1)).toString),
             DateTo = timeData.DateTo,
             EnergyDirection = timeData.EnergyDirection,
             ECPartFact = timeData.ECPartFact,
@@ -48,14 +47,15 @@ case class ECMPListV0110Document(doc: ecmplist.v01p10.ECMPList) {
         case Some(ml) => ml.map(m=>ecmplist.v01p10.MPListData(
           MeteringPoint = m.meteringPoint,
           MPTimeData = Seq(ecmplist.v01p10.MPTimeData(
-            DateFrom = Helper.toCalendar(buildCalendarDate(m.from.getOrElse(getProcessDate.getTime))),
+//            DateFrom = Helper.toCalendar(buildCalendarDate(m.from.getOrElse(getProcessDate1))),
+            DateFrom = Helper.toCalendar(m.from.map(buildCalendarDate).getOrElse(getNow(Some(1)).toString)),
             DateTo = Helper.toCalendar(m.to.map(buildCalendarDate).getOrElse("2099-12-31")),
             EnergyDirection = m.direction match {
               case Some(MeterDirectionType.CONSUMPTION) => ecmplist.v01p10.CONSUMPTION
               case _ => ecmplist.v01p10.GENERATION
             },
             ECPartFact = m.partFact.get,
-            DateActivate = Helper.toCalendar(MessageHelper.buildCalendarDate(m.activation.get)),
+            DateActivate = Helper.toCalendar(buildCalendarDate(m.activation.get)),
           ))
         ))
         case None => Nil
@@ -91,8 +91,6 @@ case class ECMPListV0110Document(doc: ecmplist.v01p10.ECMPList) {
 }
 
 object ECMPListV0110Document {
-  val processDate: GregorianCalendar = getProcessDate
-
   def apply(doc: ecmplist.v01p10.ECMPList) = new ECMPListV0110Document(doc)
 
   def apply(message: EbMsMessage): ECMPListV0110Document = new ECMPListV0110Document(
@@ -117,7 +115,7 @@ object ECMPListV0110Document {
       ProcessDirectory=ecmplist.v01p10.ProcessDirectory(
         MessageId = message.messageId.get,
         ConversationId = message.conversationId,
-        ProcessDate = Helper.toCalendar(getProcessDate1(Some(1)).toString),
+        ProcessDate = Helper.toCalendar(getProcessDate),
         ECID = message.ecId.get,
         ECType = message.ecType match {
           case Some(EcTypeEnum.GEA) => ecmplist.v01p10.GC

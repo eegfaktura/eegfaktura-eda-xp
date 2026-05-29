@@ -13,12 +13,14 @@ object EbMsMessageType extends Enumeration {
   // EC_REG_ONL Process
   val ONLINE_REG_INIT: EbMsMessageType.Value = Value("ANFORDERUNG_ECON")
   val ONLINE_REG_ANSWER: EbMsMessageType.Value = Value("ANTWORT_ECON")
+  val ONLINE_REG_ABORT: EbMsMessageType.Value = Value("ABBRUCH_ECON")
   val ONLINE_REG_REJECTION: EbMsMessageType.Value = Value("ABLEHNUNG_ECON")
   val ONLINE_REG_APPROVAL: EbMsMessageType.Value = Value("ZUSTIMMUNG_ECON")
   val ONLINE_REG_COMPLETION: EbMsMessageType.Value = Value("ABSCHLUSS_ECON")
   // EC_REG_OFF Process
   val OFFLINE_REG_INIT: EbMsMessageType.Value = Value("ANFORDERUNG_ECOF")
   val OFFLINE_REG_ANSWER: EbMsMessageType.Value = Value("ANTWORT_ECOF")
+  val OFFLINE_REG_ABORT: EbMsMessageType.Value = Value("ABBRUCH_ECOF")
   val OFFLINE_REG_REJECTION: EbMsMessageType.Value = Value("ABLEHNUNG_ECOF")
   val OFFLINE_REG_APPROVAL: EbMsMessageType.Value = Value("ZUSTIMMUNG_ECOF")
   val OFFLINE_REG_COMPLETION: EbMsMessageType.Value = Value("ABSCHLUSS_ECOF")

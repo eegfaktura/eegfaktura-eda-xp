@@ -34,7 +34,6 @@ class SlickTenantConfigRepository(databaseConfig: DatabaseConfig[PostgresProfile
       case Some(t) => q.filter(_.cType=== t)
       case _ => q
     }
-    println(qq.result.statements.toString())
     databaseConfig.db.run(qq.result)
   }
 

@@ -1,7 +1,7 @@
 package at.energydash.service
 
 import akka.Done
-import akka.actor.typed.{ActorRef, ActorSystem}
+import akka.actor.typed.{ActorRef, ActorSystem, Scheduler}
 import akka.http.scaladsl.model.Multipart.BodyPart
 import akka.http.scaladsl.model.{BodyPartEntity, Multipart}
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
@@ -11,7 +11,7 @@ import akka.util.{ByteString, Timeout}
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish}
 import at.energydash.domain.eda.EdaErrorMessage
 import at.energydash.domain.enums.EbMsMessageType
-import at.energydash.domain.{EbMsMessage, XmlParseHandler}
+import at.energydash.domain.{DefaultEbMsMessage, EbMsMessage, XmlParseHandler}
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.Future
@@ -33,7 +33,7 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
 
   import system._
   implicit val timeout: Timeout = Timeout(5.seconds)
-  implicit val sched = system.scheduler
+  implicit val sched: Scheduler = system.scheduler
   import ponton.`package`.fromAnySchemaType
 
   implicit def bp2sting(implicit ev: Unmarshaller[String, String]): Unmarshaller[BodyPartEntity, String] = Unmarshaller.withMaterializer { implicit executionContext =>
@@ -89,6 +89,9 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
 //            case _ => ("error", edaErrorMessage("Unknown process type").message)
 //          }
         })
+        case (info, None) =>
+          log.error(s"File not valid ${info.processName}")
+          Future(("Error", DefaultEbMsMessage.Error("FileUpload", Some("Wrong File"))))
       }
       .map {
         case (processName, message) if ecId.isDefined =>

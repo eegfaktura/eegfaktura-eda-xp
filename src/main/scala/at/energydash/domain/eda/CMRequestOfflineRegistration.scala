@@ -1,7 +1,7 @@
 package at.energydash.domain.eda
 
 import at.energydash.domain.EbMsMessage
-import at.energydash.domain.xml.{CMRequestV0120Document,CMRequestV0121Document, CMRequestV0130Document}
+import at.energydash.domain.xml.{CMRequestV0120Document, CMRequestV0121Document, CMRequestV0130Document}
 import cmrequest._
 import ponton.`package`.{Cmrequestv01p20_CMRequestFormat, Cmrequestv01p21_CMRequestFormat, Cmrequestv01p30_CMRequestFormat}
 import scalaxb.CanWriteXML
@@ -23,7 +23,8 @@ case class CMRequestOfflineRegistrationXMLMessageV0210(message: EbMsMessage) ext
   override def rootNodeLabel: Option[String] = Some("CMRequest")
 
   override def schemaLocation: Option[String] =
-    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p21 http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_OFF/02.10/ANFORDERUNG_ECOF")
+    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p21 " +
+      "http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_OFF/02.10/ANFORDERUNG_ECOF")
 
   override def toDoc: cmrequest.v01p21.CMRequest = CMRequestV0121Document(message).toDoc
 
@@ -49,7 +50,8 @@ case class CMRequestOfflineRegistrationXMLMessage(message: EbMsMessage) extends 
   override def rootNodeLabel: Option[String] = Some("CMRequest")
 
   override def schemaLocation: Option[String] =
-    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p20 http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_OFF/02.00/ANFORDERUNG_ECOF")
+    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p20 " +
+      "http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_OFF/02.00/ANFORDERUNG_ECOF")
 
   override def toDoc: cmrequest.v01p20.CMRequest = CMRequestV0120Document(message).toDoc
 
@@ -75,7 +77,7 @@ case class CMRequestOfflineRegistrationXMLMessageV0220(message: EbMsMessage) ext
   override def rootNodeLabel: Option[String] = Some("CMRequest")
 
   override def schemaLocation: Option[String] =
-    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p21 " +
+    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p30 " +
       "http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_OFF/02.20/ANFORDERUNG_ECOF")
 
   override def toDoc: cmrequest.v01p30.CMRequest = CMRequestV0130Document(message).toDoc
