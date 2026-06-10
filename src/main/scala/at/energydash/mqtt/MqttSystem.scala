@@ -20,6 +20,9 @@ import io.circe.syntax._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.slf4j.Logger
 
+import java.io.ByteArrayOutputStream
+import java.util.Base64
+import java.util.zip.GZIPOutputStream
 import javax.net.ssl.SSLContext
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
@@ -202,13 +205,29 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
   }
 
   private def eventToMqttMessage(event: EdaEvent): Option[MqttMessage] = {
+    // Todo: Encrypt and compress here
     val value = event.message.asJson.deepDropNullValues.noSpaces
-    Some(MqttMessage(s"${edaProtocolModulePath(event.message.receiver, event.protocol)}", ByteString(value)).withQos(MqttQoS.atLeastOnce).withRetained(false))
+    val msg = event.protocol match {
+      case "CR_MSG" =>
+        // Compress
+        val compressed = gzip(value.getBytes("UTF-8"))
+        Base64.getEncoder.encodeToString(compressed)
+      case _ => value
+    }
+    Some(MqttMessage(s"${edaProtocolModulePath(event.message.receiver, event.protocol)}", ByteString(msg)).withQos(MqttQoS.atLeastOnce).withRetained(false))
   }
 
   private def commandToMqttMessage(command: CommandMessage): Option[MqttMessage] = {
     val value = command.payload.deepDropNullValues.noSpaces
     Some(MqttMessage(s"${edaCommandModulePath(command.tenant, command.command)}", ByteString(value)).withQos(MqttQoS.atLeastOnce).withRetained(false))
+  }
+
+  private def gzip(data: Array[Byte]): Array[Byte] = {
+    val baos = new ByteArrayOutputStream()
+    val gzip = new GZIPOutputStream(baos)
+    gzip.write(data)
+    gzip.close()
+    baos.toByteArray
   }
 
   private implicit class MqttMessageAckExt(msg: MqttMessage) {
