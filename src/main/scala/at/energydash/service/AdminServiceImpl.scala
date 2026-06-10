@@ -19,7 +19,7 @@ class AdminServiceImpl(actorRef: ActorRef[EdaCommand])(implicit val sch: Schedul
    * Sends a greeting
    */
   override def register(in: RegisterPontonRequest): Future[RegisteredPontonReply] = {
-    val tenantConfig = TenantConfig(tenant = in.tenant, in.pontonCommType,
+    val tenantConfig = TenantConfig(tenant = in.tenant, cType = in.pontonCommType,
       domain = Some(in.domain), host = Some(s"mail.${in.domain}"), imapPort = Some(143),
       smtpHost = Some(s"mail.${in.domain}"), smtpPort = Some(25),
       user = Some(in.tenant.toLowerCase), passwd = Some(in.password), imapSecurity = Some("STARTTLS"), smtpSecurity = Some("STARTTLS"), active = true)

@@ -4,37 +4,41 @@
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <target>System.out</target>
         <encoder>
-            <pattern>%date{ISO8601} %-5level [%thread] %logger{0} --> %class{0} - %msg tenant=%X{tenant:-}%n</pattern>
+<!--
+            <pattern>%date{ISO8601} %-5level [%thread] %logger{0} &ndash;&gt; %class{0} - %msg tenant=%X{tenant:-}%n</pattern>
+-->
+            <pattern>%date{ISO8601} %-5level [%thread] %logger{0} --> %class{0} - %msg%replace( tenant=%X{tenant}){' tenant=$',''}%n</pattern>
         </encoder>
     </appender>
 
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>/var/tmp/log/epmsmail/application-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy
-                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>1GB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
-        </rollingPolicy>
+<!--    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
+<!--        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">-->
+<!--            <fileNamePattern>/var/tmp/log/epmsmail/application-%d{yyyy-MM-dd}.%i.log</fileNamePattern>-->
+<!--            <timeBasedFileNamingAndTriggeringPolicy-->
+<!--                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">-->
+<!--                <maxFileSize>1GB</maxFileSize>-->
+<!--            </timeBasedFileNamingAndTriggeringPolicy>-->
+<!--        </rollingPolicy>-->
 
-        <append>true</append>
+<!--        <append>true</append>-->
 
-        <encoder>
-            <pattern>%date{yyyy-MM-dd'T'HH:mm:ss.SSS+03:00, Africa/Lagos} %-5level[%thread] %logger{1} - %msg%n
-            </pattern>
-        </encoder>
+<!--        <encoder>-->
+<!--            <pattern>%date{yyyy-MM-dd'T'HH:mm:ss.SSS+03:00, Africa/Lagos} %-5level[%thread] %logger{1} - %msg%n-->
+<!--            </pattern>-->
+<!--        </encoder>-->
 
-    </appender>
+<!--    </appender>-->
 
-    <logger name="akka" level="DEBUG"/>
+    <logger name="akka" level="ERROR"/>
+    <logger name="akka.http" level="OFF" />
     <logger name="slick.pgsql.local" level="INFO"/>
     <logger name="scala.slick" level="INFO"/>
     <logger name="slick.jdbc.DriverDataSource" level="INFO"/>
     <logger name="slick.compiler" level="INFO"/>
-    <logger name="at.energydash" level="DEBUG"/>
+    <logger name="at.energydash" level="INFO"/>
 
-    <root level="DEBUG">
-        <appender-ref ref="FILE"/>
+    <root level="INFO">
+<!--        <appender-ref ref="FILE"/>-->
         <appender-ref ref="CONSOLE"/>
     </root>
 

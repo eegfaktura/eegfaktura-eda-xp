@@ -12,14 +12,13 @@ import java.util.Date
 
 case class CPRequestV0112Document(doc: CPRequest, message: EbMsMessage) {
 
-  def withExtention(extension: Option[Extension]) =
+  def withExtension(extension: Option[Extension]): CPRequestV0112Document =
     copy(doc =
       doc.copy(ProcessDirectory =
         doc.ProcessDirectory.copy(Extension = extension)))
 
-  def toDoc(): CPRequest = doc
+  def toDoc: CPRequest = doc
 }
-
 
 object CPRequestV0112Document {
 
@@ -45,7 +44,7 @@ object CPRequestV0112Document {
       cprequest.v01p12.ProcessDirectory(
         MessageId = message.messageId.get,
         ConversationId = message.conversationId,
-        ProcessDate = Helper.toCalendar(MessageHelper.buildCalendarDate(MessageHelper.getProcessDate.getTime)),
+        ProcessDate = Helper.toCalendar(MessageHelper.getProcessDate),
         MeteringPoint = message.meter.map(x=>x.meteringPoint).getOrElse(""),
       )
     ),

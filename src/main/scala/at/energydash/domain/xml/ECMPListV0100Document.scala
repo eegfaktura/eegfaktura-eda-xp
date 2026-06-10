@@ -70,8 +70,6 @@ case class ECMPListV0100Document(doc: ecmplist.v01p00.ECMPList) {
 
 object ECMPListV0100Document {
   val now = new Date
-  val processDate = Calendar.getInstance
-  processDate.add(Calendar.DATE, 1)
 
   def apply(doc: ecmplist.v01p00.ECMPList) = new ECMPListV0100Document(doc)
 
@@ -97,7 +95,7 @@ object ECMPListV0100Document {
       ProcessDirectory=ecmplist.v01p00.ProcessDirectory(
         MessageId = message.messageId.get,
         ConversationId = message.conversationId,
-        ProcessDate = Helper.toCalendar(MessageHelper.buildCalendarDate(processDate.getTime)),
+        ProcessDate = Helper.toCalendar(MessageHelper.getProcessDate),
         ECID = message.ecId.get,
         ECType = message.ecType match {
           case Some(EcTypeEnum.GEA) => ecmplist.v01p00.GC

@@ -3,7 +3,7 @@ package at.energydash.domain.xml
 import at.energydash.config.Config
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.eda.MessageHelper
-import at.energydash.domain.eda.MessageHelper.{buildCalendarDate, getProcessDate}
+import at.energydash.domain.eda.MessageHelper.{buildCalendarDate, getProcessDate, getNow}
 import at.energydash.domain.enums.MeterDirectionType
 import cmrequest._
 import commontypes.v01p20._
@@ -17,7 +17,6 @@ class CMRequestV0110Document(doc: v01p10.CMRequest) {
 }
 
 object CMRequestV0110Document {
-//  val processCalendar: GregorianCalendar = MessageHelper.getProcessDate
 
   def apply(message: EbMsMessage):CMRequestV0110Document = new CMRequestV0110Document(v01p10.CMRequest(
     MarketParticipantDirectory = v01p10.MarketParticipantDirectory(
@@ -41,7 +40,7 @@ object CMRequestV0110Document {
     ProcessDirectory = v01p10.ProcessDirectory(
       MessageId = message.messageId.get,
       ConversationId = message.conversationId,
-      ProcessDate = Helper.toCalendar(buildCalendarDate(getProcessDate.getTime)),
+      ProcessDate = Helper.toCalendar(getProcessDate),
       MeteringPoint = message.meter.map(x => x.meteringPoint),
       CMRequestId = message.requestId.get,
       ConsentId = message.meter.map(m => m.consentId.getOrElse("")),
@@ -49,7 +48,7 @@ object CMRequestV0110Document {
         ReqDatType = "EnergyCommunityRegistration",
         DateFrom = Helper.toCalendar(
           message.meter.flatMap(m => m.from.map (f => buildCalendarDate(f)))
-            .getOrElse(buildCalendarDate(getProcessDate.getTime))),
+            .getOrElse(getNow(Some(1)).toString)),
         DateTo = Some(Helper.toCalendar(buildCalendarDate(new GregorianCalendar(2099, 12, 31).getTime))),
         MeteringIntervall = None, //Some(QHValue),
         TransmissionCycle = None, //Some(DValue2),

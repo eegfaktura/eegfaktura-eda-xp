@@ -12,7 +12,7 @@ import java.text.SimpleDateFormat
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, ZoneId}
 import java.util.zip.CRC32
-import java.util.{Calendar, Date, GregorianCalendar, Locale}
+import java.util._
 import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 
@@ -39,7 +39,7 @@ object MessageHelper {
       case ZP_LIST => CPRequestZPList(message).getVersion()
       case EEG_BASE_DATA => CPRequestBaseData(message).getVersion()
       case ENERGY_SYNC_REQ => CPRequestMeteringValue(message).getVersion()
-      case EDA_MSG_AUFHEBUNG_CCMS => toOptionSE(CMRevokeRequest(message).getVersion())
+      case EDA_MSG_AUFHEBUNG_CCMS => CMRevokeRequest(message).getVersion()
       case CHANGE_METER_PARTITION => ECPartitionChangeMessage(message).getVersion()
       case _ => None
     })
@@ -92,8 +92,8 @@ object MessageHelper {
       case ENERGY_FILE_RESPONSE => EbMsProcessType.PROCESS_ENERGY_RESPONSE
       case ZP_LIST | ZP_LIST_RESPONSE | ZP_LIST_REJECTION => EbMsProcessType.PROCESS_LIST_METERINGPOINTS
       case EEG_BASE_DATA | EEG_BASE_RESPONSRE | EEG_BASE_REJECTION => EbMsProcessType.PROCESS_MASTER_DATA
-      case ONLINE_REG_INIT | ONLINE_REG_ANSWER | ONLINE_REG_REJECTION | ONLINE_REG_APPROVAL | ONLINE_REG_COMPLETION => EbMsProcessType.PROCESS_REGISTER_ONLINE
-      case OFFLINE_REG_INIT | OFFLINE_REG_ANSWER | OFFLINE_REG_REJECTION | OFFLINE_REG_APPROVAL | OFFLINE_REG_COMPLETION => EbMsProcessType.PROCESS_REGISTER_OFFLINE
+      case ONLINE_REG_INIT | ONLINE_REG_ANSWER | ONLINE_REG_ABORT | ONLINE_REG_REJECTION | ONLINE_REG_APPROVAL | ONLINE_REG_COMPLETION => EbMsProcessType.PROCESS_REGISTER_ONLINE
+      case OFFLINE_REG_INIT | OFFLINE_REG_ANSWER | OFFLINE_REG_ABORT | OFFLINE_REG_REJECTION | OFFLINE_REG_APPROVAL | OFFLINE_REG_COMPLETION => EbMsProcessType.PROCESS_REGISTER_OFFLINE
       case ENERGY_SYNC_REQ | ENERGY_SYNC_RES | ENERGY_SYNC_REJECTION => EbMsProcessType.PROCESS_METERINGPOINTS_VALUE
       case EDA_MSG_AUFHEBUNG_CCMI => EbMsProcessType.PROCESS_REVOKE_VALUE
       case EDA_MSG_AUFHEBUNG_CCMC => EbMsProcessType.PROCESS_REVOKE_CUS
@@ -134,27 +134,54 @@ object MessageHelper {
 
   def formatSeqNumber(seqNumber: Long) = f"${seqNumber}%010d"
 
+  def buildCalendarNow(): GregorianCalendar = new GregorianCalendar(new Locale("de", "AT"))
+
   def buildCalendar(date: Date): GregorianCalendar = {
-    val calendar: GregorianCalendar = new GregorianCalendar(new Locale("de", "AT"))
+    val calendar: GregorianCalendar = buildCalendarNow()
     calendar.setTime(date)
     calendar.set(Calendar.MILLISECOND, 0)
     calendar
   }
 
   def buildCalendarDate(date: Date): String = {
-    val format = new SimpleDateFormat("yyyy-MM-dd")
-    format.format(date)
+//    val format = new SimpleDateFormat("yyyy-MM-dd", new Locale("de", "AT"))
+//    format.format(date)
+
+//    val format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", new Locale("de", "AT"))
+//    format.setTimeZone(TimeZone.getTimeZone("CET"));
+//    format.format(date)
+
+    date.toInstant.atZone(ZoneId.of("Europe/Vienna")).toLocalDate.toString
   }
 
-  def getProcessDate: GregorianCalendar = {
-    val processDate = new GregorianCalendar(new Locale("de", "AT"))
-    //    processDate.setTime(new Date())
-    //   processDate.set(Calendar.MILLISECOND, 0)
-    processDate.add(Calendar.DAY_OF_MONTH, 1)
-    processDate
+
+//  def buildCalendarDate(date: Date): GregorianCalendar = {
+//    //    val format = new SimpleDateFormat("yyyy-MM-dd", new Locale("de", "AT"))
+//    //    format.format(date)
+//
+//    //    val format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", new Locale("de", "AT"))
+//    //    format.setTimeZone(TimeZone.getTimeZone("CET"));
+//    //    format.format(date)
+//
+//    GregorianCalendar.from(
+//      date.toInstant.atZone(ZoneId.of("Europe/Vienna"))
+//    )
+//  }
+
+//  def buildCalendarDateFromString(d: String): GregorianCalendar =
+
+  def getProcessDate: String = {
+    //    val processDate = new GregorianCalendar(TimeZone.getTimeZone("Europe/Vienna"), new Locale("de", "AT"))
+    //    processDate.add(Calendar.DAY_OF_MONTH, 1)
+    //    processDate
+    //      val z = ZoneId.of("Europe/Vienna")
+    //      GregorianCalendar.from(
+    //        LocalDate.now(z).plusDays(1).atStartOfDay(z)
+    //      )
+    getNow(Some(1L)).toString
   }
 
-  def getProcessDate1(add: Option[Long] = None): LocalDate = {
+  def getNow(add: Option[Long] = None): LocalDate = {
     val z = ZoneId.of("Europe/Vienna")
     LocalDate.now(z).plusDays(add.getOrElse(0L))
   }

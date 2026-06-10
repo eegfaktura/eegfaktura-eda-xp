@@ -44,11 +44,11 @@ class CPRequestZPListXMLMessageSpec extends AnyWordSpecLike with Matchers {
           MessageType = "CustomerMeteringPointRequest",
           LogInfo = Some("VFEEG-OUT"))
 
-        val xmlObj = CPRequestZPListXMLMessage(testMessage)
+        val xmlObj = CPRequestZPList(testMessage).getVersion().get
         val record = xmlObj.toRecord
         println(record)
 
-        val node = CPRequestZPListXMLMessage(testMessage).toXML
+        val node = CPRequestZPList(testMessage).getVersion().map(_.toXML).get
         println(node)
 
         val body = ponton.Message2(message2option = record)

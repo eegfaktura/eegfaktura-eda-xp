@@ -4,17 +4,15 @@ import at.energydash.config.Config
 import at.energydash.domain.eda.MessageHelper.{buildCalendar, buildCalendarDate}
 import at.energydash.domain.enums.EbMsMessageType
 import at.energydash.domain.{EbMsMessage, ResponseData}
-import cmrevoke._
-//import cmrevoke.v01p00.MessageCode
+import cmrevoke.v01p10._
 import commontypes.v01p20._
-import ponton.`package`.{Cmrevokev01p00_MessageCodeFormat, Cmrevokev01p00_SchemaVersionFormat, Commontypesv01p20_AddressTypeFormat, Commontypesv01p20_DocumentModeFormat, __BooleanXMLFormat}
+import ponton.`package`.{Cmrevokev01p10_SchemaVersionFormat, Commontypesv01p20_AddressTypeFormat, Commontypesv01p20_DocumentModeFormat, __BooleanXMLFormat}
 import scalaxb.Helper
 
 import java.util.Date
-import scala.xml.TopScope
 
-class CMRevokeV0100Document(doc: v01p00.CMRevoke) {
-  def toDoc: v01p00.CMRevoke = doc
+class CMRevokeV0110Document(doc: CMRevoke) {
+  def toDoc: CMRevoke = doc
 
   def toMessage: EbMsMessage = EbMsMessage(
     messageId = Some(doc.ProcessDirectory.MessageId),
@@ -32,34 +30,35 @@ class CMRevokeV0100Document(doc: v01p00.CMRevoke) {
   )
 }
 
-object CMRevokeV0100Document {
+object CMRevokeV0110Document {
 
-  def apply(doc: v01p00.CMRevoke): CMRevokeV0100Document = new CMRevokeV0100Document(doc)
+  def apply(doc: CMRevoke): CMRevokeV0110Document = new CMRevokeV0110Document(doc)
 
-  def apply(message: EbMsMessage): CMRevokeV0100Document = new CMRevokeV0100Document(v01p00.CMRevoke(
-    MarketParticipantDirectory = v01p00.MarketParticipantDirectory(
+  def apply(message: EbMsMessage): CMRevokeV0110Document = new CMRevokeV0110Document(CMRevoke(
+    MarketParticipantDirectory = cmrevoke.v01p10.MarketParticipantDirectory(
       RoutingHeader = RoutingHeader(
         Sender = RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
         Receiver = RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
         DocumentCreationDateTime = Helper.toCalendar(buildCalendar(new Date))
       ),
       Sector = Number01,
-      MessageCode = v01p00.MessageCode.fromString(message.messageCode.toString, TopScope),
+      MessageCode = message.messageCode.toString,
       attributes = Map(
         ("@DocumentMode", scalaxb.DataRecord[DocumentMode](Config.interfaceMode match {
           case "SIMU" => SIMU
           case _ => PROD
         })),
         ("@Duplicate", scalaxb.DataRecord(false)),
-        ("@SchemaVersion", scalaxb.DataRecord[v01p00.SchemaVersion](v01p00.Number01u4600)),
+        ("@SchemaVersion", scalaxb.DataRecord[SchemaVersion](Number01u4610)),
       )
     ),
-    ProcessDirectory = v01p00.ProcessDirectory(
+    ProcessDirectory = cmrevoke.v01p10.ProcessDirectory(
       MessageId = message.messageId.get,
       ConversationId = message.conversationId,
       ConsentId = message.meter.flatMap(_.consentId).get,
       MeteringPoint = message.meter.map(x => x.meteringPoint).get,
       ConsentEnd = Helper.toCalendar(buildCalendarDate(message.consentEnd.getOrElse(new Date))),
       Reason = message.reason,
+      ReasonKey = message.reasonKey
     )))
 }

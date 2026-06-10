@@ -1,17 +1,16 @@
 package at.energydash.domain.eda
 
+import at.energydash.domain.{EbMsMessage, Meter, XmlParseHandler}
 import at.energydash.domain.eda.MessageHelper.{buildCalendarDate, getProcessDate}
 import at.energydash.domain.enums.{EbMsMessageType, MeterDirectionType}
-import at.energydash.domain.{EbMsMessage, Meter, XmlParseHandler}
-import io.circe.generic.auto._
-import io.circe.parser.decode
-import io.circe.syntax._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import io.circe.generic.auto._
+import io.circe.parser.decode
 
 import scala.io.Source
 
-class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers {
+class CMRequestOfflineRegistrationSpec extends AnyWordSpecLike with Matchers {
   import at.energydash.domain.JsonImplicit._
 
   "Registration Online Message" should {
@@ -21,16 +20,19 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers {
         conversationId = "AT003000202303041506076450000003761",
         requestId = Some("5JWLV5Z3"),
         messageId = Some("RC100181202303041506080740000003762"),
-        sender = "RC100130", receiver = "AT003000", messageCode = EbMsMessageType.ONLINE_REG_INIT, messageCodeVersion = Some("02.00"),
+        sender = "RC100130", receiver = "AT003000", messageCode = EbMsMessageType.OFFLINE_REG_INIT, messageCodeVersion = Some("02.00"),
         meter = Some(Meter("AT0030000000000000000000000655856", Some(MeterDirectionType.CONSUMPTION))), ecId = Some("AT00300000000RC100181000000956509"))
 
-      val node = CMRequestRegistrationOnlineXMLMessageV0200(testMessage).toXML
+      val m = CMRequestOfflineRegistration(testMessage).getVersion()
+      val node = CMRequestOfflineRegistration(testMessage).getVersion().map(_.toXML).get
 
-      (node \ "MarketParticipantDirectory" \ "MessageCode").text shouldBe EbMsMessageType.ONLINE_REG_INIT.toString
+      (node \ "MarketParticipantDirectory" \ "MessageCode").text shouldBe EbMsMessageType.OFFLINE_REG_INIT.toString
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
       (node \ "ProcessDirectory" \ "ProcessDate").text shouldBe buildCalendarDate(getProcessDate.getTime)
+
+      println(m.map(_.toRecord).get)
     }
 
     "build 02.10 XML File" in {
@@ -42,13 +44,41 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers {
         sender = "RC100130", receiver = "AT003000", messageCode = EbMsMessageType.ONLINE_REG_INIT, messageCodeVersion = Some("02.10"),
         meter = Some(Meter("AT0030000000000000000000000655856", Some(MeterDirectionType.CONSUMPTION))), ecId = Some("AT00300000000RC100181000000956509"))
 
-      val node = CMRequestRegistrationOnline(testMessage).getVersion().map(_.toXML).get
+      val node = CMRequestOfflineRegistration(testMessage).getVersion().map(_.toXML).get
 
       (node \ "MarketParticipantDirectory" \ "MessageCode").text shouldBe EbMsMessageType.ONLINE_REG_INIT.toString
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
       (node \ "ProcessDirectory" \ "ProcessDate").text shouldBe buildCalendarDate(getProcessDate.getTime)
+    }
+
+    "build version 02.30 from eda message" in {
+      val edaMessage = """{
+                         |    "conversationId": "RC102081202604131776058670001620689",
+                         |    "ecId": "AT00300000000RC102081000000970323",
+                         |    "messageCode": "ANFORDERUNG_ECOF",
+                         |    "messageCodeVersion": "02.20",
+                         |    "messageId": "RC102081202604131776058670001620688",
+                         |    "meter": {
+                         |        "direction": "CONSUMPTION",
+                         |        "from": 1776124800000,
+                         |        "meteringPoint": "AT0030000000000000000000000153958",
+                         |        "partFact": 100
+                         |    },
+                         |    "receiver": "AT003000",
+                         |    "requestId": "Hsh8aat",
+                         |    "sender": "RC102081"
+                         |}""".stripMargin
+
+      val message = decode[EbMsMessage](edaMessage)
+
+      val nodeClass = message match {
+        case Right(m) => CMRequestOfflineRegistration(m).getVersion()
+      }
+
+      val record = nodeClass.map(_.toRecord).get
+      println(record)
     }
 
     "build from JsonFile" in {
@@ -69,20 +99,6 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers {
     }
   }
 
-  "build from JSON with version 02.30" in {
-    val jsonMessage = """{"conversationId":"12","messageId":"34","requestId":"T672AGJ2","sender":"RC100130","receiver":"AT003000","messageCode":"ANFORDERUNG_ECON","messageCodeVersion":"02.30","meter":{"meteringPoint":"AT0030000000000000000000000179843","direction":"CONSUMPTION","partFact":100,"from":1776211200000},"ecId":"AT00300000000RC100130000000952832"}"""
-    val message = decode[EbMsMessage](jsonMessage)
-
-    val node = message match {
-      case Right(m) => CMRequestRegistrationOnline(m).getVersion().map(_.toXML).get
-    }
-
-    (node \ "MarketParticipantDirectory" \ "MessageCode").text shouldBe EbMsMessageType.ONLINE_REG_INIT.toString
-    (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000179843"
-    (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100130000000952832"
-    (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
-  }
-
   "Energy XML File" should {
     "Parse from ABSCHLUSS-ECON XML" in {
       val xmlFile = scala.xml.XML.load(Source.fromResource("message-abschluss-econ.xml").reader())
@@ -93,34 +109,34 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers {
 
     "BUG: Hofmann-PartFact" in {
       val jsonObjectStr = """ {
-        | "consentEnd": null,
-        | "conversationId": "RC100590202404251714030620000012569",
-        | "ecDisModel": null,
-        | "ecId": "AT00200000000RC100590000000000256",
-        | "ecType": null,
-        | "energy": null,
-        | "errorMessage": null,
-        | "messageCode": "ANFORDERUNG_ECON",
-        | "messageCodeVersion": "02.00",
-        | "messageId": "RC100590202404251714030620000012568",
-        | "meter": {
-        |   "activation": null,
-        |   "direction": "GENERATION",
-        |   "from": null,
-        |   "meteringPoint": "AT0020000000000000000000020901971",
-        |   "partFact": 90,
-        |   "plantCategory": null,
-        |   "share": null,
-        |   "to": null
-        | },
-        | "meterList": null,
-        | "reason": null,
-        | "receiver": "AT002000",
-        | "requestId": "6NEGUJJ5",
-        | "responseData": null,
-        | "sender": "RC100590",
-        | "timeline": null
-        |}""".stripMargin
+                            | "consentEnd": null,
+                            | "conversationId": "RC100590202404251714030620000012569",
+                            | "ecDisModel": null,
+                            | "ecId": "AT00200000000RC100590000000000256",
+                            | "ecType": null,
+                            | "energy": null,
+                            | "errorMessage": null,
+                            | "messageCode": "ANFORDERUNG_ECON",
+                            | "messageCodeVersion": "02.00",
+                            | "messageId": "RC100590202404251714030620000012568",
+                            | "meter": {
+                            |   "activation": null,
+                            |   "direction": "GENERATION",
+                            |   "from": null,
+                            |   "meteringPoint": "AT0020000000000000000000020901971",
+                            |   "partFact": 90,
+                            |   "plantCategory": null,
+                            |   "share": null,
+                            |   "to": null
+                            | },
+                            | "meterList": null,
+                            | "reason": null,
+                            | "receiver": "AT002000",
+                            | "requestId": "6NEGUJJ5",
+                            | "responseData": null,
+                            | "sender": "RC100590",
+                            | "timeline": null
+                            |}""".stripMargin
 
       val message = decode[EbMsMessage](jsonObjectStr)
 
@@ -134,3 +150,5 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers {
   }
 
 }
+
+

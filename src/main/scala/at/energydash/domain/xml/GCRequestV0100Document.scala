@@ -39,7 +39,7 @@ object GCRequestV0100Document {
       ProcessDirectory = ProcessDirectory(
         MessageId = message.messageId.get,
         ConversationId = message.conversationId,
-        ProcessDate = Helper.toCalendar(MessageHelper.buildCalendarDate(getProcessDate.getTime)),
+        ProcessDate = Helper.toCalendar(getProcessDate),
         MeteringPoint = ???,
         ContractPartner = ???,
         Extension = ???

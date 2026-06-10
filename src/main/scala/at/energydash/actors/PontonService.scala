@@ -10,7 +10,7 @@ import scala.util.{Failure, Success}
 
 
 trait PontonWebService {
-  def pontonWebService(ctx: ActorContext[_]) = (new PontonRequest(ctx.system) with AkkaHttpHandler).service
+  def pontonWebService(ctx: ActorContext[_]): (PontonRequest with AkkaHttpHandler)#OutboundDocument4SOAPBinding = (new PontonRequest(ctx.system) with AkkaHttpHandler).service
 }
 
 class PontonService(context: ActorContext[EdaCommand]) extends AbstractBehavior[EdaCommand](context) { this: PontonWebService =>
@@ -26,10 +26,6 @@ class PontonService(context: ActorContext[EdaCommand]) extends AbstractBehavior[
           case Failure(exception) => replyTo ! SendResponseError(ebmsMessage.sender, ebmsMessage.receiver, exception.getMessage, "Send KEP")
         }
         Behaviors.same
-//      case TestSendEdaCommand(edaMessage) =>
-//        service.sendRequest(edaMessage)(context.executionContext)
-//        Behaviors.same
-
     }
   }
 }

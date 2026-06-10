@@ -51,6 +51,7 @@ case class EbMsMessage(
                         errorMessage: Option[String] = None,
                         consentEnd: Option[Date] = None,
                         reason: Option[String] = None,
+                        reasonKey: Option[BigInt] = None,
                         seqNr: Option[Long] = None,
                       )
 

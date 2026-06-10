@@ -1,5 +1,6 @@
 package at.energydash.domain.eda
 //import model.enums.EbMsProcessType._
+import akka.util.ByteString
 import at.energydash.domain.EbMsMessage
 import io.circe.generic.auto._
 import io.circe.parser.decode
@@ -61,7 +62,7 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
           | "sender":"CC100063",
           | "receiver":"AT003000",
           | "messageCode":"AUFHEBUNG_CCMS",
-          | "messageCodeVersion":"",
+          | "messageCodeVersion":"01.02",
           | "requestId":"KOTH2QYO",
           | "meter":{
           |   "meteringPoint":"AT0030000000000000000000000749984",
@@ -71,25 +72,17 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
           | "consentEnd":1718920800000}""".stripMargin
       val message = decode[EbMsMessage](jsonObjectStr)
 
-      val node = message match {
+      val requestObj = message match {
         case Right(m) =>
-          println(s"################ $m")
-          CMRevokeRequest(m).getVersion().get.toXML
+          CMRevokeRequest(m).getVersion().get
       }
 
-      //      (node \ "ProcessDirectory" \ "ConsentEnd" ).text should fullyMatch regex """[12][0-9]{3}-[01][0-9]-[0-3][0-9]T[012][0-9]:[0-5][0-9]:00[\+]0[12]:00"""
+      val node = requestObj.toXML
       (node \ "ProcessDirectory" \ "ConsentEnd" ).text shouldBe  "2024-06-21"
       println(node)
 
-//      val obj = CMRevokeRequestV0100.fromXML(node.asInstanceOf[Elem])
-//      obj match {
-//        case Success(o) =>
-//          o.message.messageCodeVersion shouldBe Some("01.01")
-//          o.message.messageCode shouldBe EbMsMessageType.EDA_MSG_ANTWORT_CCMS
-//          o.message.sender shouldBe "TE000001"
-//          o.message.responseData.get.head.ConsentEnd shouldBe Some(1680213600000L)
-//          o.message.responseData.get.head.MeteringPoint shouldBe Some("AT0030000000000000000000000000101")
-//      }
+      val doc = requestObj.toByte
+      println(doc.map(_.utf8String))
     }
   }
 }

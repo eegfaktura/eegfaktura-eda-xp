@@ -13,6 +13,7 @@ import at.energydash.config.Config
 import at.energydash.mqtt.MqttSystem
 import at.energydash.service.FileService
 import at.energydash.stream.MqttRequestStream
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.security.cert.{Certificate, CertificateFactory}
 import java.security.{KeyStore, SecureRandom}
@@ -22,12 +23,9 @@ import scala.concurrent.duration.DurationInt
 import scala.io.Source
 import scala.util.{Failure, Success}
 
-//sealed trait Command
-//case object Start extends Command
-//case object Shutdown extends Command
-
-
 object SupervisorActor {
+
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   private def startHttpServer(routes: Route)(implicit system: ActorSystem[_]): Unit = {
     // Akka HTTP still needs a classic ActorSystem to start
@@ -35,12 +33,12 @@ object SupervisorActor {
 
     val serverConfig = Config.serverConfig
     val futureBinding = Http().newServerAt(serverConfig.host, serverConfig.port)/*.enableHttps(serverHttpContext)*/
-//      .adaptSettings(settings => settings.withHttp2Enabled(false))
+      .adaptSettings(settings => settings.withHttp2Enabled(false))
       .bind(routes)
     futureBinding.onComplete {
       case Success(binding) =>
         val address = binding.localAddress
-        system.log.info("Server online at http://{}:{}/", address.getHostString, address.getPort)
+        logger.info("Server online at http://{}:{}/", address.getHostString, address.getPort)
       case Failure(ex) =>
         system.log.error("Failed to bind HTTP endpoint, terminating system", ex)
         system.terminate()

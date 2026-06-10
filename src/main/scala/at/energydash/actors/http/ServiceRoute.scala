@@ -10,6 +10,7 @@ import at.energydash.service.FileService
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
 
+import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
 
 case class EcIdUpdateHttpMessage(conversationId: String, ecId: String)
@@ -22,7 +23,7 @@ class ServiceRoute(fileService: FileService)(implicit val system: ActorSystem[_]
 
   implicit val timeout: Timeout = 3.seconds
   implicit val scheduler: Scheduler = system.scheduler
-  implicit val ec = system.executionContext
+  implicit val ec: ExecutionContextExecutor = system.executionContext
 
   val adminRoutes: Route =
     pathPrefix("admin") {

@@ -1,0 +1,1 @@
+ALTER TABLE "eda"."tenantconfig" ADD COLUMN IF NOT EXISTS "type" VARCHAR DEFAULT 'MAIL'::character varying NOT NULL;

@@ -105,6 +105,8 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
     } MessageId=${data.messageId.getOrElse("")}]"
   }
 
+  private def determineReceiver(data: EbMsMessage) = if (Config.testEnabled) Config.testReceiver else data.receiver.toUpperCase()
+
   private def prepareEmail(data: EbMsMessage) =
     MessageHelper.getEdaMessageByType(data).flatMap(_.toByte.fold(
       e => {
@@ -113,7 +115,8 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
       },
       attachment => {
         val subject = buildHeader(data)
-        val to = data.receiver.toUpperCase()
+//        val to = data.receiver.toUpperCase()
+        val to = determineReceiver(data)
         val tenant = data.sender.toUpperCase()
 
         logger.debug(s"Prepare Email Message Flow: $data")

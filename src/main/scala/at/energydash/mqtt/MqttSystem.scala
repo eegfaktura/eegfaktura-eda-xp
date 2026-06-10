@@ -20,6 +20,9 @@ import io.circe.syntax._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.slf4j.Logger
 
+import java.io.ByteArrayOutputStream
+import java.util.Base64
+import java.util.zip.GZIPOutputStream
 import javax.net.ssl.SSLContext
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
@@ -182,13 +185,11 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
   private def connectionSettings(cfg: MqttConfig): MqttConnectionSettings = {
     Option(MqttConnectionSettings(
       s"${if (cfg.ssl) "ssl" else "tcp"}://${cfg.host}:${cfg.port}",
-//      s"eda2mqtt-client-${System.currentTimeMillis()}",
       s"eda2mqtt-client-messages",
       new MemoryPersistence()
-    ).withAutomaticReconnect(true)
-      .withCleanSession(false)).map { v =>
-      if (cfg.ssl) v.withSocketFactory(SSLContext.getDefault.getSocketFactory) else v
-    }.get
+    )
+      .withAutomaticReconnect(true)
+      .withCleanSession(false)).map { v => if (cfg.ssl) v.withSocketFactory(SSLContext.getDefault.getSocketFactory) else v}.get
   }
 
   private def event2Mqtt(ev: MqttMessageCmd)(implicit _btp: MqttBaseTopicProvider): Option[MqttMessage] = (ev match {
@@ -204,13 +205,29 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
   }
 
   private def eventToMqttMessage(event: EdaEvent): Option[MqttMessage] = {
+    // Todo: Encrypt and compress here
     val value = event.message.asJson.deepDropNullValues.noSpaces
-    Some(MqttMessage(s"${edaProtocolModulePath(event.message.receiver, event.protocol)}", ByteString(value)).withQos(MqttQoS.atLeastOnce))
+    val msg = event.protocol match {
+      case "CR_MSG" =>
+        // Compress
+        val compressed = gzip(value.getBytes("UTF-8"))
+        Base64.getEncoder.encodeToString(compressed)
+      case _ => value
+    }
+    Some(MqttMessage(s"${edaProtocolModulePath(event.message.receiver, event.protocol)}", ByteString(msg)).withQos(MqttQoS.atLeastOnce).withRetained(false))
   }
 
   private def commandToMqttMessage(command: CommandMessage): Option[MqttMessage] = {
     val value = command.payload.deepDropNullValues.noSpaces
     Some(MqttMessage(s"${edaCommandModulePath(command.tenant, command.command)}", ByteString(value)).withQos(MqttQoS.atLeastOnce).withRetained(false))
+  }
+
+  private def gzip(data: Array[Byte]): Array[Byte] = {
+    val baos = new ByteArrayOutputStream()
+    val gzip = new GZIPOutputStream(baos)
+    gzip.write(data)
+    gzip.close()
+    baos.toByteArray
   }
 
   private implicit class MqttMessageAckExt(msg: MqttMessage) {
