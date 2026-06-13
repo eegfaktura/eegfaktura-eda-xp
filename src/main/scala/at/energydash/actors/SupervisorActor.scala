@@ -32,8 +32,10 @@ object SupervisorActor {
     import system.executionContext
 
     val serverConfig = Config.serverConfig
+    // Pekko-http 1.x: HTTP/2 is opt-in per binding (.enableHttps + ALPN, or
+    // explicit .http2()); .bind() defaults to HTTP/1.1, sodass der frueher
+    // explizite withHttp2Enabled(false)-Override nicht mehr noetig ist.
     val futureBinding = Http().newServerAt(serverConfig.host, serverConfig.port)/*.enableHttps(serverHttpContext)*/
-      .adaptSettings(settings => settings.withHttp2Enabled(false))
       .bind(routes)
     futureBinding.onComplete {
       case Success(binding) =>
