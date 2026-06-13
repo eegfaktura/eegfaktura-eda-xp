@@ -3,7 +3,7 @@ package at.energydash
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.ActorSystem
 import org.apache.pekko.stream.Materializer
-import org.apache.pekko.connectors.mqtt.MqttConnectionSettings
+import org.apache.pekko.stream.connectors.mqtt.MqttConnectionSettings
 import org.apache.pekko.util.ByteString
 import at.energydash.mqtt.MqttSourceSettings
 import io.moquette.broker.Server

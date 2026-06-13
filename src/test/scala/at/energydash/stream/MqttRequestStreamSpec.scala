@@ -1,8 +1,8 @@
 package at.energydash.stream
 
 import org.apache.pekko.Done
-import org.apache.pekko.connectors.mqtt.scaladsl.MqttSource
-import org.apache.pekko.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
+import org.apache.pekko.stream.connectors.mqtt.scaladsl.MqttSource
+import org.apache.pekko.stream.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.stream.testkit.scaladsl.TestSink
 import at.energydash.MqttSourceSpec.fixture

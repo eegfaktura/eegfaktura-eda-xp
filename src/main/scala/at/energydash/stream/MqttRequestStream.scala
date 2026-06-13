@@ -1,8 +1,8 @@
 package at.energydash.stream
 
 import org.apache.pekko.actor.typed.{ActorRef, ActorSystem}
-import org.apache.pekko.connectors.mqtt.scaladsl.{MqttSink, MqttSource}
-import org.apache.pekko.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
+import org.apache.pekko.stream.connectors.mqtt.scaladsl.{MqttSink, MqttSource}
+import org.apache.pekko.stream.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
 import org.apache.pekko.stream.scaladsl.{Flow, Sink, Source}
 import org.apache.pekko.stream.typed.scaladsl.ActorFlow
 import org.apache.pekko.stream.{ActorAttributes, Supervision}

@@ -4,8 +4,8 @@ import org.apache.pekko.Done
 import org.apache.pekko.actor.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{Behavior, SupervisorStrategy}
-import org.apache.pekko.connectors.mqtt.scaladsl.{MqttFlow, MqttMessageWithAck}
-import org.apache.pekko.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
+import org.apache.pekko.stream.connectors.mqtt.scaladsl.{MqttFlow, MqttMessageWithAck}
+import org.apache.pekko.stream.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
 import org.apache.pekko.stream.scaladsl.{Flow, Keep, RunnableGraph, Sink, Source}
 import org.apache.pekko.stream.{ActorAttributes, CompletionStrategy, OverflowStrategy, Supervision}
 import org.apache.pekko.util.ByteString
