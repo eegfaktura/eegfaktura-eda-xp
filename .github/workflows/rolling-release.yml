@@ -16,14 +16,17 @@
 # Image-Pfad: ghcr.io/eegfaktura/eegfaktura-kep (via dockerAliases) plus
 # Default-Alias ghcr.io/eegfaktura/eda-xp-connector (vom packageName).
 #
-# STUFE 1: KEIN repository_dispatch-Job. Erstmal sicherstellen, dass der
-# Source-Code auf einer CI-Maschine durchbaut. Wenn 1-2 push-builds gruen
-# sind und das Image im Cluster manuell getestet wurde, wird der
-# dispatch-deploy-Job in einer zweiten Iteration ergaenzt (Stufe 3).
+# Voll-Pipeline Stufe 3: Build + Push + dispatch-deploy zum Platform-Repo.
+# Stage 3a (Cluster auf source-built Image) ist seit 2026-06-13 aktiv;
+# Stage 3b wird mit diesem Workflow zur Live-Bridge.
 #
-# Vorbedingung Stufe 1: keine (GITHUB_TOKEN reicht aus).
-# Vorbedingung Stufe 3: `PLATFORM_DEPLOY_PAT`-Secret im Repo + dispatch-deploy
-# job in dieser Datei + Mapping `deploy-eda-xp` in Platform-Workflow.
+# Vorbedingungen:
+#   - GITHUB_TOKEN (automatisch verfuegbar) — fuer GHCR-Push
+#   - PLATFORM_DEPLOY_PAT-Secret im Source-Repo — fuer Cross-Repo-Dispatch
+#     (Fine-grained Token 'eegfaktura-platform-dispatch')
+#   - Mapping `deploy-eda-xp` in Platform-Workflow deploy-on-dispatch.yml (vorhanden)
+#   - K8s-Manifest k8s/70-eda-xp.yaml zeigt auf ghcr.io/eegfaktura/eegfaktura-kep:latest
+#     mit imagePullPolicy: Always (vorhanden seit Stage 3a)
 
 name: Docker Image CI (sbt-native-packager)
 
@@ -91,12 +94,31 @@ jobs:
             sbt 'set dockerUsername := Some("eegfaktura")' Docker/publish
           fi
 
-  # NOTE — Stufe 3: hier kommt ein zweiter Job `dispatch-deploy` rein,
-  # analog zu eegfaktura-filestore-rolling-release.yml.
-  # Erst aktivieren, wenn:
-  #   - Build oben mindestens 1x erfolgreich auf push-to-default-branch
-  #   - K8s-Manifest fuer eda-xp im Platform-Repo zeigt auf
-  #     ghcr.io/eegfaktura/eegfaktura-kep:latest (mit imagePullPolicy: Always)
-  #   - Platform-Workflow deploy-on-dispatch.yml akzeptiert
-  #     `deploy-eda-xp` (Mapping muss ergaenzt werden)
-  #   - `PLATFORM_DEPLOY_PAT`-Secret im Source-Repo gesetzt
+  # Triggert das Platform-Repo, damit es den Cluster aktualisiert.
+  # Laeuft nur bei push to default-branch (master/main), nicht bei PRs oder Tags.
+  # Vorbedingung: PLATFORM_DEPLOY_PAT-Secret muss im Source-Repo gesetzt sein
+  # (Fine-grained PAT 'eegfaktura-platform-dispatch' mit Repository-Dispatch-Write
+  # auf vfeeg-development/eegfaktura-platform).
+  dispatch-deploy:
+    needs: build-and-push-image
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deploy in platform repo
+        env:
+          GH_TOKEN: ${{ secrets.PLATFORM_DEPLOY_PAT }}
+        run: |
+          PAYLOAD=$(cat <<EOF
+          {
+            "event_type": "deploy-eda-xp",
+            "client_payload": {
+              "image_tag": "latest",
+              "source_sha": "${GITHUB_SHA}",
+              "source_repo": "${GITHUB_REPOSITORY}",
+              "source_ref": "${GITHUB_REF}"
+            }
+          }
+          EOF
+          )
+          echo "$PAYLOAD" | gh api repos/vfeeg-development/eegfaktura-platform/dispatches --input -
+          echo "Dispatched deploy-eda-xp for sha=${GITHUB_SHA:0:8}"
