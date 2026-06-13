@@ -1,0 +1,102 @@
+# Ziel: NEUE Workflow-Datei in eegfaktura/eegfaktura-eda-xp (existiert
+# dort bisher nicht). Scala/sbt mit sbt-native-packager (kein Dockerfile).
+#
+# Build-Flow:
+#   1. setup-java (Temurin 17, matched dockerBaseImage in build.sbt)
+#   2. setup-sbt + sbt-Cache
+#   3. GHCR-Login (nur push-events, PRs duerfen nicht pushen)
+#   4. PR-Event:    sbt 'set dockerUsername := Some("eegfaktura")' Docker/publishLocal
+#      Push-Event:  sbt 'set dockerUsername := Some("eegfaktura")' Docker/publish
+#        - Override: build.sbt:61 setzt `dockerUsername := Some("vfeeg-development")`,
+#          aber GITHUB_TOKEN dieses Repos darf nur in `eegfaktura/*` pushen.
+#        - dockerAliases (build.sbt) pusht zusaetzlich :latest + :<version>-Tag
+#          in den eegfaktura-Namespace als eegfaktura-kep.
+#
+# Image-Pfad (Ziel): ghcr.io/eegfaktura/eegfaktura-kep (Legacy-Name "kep" aus
+# der dockerAliases-Sektion in build.sbt, "kep" = Ponton KEP-Server). Plus
+# unter dem packageName-Default ghcr.io/eegfaktura/eda-xp-connector.
+#
+# ⚠️ ERWARTETER FEHLER: Lightbend hat 2025 ihre Akka-Artefakte aus Maven
+# Central entfernt und nach repo.akka.io migriert (BSL-Lizenz). Dieser
+# Workflow nutzt `sbt-akka-grpc 2.4.3`, was im freien Internet vermutlich
+# 403 Forbidden zurueckliefert. Analog admin-backend (PR #1 dort).
+#
+# ⚠️ STUFE 1: KEIN repository_dispatch-Job. Erstmal sicherstellen, dass der
+# Source-Code ueberhaupt auf einer CI-Maschine durchbaut (Erwartung: nein).
+#
+# Vorbedingung Stufe 1: keine (GITHUB_TOKEN reicht aus).
+# Vorbedingung Stufe 3: `PLATFORM_DEPLOY_PAT`-Secret + dispatch-deploy job.
+
+name: Docker Image CI (sbt-native-packager)
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - master
+      - main
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
+
+      - name: Cache sbt
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache/coursier
+          key: sbt-${{ runner.os }}-${{ hashFiles('build.sbt', 'project/build.properties', 'project/**.sbt', 'project/**.scala') }}
+          restore-keys: |
+            sbt-${{ runner.os }}-
+
+      - name: Login to Container Registry
+        # PR-Builds duerfen nicht pushen — Login-Step nur bei push.
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (PR via Docker/publishLocal) / Build+Push (push via Docker/publish)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            sbt 'set dockerUsername := Some("eegfaktura")' Docker/publishLocal
+          else
+            sbt 'set dockerUsername := Some("eegfaktura")' Docker/publish
+          fi
+
+  # NOTE — Stufe 3: hier kommt ein zweiter Job `dispatch-deploy` rein,
+  # analog zu eegfaktura-keycloak-rolling-release.yml.
+  # Erst aktivieren, wenn:
+  #   - Build oben mindestens 1x erfolgreich auf push-to-default-branch
+  #     (Akka-BSL-Frage muss vorher geklaert sein)
+  #   - K8s-Manifest k8s/70-eda-xp.yaml im Platform-Repo getestet (Stage 3a
+  #     ist seit 2026-06-13 aktiv)
+  #   - Platform-Workflow deploy-on-dispatch.yml akzeptiert `deploy-eda-xp`
+  #     bereits (Mapping ist drin)
+  #   - `PLATFORM_DEPLOY_PAT`-Secret im Source-Repo gesetzt
