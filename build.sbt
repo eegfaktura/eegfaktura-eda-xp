@@ -5,13 +5,14 @@ ThisBuild / version := "v0.2.22"
 ThisBuild / scalaVersion := "2.13.18"
 
 lazy val courierVersion  = "3.0.1"
-lazy val akkaHttpVersion = "10.6.3"
-lazy val akkaVersion     = "2.9.3"
-lazy val alpakkaVersion  = "8.0.0"
-lazy val circeVersion    = "0.14.3"
-lazy val akkaHttpCirceVersion    = "1.39.2"
-lazy val slickVersion = "3.5.1"
-lazy val scalaXmlVersion = "2.3.0"
+// Migration 2026-06-13: Akka (BSL 1.1) -> Apache Pekko (Apache 2.0).
+// Pekko 1.2.x = Apache-Fork von Akka 2.7-API. Maven-Central, kein Lightbend-Resolver.
+lazy val pekkoVersion             = "1.2.1"
+lazy val pekkoHttpVersion         = "1.2.0"
+lazy val pekkoConnectorsVersion   = "1.1.0"
+lazy val circeVersion             = "0.14.3"
+lazy val slickVersion             = "3.5.1"
+lazy val scalaXmlVersion          = "2.3.0"
 
 lazy val scalaxbSettings = Seq(
   Compile / scalaxbJaxbPackage := JaxbPackage.Jakarta,
@@ -85,7 +86,7 @@ lazy val dockerSettings = Seq(
 
 lazy val root = (project in file("."))
   .enablePlugins(ScalaxbPlugin)
-  .enablePlugins(AkkaGrpcPlugin)
+  .enablePlugins(PekkoGrpcPlugin)
   .enablePlugins(JavaAppPackaging)
   .settings(scalaxbSettings)
   .settings(dockerSettings)
@@ -94,23 +95,21 @@ lazy val root = (project in file("."))
 
     resolvers += "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/",
     resolvers += "repo.jenkins-ci.org" at "https://repo.jenkins-ci.org/releases",
-    resolvers += "Akka library repository" at "https://repo.akka.io/maven",
-    //    resolvers += "Akka library repository (secure)" at "https://repo.akka.io/07nO6Ky2tx3jg1w6jkZUqzzxxgiNm92AbYKHvhlDj3hsS30D/secure",
+    // Pekko ist auf Maven Central, kein Lightbend-Resolver mehr noetig
 
     libraryDependencies ++= Seq(
       "com.github.daddykotex" %% "courier" % courierVersion,
-      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-      "com.typesafe.akka" %% "akka-http-xml" % akkaHttpVersion,
-      "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
-      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-      "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
-//      "com.lightbend.akka" %% "akka-persistence-jdbc" % "5.1.0",
-//      "com.typesafe.akka" %% "akka-persistence-query" % akkaVersion,
-      "com.typesafe.akka" %% "akka-serialization-jackson"  % akkaVersion,
-      "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
-      "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % alpakkaVersion,
-      "com.lightbend.akka" %% "akka-stream-alpakka-mqtt-streaming" % alpakkaVersion,
-      "de.heikoseeberger" %% "akka-http-circe" % akkaHttpCirceVersion,
+      "org.apache.pekko" %% "pekko-http" % pekkoHttpVersion,
+      "org.apache.pekko" %% "pekko-http-xml" % pekkoHttpVersion,
+      "org.apache.pekko" %% "pekko-actor-typed" % pekkoVersion,
+      "org.apache.pekko" %% "pekko-stream" % pekkoVersion,
+      "org.apache.pekko" %% "pekko-persistence-typed" % pekkoVersion,
+      "org.apache.pekko" %% "pekko-serialization-jackson"  % pekkoVersion,
+      "org.apache.pekko" %% "pekko-discovery" % pekkoVersion,
+      "org.apache.pekko" %% "pekko-slf4j" % pekkoVersion,
+      "org.apache.pekko" %% "pekko-connectors-mqtt" % pekkoConnectorsVersion,
+      "org.apache.pekko" %% "pekko-connectors-mqtt-streaming" % pekkoConnectorsVersion,
+      "com.github.pjfanning" %% "pekko-http-circe" % "3.1.0",
       "jakarta.xml.bind" % "jakarta.xml.bind-api" % "4.0.2",
 //      "org.http4s" %% "http4s-core" % "1.0.0-m38",
 
@@ -130,8 +129,8 @@ lazy val root = (project in file("."))
 
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % "3.2.19",
-      "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion,
-      "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion,
+      "org.apache.pekko" %% "pekko-stream-testkit" % pekkoVersion,
+      "org.apache.pekko" %% "pekko-actor-testkit-typed" % pekkoVersion,
       "org.jvnet.mock-javamail" % "mock-javamail" % "1.12",
       "com.typesafe.slick" %% "slick-testkit" % slickVersion,
       "com.h2database" % "h2" % "2.2.224",

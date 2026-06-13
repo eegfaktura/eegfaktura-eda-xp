@@ -1,0 +1,102 @@
+# Scala/sbt mit sbt-native-packager (kein Dockerfile). Build-Stack ist auf
+# Apache Pekko migriert (statt Akka BSL) - keine repo.akka.io-Auth noetig,
+# Dependencies kommen aus Maven Central.
+#
+# Build-Flow:
+#   1. setup-java (Temurin 17, matched dockerBaseImage in build.sbt)
+#   2. setup-sbt
+#   3. GHCR-Login (nur push-events, PRs duerfen nicht pushen)
+#   4. PR-Event:    sbt 'set dockerUsername := Some("eegfaktura")' Docker/publishLocal
+#      Push-Event:  sbt 'set dockerUsername := Some("eegfaktura")' Docker/publish
+#        - Override: build.sbt hat `dockerUsername := Some("vfeeg-development")`,
+#          aber GITHUB_TOKEN dieses Repos darf nur in `eegfaktura/*` pushen.
+#        - dockerAliases (build.sbt) pusht zusaetzlich :latest +
+#          :<version>-Tag in den eegfaktura-Namespace.
+#
+# Image-Pfad: ghcr.io/eegfaktura/eegfaktura-kep (via dockerAliases) plus
+# Default-Alias ghcr.io/eegfaktura/eda-xp-connector (vom packageName).
+#
+# STUFE 1: KEIN repository_dispatch-Job. Erstmal sicherstellen, dass der
+# Source-Code auf einer CI-Maschine durchbaut. Wenn 1-2 push-builds gruen
+# sind und das Image im Cluster manuell getestet wurde, wird der
+# dispatch-deploy-Job in einer zweiten Iteration ergaenzt (Stufe 3).
+#
+# Vorbedingung Stufe 1: keine (GITHUB_TOKEN reicht aus).
+# Vorbedingung Stufe 3: `PLATFORM_DEPLOY_PAT`-Secret im Repo + dispatch-deploy
+# job in dieser Datei + Mapping `deploy-eda-xp` in Platform-Workflow.
+
+name: Docker Image CI (sbt-native-packager)
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - master
+      - main
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
+
+      - name: Cache sbt
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache/coursier
+          key: sbt-${{ runner.os }}-${{ hashFiles('build.sbt', 'project/build.properties', 'project/**.sbt', 'project/**.scala') }}
+          restore-keys: |
+            sbt-${{ runner.os }}-
+
+      - name: Login to Container Registry
+        # PR-Builds duerfen nicht pushen — Login-Step nur bei push.
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (PR via Docker/publishLocal) / Build+Push (push via Docker/publish)
+        run: |
+          # dockerUsername override: build.sbt setzt vfeeg-development, aber
+          # der GITHUB_TOKEN dieses Repos darf nur in eegfaktura/* pushen.
+          # sbt-native-packager pusht alle aliases (Default + dockerAliases).
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            sbt 'set dockerUsername := Some("eegfaktura")' Docker/publishLocal
+          else
+            sbt 'set dockerUsername := Some("eegfaktura")' Docker/publish
+          fi
+
+  # NOTE — Stufe 3: hier kommt ein zweiter Job `dispatch-deploy` rein,
+  # analog zu eegfaktura-filestore-rolling-release.yml.
+  # Erst aktivieren, wenn:
+  #   - Build oben mindestens 1x erfolgreich auf push-to-default-branch
+  #   - K8s-Manifest fuer eda-xp im Platform-Repo zeigt auf
+  #     ghcr.io/eegfaktura/eegfaktura-kep:latest (mit imagePullPolicy: Always)
+  #   - Platform-Workflow deploy-on-dispatch.yml akzeptiert
+  #     `deploy-eda-xp` (Mapping muss ergaenzt werden)
+  #   - `PLATFORM_DEPLOY_PAT`-Secret im Source-Repo gesetzt

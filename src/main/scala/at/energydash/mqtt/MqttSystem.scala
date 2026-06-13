@@ -1,14 +1,14 @@
 package at.energydash.mqtt
 
-import akka.Done
-import akka.actor.ActorRef
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.actor.typed.{Behavior, SupervisorStrategy}
-import akka.stream.alpakka.mqtt.scaladsl.{MqttFlow, MqttMessageWithAck}
-import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
-import akka.stream.scaladsl.{Flow, Keep, RunnableGraph, Sink, Source}
-import akka.stream.{ActorAttributes, CompletionStrategy, OverflowStrategy, Supervision}
-import akka.util.ByteString
+import org.apache.pekko.Done
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{Behavior, SupervisorStrategy}
+import org.apache.pekko.connectors.mqtt.scaladsl.{MqttFlow, MqttMessageWithAck}
+import org.apache.pekko.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
+import org.apache.pekko.stream.scaladsl.{Flow, Keep, RunnableGraph, Sink, Source}
+import org.apache.pekko.stream.{ActorAttributes, CompletionStrategy, OverflowStrategy, Supervision}
+import org.apache.pekko.util.ByteString
 import at.energydash.config.Config.MqttConfig
 import at.energydash.domain.EbMsMessage
 import at.energydash.mqtt.MqttProtocol._

@@ -1,8 +1,8 @@
 package at.energydash.actors
 
-import akka.Done
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
+import org.apache.pekko.Done
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior}
 import at.energydash.actors.MqttPublisher.EdaNotification
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.dao.{Db, SlickConversationRepository}

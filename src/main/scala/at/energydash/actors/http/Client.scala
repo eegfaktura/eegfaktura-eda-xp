@@ -1,9 +1,9 @@
 package at.energydash.actors.http
 
-import akka.actor.typed.ActorSystem
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.RawHeader
+import org.apache.pekko.actor.typed.ActorSystem
+import org.apache.pekko.http.scaladsl.Http
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.http.scaladsl.model.headers.RawHeader
 import at.energydash.config.Config
 import org.slf4j.{Logger, LoggerFactory}
 import scalaxb.HttpClientsAsync

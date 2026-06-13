@@ -1,7 +1,7 @@
 package at.energydash.actors
 
-import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.Behavior
+import org.apache.pekko.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import at.energydash.actors.http.AkkaHttpHandler
 import at.energydash.actors.soap.PontonRequest
 import at.energydash.domain.eda.MessageHelper

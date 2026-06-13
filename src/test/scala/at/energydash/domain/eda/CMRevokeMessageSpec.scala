@@ -1,6 +1,6 @@
 package at.energydash.domain.eda
 //import model.enums.EbMsProcessType._
-import akka.util.ByteString
+import org.apache.pekko.util.ByteString
 import at.energydash.domain.EbMsMessage
 import io.circe.generic.auto._
 import io.circe.parser.decode

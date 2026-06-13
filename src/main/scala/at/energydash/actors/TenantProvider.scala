@@ -1,7 +1,7 @@
 package at.energydash.actors
 
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import at.energydash.actors.FetchMailTenantWorker.GracefulShutdown
 import at.energydash.actors.MqttPublisher.{MqttCommand, MqttPublishCommand}
 import at.energydash.config.Config

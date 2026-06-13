@@ -1,13 +1,13 @@
 package at.energydash.stream
 
-import akka.actor.typed.{ActorRef, ActorSystem}
-import akka.stream.alpakka.mqtt.scaladsl.{MqttSink, MqttSource}
-import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
-import akka.stream.scaladsl.{Flow, Sink, Source}
-import akka.stream.typed.scaladsl.ActorFlow
-import akka.stream.{ActorAttributes, Supervision}
-import akka.util.{ByteString, Timeout}
-import akka.{Done, NotUsed}
+import org.apache.pekko.actor.typed.{ActorRef, ActorSystem}
+import org.apache.pekko.connectors.mqtt.scaladsl.{MqttSink, MqttSource}
+import org.apache.pekko.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
+import org.apache.pekko.stream.scaladsl.{Flow, Sink, Source}
+import org.apache.pekko.stream.typed.scaladsl.ActorFlow
+import org.apache.pekko.stream.{ActorAttributes, Supervision}
+import org.apache.pekko.util.{ByteString, Timeout}
+import org.apache.pekko.{Done, NotUsed}
 import at.energydash.actors.ConversationEntity.{InitConversation, InitDone}
 import at.energydash.actors._
 import at.energydash.config.Config

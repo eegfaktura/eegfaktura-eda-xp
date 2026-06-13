@@ -1,7 +1,7 @@
 package at.energydash.mailer
 
-import akka.actor.typed.ActorRef
-import akka.util.ByteString
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.util.ByteString
 import at.energydash.actors.{EdaCommand, EmailCommand}
 import at.energydash.domain.EbMsMessage
 import courier.{Envelope, Mailer, Multipart}

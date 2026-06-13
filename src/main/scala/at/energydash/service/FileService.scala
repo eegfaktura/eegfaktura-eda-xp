@@ -1,13 +1,13 @@
 package at.energydash.service
 
-import akka.Done
-import akka.actor.typed.{ActorRef, ActorSystem, Scheduler}
-import akka.http.scaladsl.model.Multipart.BodyPart
-import akka.http.scaladsl.model.{BodyPartEntity, Multipart}
-import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
-import akka.stream.Materializer
-import akka.stream.scaladsl.Sink
-import akka.util.{ByteString, Timeout}
+import org.apache.pekko.Done
+import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Scheduler}
+import org.apache.pekko.http.scaladsl.model.Multipart.BodyPart
+import org.apache.pekko.http.scaladsl.model.{BodyPartEntity, Multipart}
+import org.apache.pekko.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Sink
+import org.apache.pekko.util.{ByteString, Timeout}
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish}
 import at.energydash.domain.eda.EdaErrorMessage
 import at.energydash.domain.enums.EbMsMessageType

@@ -1,12 +1,12 @@
 package at.energydash.actors
 
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
-import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
-import akka.pki.pem.{DERPrivateKeyLoader, PEMDecoder}
-import akka.util.Timeout
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior}
+import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.server.Route
+import org.apache.pekko.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
+import org.apache.pekko.pki.pem.{DERPrivateKeyLoader, PEMDecoder}
+import org.apache.pekko.util.Timeout
 import at.energydash.actors.TenantProvider.TenantStart
 import at.energydash.actors.http.{PontonRoute, ServiceRoute}
 import at.energydash.config.Config

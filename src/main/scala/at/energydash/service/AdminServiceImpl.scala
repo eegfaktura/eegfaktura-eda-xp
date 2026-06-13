@@ -1,8 +1,8 @@
 package at.energydash.service
 
-import akka.actor.typed.scaladsl.AskPattern.Askable
-import akka.actor.typed.{ActorRef, Scheduler}
-import akka.util.Timeout
+import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
+import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
+import org.apache.pekko.util.Timeout
 import at.energydash.actors._
 import at.energydash.admin.{RegisterPontonRequest, RegisterPontonService, RegisteredPontonReply}
 import at.energydash.domain.dao.TenantConfig
