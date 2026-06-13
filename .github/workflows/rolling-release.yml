@@ -78,6 +78,13 @@ jobs:
         # Der `akka.license-key` (auch in application.conf zur Laufzeit
         # verwendet) wird hier als HTTP-Basic-Auth-Passwort zum Resolve
         # von sbt-akka-grpc + Akka-Libs benutzt. User-Default `akka`.
+        #
+        # Wir hinterlegen die credentials an drei Stellen, damit sowohl
+        # Plugin-Resolution (meta-build, `project/plugins.sbt`) als auch
+        # Main-Build und Coursier sie sehen:
+        #   - ~/.sbt/.credentials             (sbt-properties-Datei)
+        #   - ~/.sbt/1.0/credentials.sbt      (global, gilt fuer Plugin-Loader)
+        #   - ~/.config/coursier/credentials.properties (Coursier-spezifisch)
         env:
           AKKA_LICENSE_KEY: ${{ secrets.AKKA_LICENSE_KEY }}
         run: |
@@ -85,7 +92,8 @@ jobs:
             echo "::warning::AKKA_LICENSE_KEY secret nicht gesetzt — Build wird vermutlich am Resolve scheitern (Lightbend BSL)."
             exit 0
           fi
-          mkdir -p ~/.sbt
+          mkdir -p ~/.sbt/1.0 ~/.config/coursier
+          # 1) Legacy sbt-Credentials-Datei
           cat > ~/.sbt/.credentials <<EOF
           realm=Akka library repository
           host=repo.akka.io
@@ -93,6 +101,19 @@ jobs:
           password=$AKKA_LICENSE_KEY
           EOF
           chmod 600 ~/.sbt/.credentials
+          # 2) Globale sbt-Konfig, die vom Plugin-Loader gelesen wird
+          cat > ~/.sbt/1.0/credentials.sbt <<'EOF'
+          credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
+          EOF
+          # 3) Coursier-spezifisch (default-Resolver bei sbt 1.x)
+          cat > ~/.config/coursier/credentials.properties <<EOF
+          akka.host=repo.akka.io
+          akka.username=akka
+          akka.password=$AKKA_LICENSE_KEY
+          akka.realm=Akka library repository
+          akka.auto=true
+          EOF
+          chmod 600 ~/.config/coursier/credentials.properties
 
       - name: Login to Container Registry
         # PR-Builds duerfen nicht pushen — Login-Step nur bei push.
