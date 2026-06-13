@@ -73,6 +73,27 @@ jobs:
           restore-keys: |
             sbt-${{ runner.os }}-
 
+      - name: Configure Akka library repository credentials
+        # repo.akka.io ist seit Lightbend BSL-Umstellung 2025 unter Auth.
+        # Der `akka.license-key` (auch in application.conf zur Laufzeit
+        # verwendet) wird hier als HTTP-Basic-Auth-Passwort zum Resolve
+        # von sbt-akka-grpc + Akka-Libs benutzt. User-Default `akka`.
+        env:
+          AKKA_LICENSE_KEY: ${{ secrets.AKKA_LICENSE_KEY }}
+        run: |
+          if [ -z "$AKKA_LICENSE_KEY" ]; then
+            echo "::warning::AKKA_LICENSE_KEY secret nicht gesetzt — Build wird vermutlich am Resolve scheitern (Lightbend BSL)."
+            exit 0
+          fi
+          mkdir -p ~/.sbt
+          cat > ~/.sbt/.credentials <<EOF
+          realm=Akka library repository
+          host=repo.akka.io
+          user=akka
+          password=$AKKA_LICENSE_KEY
+          EOF
+          chmod 600 ~/.sbt/.credentials
+
       - name: Login to Container Registry
         # PR-Builds duerfen nicht pushen — Login-Step nur bei push.
         if: github.event_name == 'push'
@@ -84,10 +105,13 @@ jobs:
 
       - name: Build (PR via Docker/publishLocal) / Build+Push (push via Docker/publish)
         run: |
+          # 'credentials += ...' macht ~/.sbt/.credentials sichtbar fuer den
+          # Akka-Resolver. Override dockerUsername siehe Header-Kommentar.
+          SBT_OPTS_BASE='set credentials += Credentials(Path.userHome / ".sbt" / ".credentials")'
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            sbt 'set dockerUsername := Some("eegfaktura")' Docker/publishLocal
+            sbt "$SBT_OPTS_BASE" 'set dockerUsername := Some("eegfaktura")' Docker/publishLocal
           else
-            sbt 'set dockerUsername := Some("eegfaktura")' Docker/publish
+            sbt "$SBT_OPTS_BASE" 'set dockerUsername := Some("eegfaktura")' Docker/publish
           fi
 
   # NOTE — Stufe 3: hier kommt ein zweiter Job `dispatch-deploy` rein,
