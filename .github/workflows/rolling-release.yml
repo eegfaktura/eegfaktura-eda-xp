@@ -92,7 +92,7 @@ jobs:
             echo "::warning::AKKA_LICENSE_KEY secret nicht gesetzt — Build wird vermutlich am Resolve scheitern (Lightbend BSL)."
             exit 0
           fi
-          mkdir -p ~/.sbt/1.0 ~/.config/coursier
+          mkdir -p ~/.sbt/1.0/plugins ~/.config/coursier
           # 1) Legacy sbt-Credentials-Datei
           cat > ~/.sbt/.credentials <<EOF
           realm=Akka library repository
@@ -101,11 +101,15 @@ jobs:
           password=$AKKA_LICENSE_KEY
           EOF
           chmod 600 ~/.sbt/.credentials
-          # 2) Globale sbt-Konfig, die vom Plugin-Loader gelesen wird
+          # 2) Main-Build (libraries inkl. Akka-Libs)
           cat > ~/.sbt/1.0/credentials.sbt <<'EOF'
           credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
           EOF
-          # 3) Coursier-spezifisch (default-Resolver bei sbt 1.x)
+          # 3) Meta-Build / Plugin-Loader (sbt-akka-grpc plugin) - KRITISCH
+          cat > ~/.sbt/1.0/plugins/credentials.sbt <<'EOF'
+          credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
+          EOF
+          # 4) Coursier-spezifisch (default-Resolver bei sbt 1.x)
           cat > ~/.config/coursier/credentials.properties <<EOF
           akka.host=repo.akka.io
           akka.username=akka
