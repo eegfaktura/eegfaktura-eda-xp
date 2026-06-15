@@ -1,6 +1,6 @@
 package at.energydash.actors
 
-import akka.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.ActorRef
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.dao.TenantConfig
 

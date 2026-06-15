@@ -1,11 +1,11 @@
 package at.energydash.actors.http
 
-import akka.actor.typed.{ActorRef, ActorSystem, Scheduler}
-import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport._
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
-import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
-import akka.util.Timeout
+import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Scheduler}
+import org.apache.pekko.http.scaladsl.marshallers.xml.ScalaXmlSupport._
+import org.apache.pekko.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
+import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.server.Route
+import org.apache.pekko.util.Timeout
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish, MqttPublishError}
 import at.energydash.domain.XmlParseHandler
 import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode

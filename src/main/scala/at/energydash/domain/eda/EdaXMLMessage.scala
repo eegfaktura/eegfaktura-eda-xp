@@ -1,6 +1,6 @@
 package at.energydash.domain.eda
 
-import akka.util.ByteString
+import org.apache.pekko.util.ByteString
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.enums.EbMsMessageType
 import at.energydash.domain.enums.EbMsMessageType.EbMsMessageType

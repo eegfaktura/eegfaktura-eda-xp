@@ -1,6 +1,6 @@
 package at.energydash.actors
 
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import at.energydash.actors.MqttPublisher.MqttCommand
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.dao.{Db, SlickEmailOutboxRepository, TenantConfig}

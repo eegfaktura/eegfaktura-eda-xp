@@ -1,6 +1,6 @@
 package at.energydash.actors
 
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import at.energydash.EmbeddedDb
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttPublish}
 import at.energydash.domain.EbMsMessage

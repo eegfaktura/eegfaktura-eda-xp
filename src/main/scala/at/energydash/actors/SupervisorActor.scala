@@ -1,12 +1,12 @@
 package at.energydash.actors
 
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
-import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
-import akka.pki.pem.{DERPrivateKeyLoader, PEMDecoder}
-import akka.util.Timeout
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior}
+import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.server.Route
+import org.apache.pekko.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
+import org.apache.pekko.pki.pem.{DERPrivateKeyLoader, PEMDecoder}
+import org.apache.pekko.util.Timeout
 import at.energydash.actors.TenantProvider.TenantStart
 import at.energydash.actors.http.{PontonRoute, ServiceRoute}
 import at.energydash.config.Config
@@ -32,8 +32,13 @@ object SupervisorActor {
     import system.executionContext
 
     val serverConfig = Config.serverConfig
+    // pekko-http 1.x: HTTP/2-Flag ist nach PreviewServerSettings gewandert
+    // (ServerSettings.withHttp2Enabled gibt's nicht mehr direkt). Globales
+    // pekko.http.server.preview.enable-http2 = on in reference.conf aktiviert
+    // h2c fuer .bind(); hier ueberschreiben wir per-Binding auf off, damit
+    // der Admin-REST-Server reines HTTP/1.1 spricht.
     val futureBinding = Http().newServerAt(serverConfig.host, serverConfig.port)/*.enableHttps(serverHttpContext)*/
-      .adaptSettings(settings => settings.withHttp2Enabled(false))
+      .adaptSettings(_.mapPreviewServerSettings(_.withEnableHttp2(false)))
       .bind(routes)
     futureBinding.onComplete {
       case Success(binding) =>

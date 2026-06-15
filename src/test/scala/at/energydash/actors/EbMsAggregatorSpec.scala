@@ -1,6 +1,6 @@
 package at.energydash.actors
 
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.scalatest.wordspec.AnyWordSpecLike
 
 class EbMsAggregatorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {

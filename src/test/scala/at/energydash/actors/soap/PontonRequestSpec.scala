@@ -1,9 +1,9 @@
 package at.energydash.actors.soap
 
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import akka.actor.typed.ActorSystem
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.apache.pekko.actor.typed.ActorSystem
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import at.energydash.actors.PontonService.buildMessageId
 import at.energydash.actors.http.{AkkaHttpClients, AkkaHttpHandler}
 import at.energydash.domain.eda.MessageHelper

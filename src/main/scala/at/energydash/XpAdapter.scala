@@ -1,6 +1,6 @@
 package at.energydash
 
-import akka.actor.typed.ActorSystem
+import org.apache.pekko.actor.typed.ActorSystem
 import at.energydash.actors.{Start, SupervisorActor}
 
 object XpAdapter extends App {

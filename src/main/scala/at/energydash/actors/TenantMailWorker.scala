@@ -1,7 +1,7 @@
 package at.energydash.actors
 
-import akka.actor.typed.scaladsl.{Behaviors, TimerScheduler}
-import akka.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.typed.scaladsl.{Behaviors, TimerScheduler}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import at.energydash.actors.MqttPublisher.MqttCommand
 import at.energydash.actors.TenantMailActor.{DeleteEmailCommand, FetchEmailCommand}
 import at.energydash.config.Config

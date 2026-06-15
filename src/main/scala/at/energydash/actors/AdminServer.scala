@@ -1,9 +1,9 @@
 package at.energydash.actors
 
-import akka.actor.typed.{ActorRef, ActorSystem, Scheduler}
-import akka.grpc.scaladsl.ServiceHandler
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Scheduler}
+import org.apache.pekko.grpc.scaladsl.ServiceHandler
+import org.apache.pekko.http.scaladsl.Http
+import org.apache.pekko.http.scaladsl.model.{HttpRequest, HttpResponse}
 import at.energydash.admin.RegisterPontonServiceHandler
 import at.energydash.admin.mail.SendMailServiceHandler
 import at.energydash.config.Config

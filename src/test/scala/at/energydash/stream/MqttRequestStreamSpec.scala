@@ -1,10 +1,10 @@
 package at.energydash.stream
 
-import akka.Done
-import akka.stream.alpakka.mqtt.scaladsl.MqttSource
-import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
-import akka.stream.scaladsl.Source
-import akka.stream.testkit.scaladsl.TestSink
+import org.apache.pekko.Done
+import org.apache.pekko.stream.connectors.mqtt.scaladsl.MqttSource
+import org.apache.pekko.stream.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
+import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.stream.testkit.scaladsl.TestSink
 import at.energydash.MqttSourceSpec.fixture
 import at.energydash.actors.ConversationEntity.{InitConversation, InitDone}
 import at.energydash.actors.PrepareMessageActor.{PrepareMessage, Prepared}

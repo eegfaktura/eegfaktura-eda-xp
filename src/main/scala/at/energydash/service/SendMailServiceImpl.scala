@@ -1,7 +1,7 @@
 package at.energydash.service
 
-import akka.actor.typed.{ActorSystem, Scheduler}
-import akka.util.{ByteString, Timeout}
+import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
+import org.apache.pekko.util.{ByteString, Timeout}
 import at.energydash.admin.mail.{SendMailReply, SendMailRequest, SendMailService, SendMailWithInlineAttachmentsRequest}
 import at.energydash.mailer.ConfiguredMailer
 import courier.{Envelope, Mailer, Multipart}

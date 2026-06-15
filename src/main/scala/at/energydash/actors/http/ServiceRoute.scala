@@ -1,13 +1,13 @@
 package at.energydash.actors.http
 
-import akka.actor.typed.{ActorSystem, Scheduler}
-import akka.http.scaladsl.model.{Multipart, StatusCodes}
-import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
-import akka.util.Timeout
+import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
+import org.apache.pekko.http.scaladsl.model.{Multipart, StatusCodes}
+import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.server.Route
+import org.apache.pekko.util.Timeout
 import at.energydash.domain.EbMsMessage
 import at.energydash.service.FileService
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
 
 import scala.concurrent.ExecutionContextExecutor

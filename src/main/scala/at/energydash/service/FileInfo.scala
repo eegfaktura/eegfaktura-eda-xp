@@ -1,6 +1,6 @@
 package at.energydash.service
 
-import akka.http.scaladsl.model.Multipart
+import org.apache.pekko.http.scaladsl.model.Multipart
 
 case class FileInfo(bodyPart: Multipart.BodyPart, processName: String) {
 }

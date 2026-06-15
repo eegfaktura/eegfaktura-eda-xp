@@ -1,10 +1,10 @@
 package at.energydash
 
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import akka.actor.typed.ActorSystem
-import akka.stream.Materializer
-import akka.stream.alpakka.mqtt.MqttConnectionSettings
-import akka.util.ByteString
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.apache.pekko.actor.typed.ActorSystem
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.connectors.mqtt.MqttConnectionSettings
+import org.apache.pekko.util.ByteString
 import at.energydash.mqtt.MqttSourceSettings
 import io.moquette.broker.Server
 import io.moquette.broker.config.{FileResourceLoader, ResourceLoaderConfig}
