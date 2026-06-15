@@ -78,8 +78,8 @@ lazy val dockerSettings = Seq(
     Seq(
 //      DockerAlias(repo, Some("vfeeg-development"), name, Some(dockerVersion)),      // e.g. ghcr.io/eegfaktura/app:1.0.0
 //      DockerAlias(repo, Some("vfeeg-development"), name, Some("latest")),
-      DockerAlias(repo, Some("eegfaktura"), "eegfaktura-kep", Some((ThisBuild / version).value)),
-      DockerAlias(repo, Some("eegfaktura"), "eegfaktura-kep", Some("latest")),
+      DockerAlias(repo, Some("vfeeg-development"), "eegfaktura-kep", Some((ThisBuild / version).value)),
+      DockerAlias(repo, Some("vfeeg-development"), "eegfaktura-kep", Some("latest")),
     )
   }
 )
