@@ -2,31 +2,32 @@
 # Apache Pekko migriert (statt Akka BSL) - keine repo.akka.io-Auth noetig,
 # Dependencies kommen aus Maven Central.
 #
+# Pusht ins Development-Tier ghcr.io/vfeeg-development/eegfaktura-kep
+# gemaess ADR-0005 (Two-Tier-Image-Registry) im Platform-Repo.
+#
 # Build-Flow:
 #   1. setup-java (Temurin 17, matched dockerBaseImage in build.sbt)
 #   2. setup-sbt
-#   3. GHCR-Login (nur push-events, PRs duerfen nicht pushen)
-#   4. PR-Event:    sbt 'set dockerUsername := Some("eegfaktura")' Docker/publishLocal
-#      Push-Event:  sbt 'set dockerUsername := Some("eegfaktura")' Docker/publish
-#        - Override: build.sbt hat `dockerUsername := Some("vfeeg-development")`,
-#          aber GITHUB_TOKEN dieses Repos darf nur in `eegfaktura/*` pushen.
-#        - dockerAliases (build.sbt) pusht zusaetzlich :latest +
-#          :<version>-Tag in den eegfaktura-Namespace.
+#   3. GHCR-Login mit VFEEG_DEV_PUSH_PAT (nur push-events, PRs pushen nicht)
+#   4. PR-Event:    sbt Docker/publishLocal  (Build-Check, kein Push)
+#      Push-Event:  sbt Docker/publish       (Build + Push)
+#        - build.sbt setzt dockerUsername := Some("vfeeg-development") und die
+#          dockerAliases pushen eegfaktura-kep ebenfalls nach vfeeg-development —
+#          kein Override im Workflow mehr noetig.
 #
-# Image-Pfad: ghcr.io/eegfaktura/eegfaktura-kep (via dockerAliases) plus
-# Default-Alias ghcr.io/eegfaktura/eda-xp-connector (vom packageName).
+# Image-Pfad: ghcr.io/vfeeg-development/eegfaktura-kep (via dockerAliases) plus
+# Default-Alias ghcr.io/vfeeg-development/eda-xp-connector (vom packageName).
 #
 # Voll-Pipeline Stufe 3: Build + Push + dispatch-deploy zum Platform-Repo.
-# Stage 3a (Cluster auf source-built Image) ist seit 2026-06-13 aktiv;
-# Stage 3b wird mit diesem Workflow zur Live-Bridge.
 #
 # Vorbedingungen:
-#   - GITHUB_TOKEN (automatisch verfuegbar) — fuer GHCR-Push
+#   - VFEEG_DEV_PUSH_PAT-Secret im Source-Repo — Classic PAT mit
+#     write:packages auf vfeeg-development (Cross-Org-Push)
 #   - PLATFORM_DEPLOY_PAT-Secret im Source-Repo — fuer Cross-Repo-Dispatch
 #     (Fine-grained Token 'eegfaktura-platform-dispatch')
 #   - Mapping `deploy-eda-xp` in Platform-Workflow deploy-on-dispatch.yml (vorhanden)
-#   - K8s-Manifest k8s/70-eda-xp.yaml zeigt auf ghcr.io/eegfaktura/eegfaktura-kep:latest
-#     mit imagePullPolicy: Always (vorhanden seit Stage 3a)
+#   - K8s-Manifest k8s/70-eda-xp.yaml zeigt auf
+#     ghcr.io/vfeeg-development/eegfaktura-kep:latest mit imagePullPolicy: Always
 
 name: Docker Image CI (sbt-native-packager)
 
@@ -75,23 +76,27 @@ jobs:
             sbt-${{ runner.os }}-
 
       - name: Login to Container Registry
+        # Push cross-org nach vfeeg-development/* (Development-Tier, ADR-0005).
+        # GITHUB_TOKEN dieses Repos ist auf eegfaktura/* beschraenkt — daher der
+        # Classic-PAT VFEEG_DEV_PUSH_PAT (write:packages auf vfeeg-development).
+        # GHCR validiert via Token, nicht via username — github.actor bleibt.
         # PR-Builds duerfen nicht pushen — Login-Step nur bei push.
         if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.VFEEG_DEV_PUSH_PAT }}
 
       - name: Build (PR via Docker/publishLocal) / Build+Push (push via Docker/publish)
         run: |
-          # dockerUsername override: build.sbt setzt vfeeg-development, aber
-          # der GITHUB_TOKEN dieses Repos darf nur in eegfaktura/* pushen.
-          # sbt-native-packager pusht alle aliases (Default + dockerAliases).
+          # Kein dockerUsername-Override mehr: build.sbt setzt bereits
+          # dockerUsername := Some("vfeeg-development") und die dockerAliases
+          # pushen eegfaktura-kep ebenfalls nach vfeeg-development (Development-Tier).
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            sbt 'set dockerUsername := Some("eegfaktura")' Docker/publishLocal
+            sbt Docker/publishLocal
           else
-            sbt 'set dockerUsername := Some("eegfaktura")' Docker/publish
+            sbt Docker/publish
           fi
 
   # Triggert das Platform-Repo, damit es den Cluster aktualisiert.
