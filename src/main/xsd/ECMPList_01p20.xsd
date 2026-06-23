@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- bearbeitet mit XMLSpy v2026 (x64) (https://www.altova.com) von Hansmann Reinhold (illwerke vkw Aktiengesellschaft) -->
+<!-- Mit XMLSpy v2020 rel. 2 sp1 (x64) (http://www.altova.com) von Illwerke VKW Aktiengesellschaft (illwerke vkw Aktiengesellschaft) bearbeitet -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ct="http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20" xmlns:cp="http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p20" targetNamespace="http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p20" elementFormDefault="qualified">
+	<xsd:import namespace="http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20" schemaLocation="CPCommonTypes_01p20.xsd"/>
+	<xsd:annotation>
+		<xsd:documentation>
+			schema version: 01.20
+			autor: Reinhold Hansmann
+			valid from: 2026-10
+			changes: Erweiterung ECType
+			         
+		</xsd:documentation>
+	</xsd:annotation>
+	<xsd:element name="ECMPList">
+		<xsd:annotation>
+			<xsd:documentation>ZP-Daten</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="MarketParticipantDirectory" type="cp:MarketParticipantDirectory"/>
+				<xsd:element name="ProcessDirectory" type="cp:ProcessDirectory"/>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:complexType name="MarketParticipantDirectory">
+		<xsd:complexContent>
+			<xsd:extension base="ct:MarketParticipantDirectory">
+				<xsd:sequence>
+					<xsd:element name="MessageCode" type="ct:MessageCode"/>
+				</xsd:sequence>
+				<xsd:attribute name="SchemaVersion" use="required">
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:token">
+							<xsd:enumeration value="01.20"/>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="ProcessDirectory">
+		<xsd:sequence>
+			<xsd:element name="MessageId" type="ct:GroupingId">
+				<xsd:annotation>
+					<xsd:documentation>Nachrichtennummer</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ConversationId" type="ct:GroupingId">
+				<xsd:annotation>
+					<xsd:documentation>Prozessnummer</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ProcessDate" type="xsd:date">
+				<xsd:annotation>
+					<xsd:documentation>Prozessdatum</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ECID" type="ct:MeteringPoint" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Gemeinschafts-ID</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ECType" type="cp:ECType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Typ der Energiegemeinschaft</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ECDisModel" type="cp:ECDisModel" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Verteilmodell (dynamisch/statisch)</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ECZoneLevel" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Nahebereich der Energiegemeinschaft</xsd:documentation>
+				</xsd:annotation>
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:token">
+						<xsd:pattern value="1"/>
+						<xsd:pattern value="2"/>
+						<xsd:pattern value="3"/>
+						<xsd:pattern value="4"/>
+						<xsd:pattern value="5"/>
+						<xsd:pattern value="6"/>
+						<xsd:pattern value="7"/>
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:element>
+			<xsd:element name="MPListData" type="cp:MPListData" minOccurs="1" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation>Zählpunktsdaten</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="MPListData">
+		<xsd:annotation>
+			<xsd:documentation>Daten der Zählpunkte</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="MeteringPoint" type="ct:MeteringPoint">
+				<xsd:annotation>
+					<xsd:documentation>Zählpunkt</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ConsentId" type="ct:GroupingId" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Zustimmungs-ID</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="MPTimeData" type="cp:MPTimeData" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation>zeitabhängige Daten</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="MPTimeData">
+		<xsd:annotation>
+			<xsd:documentation>Daten der Zählpunkte</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="DateFrom" type="xsd:date">
+				<xsd:annotation>
+					<xsd:documentation>gültig seit</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="DateTo" type="xsd:date">
+				<xsd:annotation>
+					<xsd:documentation>gültig bis</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="EnergyDirection" type="cp:EnergyDirection" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Energierichtung</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ECPartFact" type="cp:ECPartFact" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Teilnahmefaktor an der Gemeinschaft</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="DataType">
+				<xsd:annotation>
+					<xsd:documentation>Datentypen der Anfrage</xsd:documentation>
+				</xsd:annotation>
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:string">
+						<xsd:maxLength value="30"/>
+						<xsd:whiteSpace value="collapse"/>
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:element>
+			<xsd:element name="TransmissionCycle" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Versendezyklus der Verbrauchsdaten</xsd:documentation>
+				</xsd:annotation>
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:token">
+						<xsd:pattern value="D"/>
+						<xsd:pattern value="M"/>
+						<xsd:pattern value="V"/>
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:element>
+			<xsd:element name="Purpose" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Zweck der Datenfreigabe</xsd:documentation>
+				</xsd:annotation>
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:string">
+						<xsd:maxLength value="100"/>
+						<xsd:whiteSpace value="collapse"/>
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:element>
+			<xsd:element name="TechCode" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>TechnologieCode für die Erzeugungsart </xsd:documentation>
+				</xsd:annotation>
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:string">
+						<xsd:maxLength value="10"/>
+						<xsd:whiteSpace value="collapse"/>
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:element>
+			<xsd:element name="FuelCode" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>FuelCode für die Erzeugungsart </xsd:documentation>
+				</xsd:annotation>
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:string">
+						<xsd:maxLength value="10"/>
+						<xsd:whiteSpace value="collapse"/>
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:element>
+			<xsd:element name="DateActivate" type="xsd:date">
+				<xsd:annotation>
+					<xsd:documentation>Versorgt seit</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="DateDeactivate" type="xsd:date" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Versorgt bis</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ECShare" type="cp:ECShare" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>gemeldeter Prozentanteil bei statischem Modell</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ECShC" type="cp:ShareCalc" minOccurs="0" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation>berechneter Prozentanteil bei statischem Modell bei Gesamt-Übersteigung von 100%</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="ShareCalc">
+		<xsd:annotation>
+			<xsd:documentation>Daten der Zählpunkte</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="DateFrom" type="xsd:date">
+				<xsd:annotation>
+					<xsd:documentation>gültig seit</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="DateTo" type="xsd:date">
+				<xsd:annotation>
+					<xsd:documentation>gültig bis</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ECShareCalc" type="cp:ECShare">
+				<xsd:annotation>
+					<xsd:documentation>berechneter Prozentanteil</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:simpleType name="ECDisModel">
+		<xsd:annotation>
+			<xsd:documentation>Verteilmodell (dynamisch/statisch)</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="D"/>
+			<xsd:enumeration value="S"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="ECShare">
+		<xsd:annotation>
+			<xsd:documentation>Anteil bei statischem Modell in Prozent</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:decimal">
+			<xsd:fractionDigits value="4"/>
+			<xsd:minInclusive value="0"/>
+			<xsd:maxInclusive value="100"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="ECType">
+		<xsd:annotation>
+			<xsd:documentation>Zählertyp</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="GC"/>
+			<xsd:enumeration value="RC_R"/>
+			<xsd:enumeration value="RC_L"/>
+			<xsd:enumeration value="CC"/>
+			<xsd:enumeration value="SC"/>
+			<xsd:enumeration value="PP"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="EnergyDirection">
+		<xsd:annotation>
+			<xsd:documentation>Energierichtung (Erzeuger/Verbraucher)</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:token">
+			<xsd:enumeration value="CONSUMPTION"/>
+			<xsd:enumeration value="GENERATION"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="ECPartFact">
+		<xsd:annotation>
+			<xsd:documentation>Teilnahmefaktor an der Gemeinschaft</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:decimal">
+			<xsd:fractionDigits value="0"/>
+			<xsd:minInclusive value="0"/>
+			<xsd:maxInclusive value="100"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

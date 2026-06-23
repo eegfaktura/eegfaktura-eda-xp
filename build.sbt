@@ -25,6 +25,7 @@ lazy val scalaxbSettings = Seq(
     uri("http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p20") -> "cmnotification.v01p20",
     uri("http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p00") -> "ecmplist.v01p00",
     uri("http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p10") -> "ecmplist.v01p10",
+    uri("http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p20") -> "ecmplist.v01p20",
     uri("http://www.ebutilities.at/schemata/customerprocesses/gc/gcrequestap/01p00") -> "gcrequestap.v01p00",
     uri("http://www.ebutilities.at/schemata/customerprocesses/gc/gcrequest/01p00") -> "gcrequest.v01p00",
     uri("http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p30") -> "consumptionrecord.v01p30",
