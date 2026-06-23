@@ -18,9 +18,11 @@
     <complexType name="InboundDocument">
         <sequence>
             <element name="Header" type="oe:InHeaderType" />
-            <element name="Message">
-                <complexType>
-                    <choice>
+            <element name="Message" type="oe:InboundMessage"/>
+        </sequence>
+    </complexType>
+    <complexType name="InboundMessage">
+        <choice>
                         <element ref="dp7:CancellationMoveInConfirmation" />
                         <element ref="dp7:CancellationMoveInGasGridManagerNotification" />
                         <element ref="dp7:CancellationMoveInRequest" />
@@ -116,10 +118,7 @@
                         <element ref="cmmsg:ConsumptionRecord" />
                         <element ref="cmmsg40:ConsumptionRecord" />
                         <element ref="cpreq:CPRequest" />
-                    </choice>
-                </complexType>
-            </element> 
-        </sequence>
+        </choice>
     </complexType>
     <complexType name="InHeaderType">
         <sequence>

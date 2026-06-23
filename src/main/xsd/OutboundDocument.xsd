@@ -5,9 +5,11 @@
     <complexType name="OutboundDocument">
         <sequence>
             <element name="Header" type="oe:OutHeaderType"/>
-            <element name="Message">
-                <complexType>
-                    <choice>
+            <element name="Message" type="oe:OutboundMessage"/>
+        </sequence>
+    </complexType>
+    <complexType name="OutboundMessage">
+        <choice>
                         <element ref="dp7:CancellationMoveInConfirmation" />
                         <element ref="dp7:CancellationMoveInGasGridManagerNotification" />
                         <element ref="dp7:CancellationMoveInRequest" />
@@ -93,10 +95,7 @@
                         <element ref="dp7:SYSTEM_INFO_TE" />
                         <element ref="dp7:TECHN_ERROR_TE" />
                         <element ref="dp7:VOLLPRUEF_EINS_VP" />
-                    </choice>
-                </complexType>
-            </element>
-        </sequence>
+        </choice>
     </complexType>
     <complexType name="OutHeaderType">
         <sequence>

@@ -49,7 +49,7 @@ object XmlParseHandler {
   def reponseEbMsMessage(envelope: Envelope)(implicit ec: ExecutionContext) : Future[EbMsMessage] = {
     responseInbound(envelope).map(x => mapDataRecordToEbms(
       ParseHeader(x.Header.SenderId, x.Header.ReceiverId, Some(x.Header.ConversationId), Some(x.Header.MessageType)),
-      x.Message.messageoption))
+      x.Message.inboundmessageoption))
   }
 
   def mapXmlToEbms(header: ParseHeader, xml: scala.xml.Elem): EbMsMessage = {

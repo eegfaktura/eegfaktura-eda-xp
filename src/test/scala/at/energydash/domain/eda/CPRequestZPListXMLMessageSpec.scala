@@ -51,7 +51,7 @@ class CPRequestZPListXMLMessageSpec extends AnyWordSpecLike with Matchers {
         val node = CPRequestZPList(testMessage).getVersion().map(_.toXML).get
         println(node)
 
-        val body = ponton.Message2(message2option = record)
+        val body = ponton.OutboundMessage(outboundmessageoption = record)
 //        scalaxb.toXML(ponton.OutboundDocument(header, body), targetNamespace, "OutboundDocument",
 //          scalaxb.toScope(scalaxb.fromScope(scope).foldRight(scalaxb.fromScope(xmlObj.toScope)){ (a, b) => a :: b }.reverse : _*/*.distinct: _**/)
 //        )

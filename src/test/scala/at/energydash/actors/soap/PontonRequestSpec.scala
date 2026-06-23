@@ -12,7 +12,7 @@ import at.energydash.domain.{EbMsMessage, Meter}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AnyWordSpecLike
-import ponton.{Message2, OutHeaderType}
+import ponton.{OutboundMessage, OutHeaderType}
 import soapenvelope11.Envelope
 
 import scala.concurrent.Future
@@ -89,8 +89,8 @@ class PontonRequestSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike w
         MessageType = "CustomerMeteringPointRequest",
         LogInfo = Some("VFEEG-OUT"))
 
-      val message = Message2(
-        message2option = MessageHelper.getEdaMessageByType(edaMessage).get.toRecord
+      val message = OutboundMessage(
+        outboundmessageoption = MessageHelper.getEdaMessageByType(edaMessage).get.toRecord
       )
 
       whenReady(testService.service.sendRequest(edaMessage)) { e =>
