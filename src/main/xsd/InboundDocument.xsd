@@ -3,6 +3,7 @@
         xmlns:oe="http://xp.ponton.de/eda/v320"
         xmlns:dp7="http://www.ebutilities.at/datenplattform/0700"
         xmlns:cplist="http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p10"
+        xmlns:cplist20="http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p20"
         xmlns:cmnot="http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p11"
         xmlns:cmnotv12="http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p12"
         xmlns:cmnotv20="http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p20"
@@ -107,6 +108,7 @@
                         <element ref="dp7:TECHN_ERROR_TE" />
                         <element ref="dp7:VOLLPRUEF_EINS_VP" />
                         <element ref="cplist:ECMPList" />
+                        <element ref="cplist20:ECMPList" />
                         <element ref="cmnot:CMNotification" />
                         <element ref="cmnotv12:CMNotification" />
                         <element ref="cmnotv20:CMNotification" />
