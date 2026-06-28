@@ -1,22 +1,22 @@
 # Changelog
 
-Alle nennenswerten Änderungen an **eegfaktura-eda-xp (Scala/Pekko EDA-Connector, E-Mail + Ponton/KEP)** werden hier dokumentiert.
+All notable changes to **eegfaktura-eda-xp (Scala/Pekko EDA connector, e-mail + Ponton/KEP)** are documented here.
 
-Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
-die Versionierung an den Deployment-Release-Tags. Detail-Diffs bleiben im `git log`;
-dieser Changelog hebt die für Überblick und Betrieb relevanten Änderungen hervor.
+The format is based on [Keep a Changelog](https://keepachangelog.com/), and
+versioning follows the deployment release tags. Detailed diffs stay in the `git log`;
+this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
 ## [1.0.0] – 2026-06-28
 
-Teil des einheitlichen Source-Build-Cutovers der eegfaktura-Suite.
+Part of the unified source-build cutover of the eegfaktura suite.
 
 ### Changed
-- Migration von Akka auf Apache Pekko (löst BSL-Lizenz-Blockade). (#2)
-- CI: Push in den Development-Tier der Registry mit Auto-Rollout-Bridge
+- Migrated from Akka to Apache Pekko (resolves the BSL license block). (#2)
+- CI: push to the registry's development tier with an auto-rollout bridge
   (dispatch-deploy, ADR-0005). (#3, #4)
-- AGPL-3.0-Lizenz ergänzt; README mit Service-Überblick und Tech-Stack. (#7)
+- Added AGPL-3.0 license; README with service overview and tech stack. (#7)
 
 ### Fixed
-- HTTP/2-Disable-Override über die pekko-http-1.x-`PreviewServerSettings`-API.
+- HTTP/2 disable override via the pekko-http 1.x `PreviewServerSettings` API.
