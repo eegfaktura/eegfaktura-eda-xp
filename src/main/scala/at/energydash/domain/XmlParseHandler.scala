@@ -58,6 +58,7 @@ object XmlParseHandler {
 
   def mapDataRecordToEbms(header: ParseHeader, dr: scalaxb.DataRecord[Any]): EbMsMessage = {
     dr match {
+      case DataRecord(_, _, x: ecmplist.v01p20.ECMPList) => ECMPListV0120Document(x).toMessage
       case DataRecord(_, _, x: v01p10.ECMPList) => ECMPListV0110Document(x).toMessage
       case DataRecord(_, _, x: v01p00.ECMPList) => ECMPListV0100Document(x).toMessage
       //      case DataRecord(_, _, x: v01p00.ECMPList) => ECMPListV0110Document(x).toMessage
@@ -68,6 +69,7 @@ object XmlParseHandler {
       case DataRecord(_, _, x: cmrevoke.v01p10.CMRevoke) => CMRevokeV0110Document(x).toMessage
       case DataRecord(_, _, x: cpnotification.v01p13.CPNotification) => CPNotificationV0113Document(x).toMessage
       case DataRecord(_, _, x: consumptionrecord.v01p30.ConsumptionRecord) => ConsumptionRecordV0130(x).toMessage
+      case DataRecord(_, _, x: consumptionrecord.v01p31.ConsumptionRecord) => ConsumptionRecordV0131(x).toMessage
       case DataRecord(_, _, x: consumptionrecord.v01p40.ConsumptionRecord) => ConsumptionRecordV0140(x).toMessage
       case DataRecord(_, _, x: consumptionrecord.v01p41.ConsumptionRecord) => ConsumptionRecordV0141(x).toMessage
       case _ => EbMsMessage(
