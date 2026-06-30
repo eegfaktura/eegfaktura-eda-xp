@@ -8,6 +8,15 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.0.1] – 2026-06-30
+
+### Added
+- Inbound processing of ECMPList 01.20 and ConsumptionRecord 01.31 market messages. (#5)
+
+### Changed
+- XSD refactor: named Inbound/OutboundMessage types instead of anonymous ones. (#6)
+- CI: Snyk Code (SAST) workflow + SARIF upload to code scanning. (#10, #11)
+
 ## [1.0.0] – 2026-06-28
 
 Part of the unified source-build cutover of the eegfaktura suite.
