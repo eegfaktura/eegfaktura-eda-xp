@@ -27,7 +27,7 @@ trait OutboundDocument4SOAPBindings {
 
   trait OutboundDocument4SOAPBinding extends ponton.OutboundDocumentPort {
 
-    def sendDocument(header: ponton.OutHeaderType, message: ponton.Message2)(implicit ec: ExecutionContext): Future[Unit] =
+    def sendDocument(header: ponton.OutHeaderType, message: ponton.OutboundMessage)(implicit ec: ExecutionContext): Future[Unit] =
       soapClient.requestResponse(scalaxb.toXML(ponton.OutboundDocument(header, message), targetNamespace, "OutboundDocument", scope),
         Nil, scope, baseAddress, "POST", Some(new java.net.URI("http://xp.ponton.de/eda/v320/outboundDocument"))).map({ case x => () })
 
@@ -42,7 +42,7 @@ trait OutboundDocument4SOAPBindings {
               MessageVersion = edaMessage.messageCodeVersion.getOrElse("01.00"),
               MessageType = EDAMessageCodeToProcessCode(edaMessage.messageCode).toString,
               LogInfo = Some("VFEEG-OUT"))
-            val body = ponton.Message2(message2option = xmlObj.toRecord)
+            val body = ponton.OutboundMessage(outboundmessageoption = xmlObj.toRecord)
 
             val soapBody = scalaxb.toXML(
               ponton.OutboundDocument(header, body), targetNamespace, Some("OutboundDocument"),
