@@ -3,6 +3,7 @@ package at.energydash.service
 import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
 import org.apache.pekko.util.{ByteString, Timeout}
 import at.energydash.admin.mail.{SendMailReply, SendMailRequest, SendMailService, SendMailWithInlineAttachmentsRequest}
+import at.energydash.config.Config
 import at.energydash.mailer.ConfiguredMailer
 import courier.{Envelope, Mailer, Multipart}
 
@@ -31,7 +32,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
    */
   override def sendMailWithInlineAttachment(in: SendMailWithInlineAttachmentsRequest): Future[SendMailReply] = {
     system.log.info(s"Send Inline Mail: To:${in.recipient} CC:${in.cc} - ${in.subject}")
-    val from = "no-reply@eegfaktura.at"
+    val from = Config.adminMailFrom
     val inlineMail = MailInlineMessage(
       from = from, to = in.recipient, in.cc, subject = in.subject,
       htmlBody = in.htmlBody,
@@ -59,7 +60,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
 
     val subject = in.subject
     val to = in.recipient
-    val from = "no-reply@eegfaktura.at"
+    val from = Config.adminMailFrom
 
     val mailAttachment = in.attachment match {
       case Some(a) => Some(MailAttachment(a.filename, a.mimeType, ByteString(a.content.toByteArray)))

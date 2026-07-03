@@ -8,6 +8,13 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Changed
+- Outbound admin/notification mail (gRPC `SendMailService`) now reads the sender
+  address from config (`epmsmail.admin.from`, env `EMAIL_ADMIN_FROM`) instead of
+  the hardcoded `no-reply@eegfaktura.at`. The default is unchanged, so production
+  behaviour is identical; a deployment can override the sender (e.g. to use a
+  different SMTP relay whose domain is verified for another address).
+
 ## [1.0.1] – 2026-06-30
 
 ### Added
