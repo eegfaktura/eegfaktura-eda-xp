@@ -19,6 +19,7 @@ object Config {
 
   lazy val emailPersistInbox = config.getString("epmsmail.mail.inbox")
   lazy val adminSrvConfig: AkkaConfig = config.getConfig("epmsmail.admin")
+  lazy val adminMailFrom: String = config.getString("epmsmail.admin.from")
   lazy val grpcSrvConfig: AkkaConfig = config.getConfig("app.grpc")
   lazy val emailDomain = (tenant: String) => config.getString(s"epmsmail.mail.${tenant}.domain")
   lazy val testReceiver: String = config.getString("epmsmail.mail.test.receiver")
