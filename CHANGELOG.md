@@ -9,6 +9,9 @@ this changelog highlights the changes relevant for overview and operations.
 ## [Unreleased]
 
 ### Changed
+- CI: Preview-Deployments (ADR-0007) — Push auf `preview/**` baut+deployt on-demand in die Dev-Zone (sha-pinned, kein `:latest`), Auto-Reset bei Branch-Delete.
+
+### Changed
 - Outbound admin/notification mail (gRPC `SendMailService`) now reads the sender
   address from config (`epmsmail.admin.from`, env `EMAIL_ADMIN_FROM`) instead of
   the hardcoded `no-reply@eegfaktura.at`. The default is unchanged, so production
