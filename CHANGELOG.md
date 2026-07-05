@@ -8,6 +8,8 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.0.2] – 2026-07-05
+
 ### Fixed
 - Mail server no longer drops recipients silently: the per-recipient address check used a
   closed TLD allowlist (`aero|...|travel|[a-z][a-z]`) that rejected modern gTLDs such as
@@ -30,6 +32,7 @@ this changelog highlights the changes relevant for overview and operations.
   the hardcoded `no-reply@eegfaktura.at`. The default is unchanged, so production
   behaviour is identical; a deployment can override the sender (e.g. to use a
   different SMTP relay whose domain is verified for another address).
+
 
 ## [1.0.1] – 2026-06-30
 
