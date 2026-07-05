@@ -128,9 +128,16 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
   private def isValidEmail(email: String): Boolean =
     """^(?i)[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$""".r.findFirstIn(email).isDefined
 
-  // Splits a ';'-separated address list, strips outer unicode
-  // whitespace (incl. NBSP) per part, drops empties and partitions
-  // into (valid, rejected).
+  // Outer whitespace per address part. String#strip alone is NOT
+  // enough: Character.isWhitespace excludes the non-breaking spaces
+  // U+00A0 / U+202F / U+2007 (typical Excel & copy-paste artifacts),
+  // which the Go (unicode.IsSpace) and JS (trim) sides of the shared
+  // rule do heal — so strip them here explicitly.
+  private val OuterWhitespace = "^[\\s\u00A0\u202F\u2007]+|[\\s\u00A0\u202F\u2007]+$".r
+
+  // Splits a ';'-separated address list, strips outer whitespace
+  // (incl. non-breaking spaces) per part, drops empties and
+  // partitions into (valid, rejected).
   private def splitAddressList(list: String): (Seq[String], Seq[String]) =
-    list.split(";").toSeq.map(_.strip()).filter(_.nonEmpty).partition(isValidEmail)
+    list.split(";").toSeq.map(OuterWhitespace.replaceAllIn(_, "")).filter(_.nonEmpty).partition(isValidEmail)
 }

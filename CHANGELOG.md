@@ -17,7 +17,9 @@ this changelog highlights the changes relevant for overview and operations.
   parts are reported back to the caller via the new additive `SendMailReply.rejectedRecipients`
   field, and an address list with no valid recipient fails the request instead of sending
   a mail without a "to". CC addresses are now split/trimmed/validated the same way as "to"
-  (previously an untrimmed single string that was silently dropped when invalid).
+  (previously an untrimmed single string that was silently dropped when invalid). Outer
+  whitespace stripping explicitly covers the non-breaking spaces U+00A0/U+202F/U+2007 —
+  `String#strip` alone does NOT remove them (`Character.isWhitespace` excludes NBSP).
 
 ### Changed
 - CI: Preview-Deployments (ADR-0007) — Push auf `preview/**` baut+deployt on-demand in die Dev-Zone (sha-pinned, kein `:latest`), Auto-Reset bei Branch-Delete.
