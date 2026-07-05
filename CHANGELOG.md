@@ -8,6 +8,17 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Fixed
+- Mail server no longer drops recipients silently: the per-recipient address check used a
+  closed TLD allowlist (`aero|...|travel|[a-z][a-z]`) that rejected modern gTLDs such as
+  `.energy` or `.online`, and invalid `;`-parts were skipped without any feedback — in the
+  worst case a mail went out with **no** recipient at all. The check now uses the shared
+  suite-wide address rule (ASCII local part, TLD >= 2 letters, no allowlist), rejected
+  parts are reported back to the caller via the new additive `SendMailReply.rejectedRecipients`
+  field, and an address list with no valid recipient fails the request instead of sending
+  a mail without a "to". CC addresses are now split/trimmed/validated the same way as "to"
+  (previously an untrimmed single string that was silently dropped when invalid).
+
 ### Changed
 - CI: Preview-Deployments (ADR-0007) — Push auf `preview/**` baut+deployt on-demand in die Dev-Zone (sha-pinned, kein `:latest`), Auto-Reset bei Branch-Delete.
 

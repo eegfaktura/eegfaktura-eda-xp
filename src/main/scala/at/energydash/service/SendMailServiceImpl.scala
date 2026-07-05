@@ -47,7 +47,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
     )
 
     shippingInlineHtmlEmail(ConfiguredMailer.createMailerFromSession(session), inlineMail).transformWith {
-      case Success(_) => Future(SendMailReply(200, Some("Email sent")))
+      case Success(rejected) => Future(SendMailReply(200, Some("Email sent"), rejected))
       case Failure(exception) => {
         system.log.error(exception.toString)
         Future(SendMailReply(500, Some(exception.toString)))
@@ -69,7 +69,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
 
     val adminMail = AdminMail(from, to, subject, in.body.map(b => b.toStringUtf8), mailAttachment)
     shippingEmail(ConfiguredMailer.createMailerFromSession(session), adminMail).transformWith {
-      case Success(_) => Future(SendMailReply(200, Some("Email sent")))
+      case Success(rejected) => Future(SendMailReply(200, Some("Email sent"), rejected))
       case Failure(exception) => {
         system.log.error(exception.toString)
         Future(SendMailReply(500, Some(exception.toString)))
@@ -77,7 +77,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
     }
   }
 
-  private def shippingInlineHtmlEmail(mailer: Mailer, email: MailInlineMessage)(implicit ec: ExecutionContext): Future[Unit] = {
+  private def shippingInlineHtmlEmail(mailer: Mailer, email: MailInlineMessage)(implicit ec: ExecutionContext): Future[Seq[String]] = {
 
     val mailContent = email.inlineContent.foldLeft(Multipart(subtype = "related").html(email.htmlBody))((a, b) => {
       val imagePart = new MimeBodyPart()
@@ -91,7 +91,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
       Some(email.attachment.map(a => mailContent.attachBytes(a.content.toArray, a.filename, a.mimeType)).getOrElse(mailContent))))(ec)
   }
 
-  private def shippingEmail(mailer: Mailer, email: AdminMail)(implicit ex: ExecutionContext): Future[Unit] = {
+  private def shippingEmail(mailer: Mailer, email: AdminMail)(implicit ex: ExecutionContext): Future[Seq[String]] = {
     system.log.info(s"About to send Email ${email.from} to ${email.to}")
 
     val mailContent = email.attachment.foldLeft(email.body.foldLeft(Multipart())((m, b) => m.html(b, Charset.forName("UTF-8"))))((m, a) => {
@@ -101,24 +101,36 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
     executeMail(mailer, MailContent(email.from, email.to, None, email.subject, Some(mailContent)))(ex)
   }
 
-  private def executeMail(mailer: Mailer, email: MailContent)(implicit ec: ExecutionContext): Future[Unit] = {
-    val envelope = email.content.foldLeft(email.to.split(";").foldLeft(
-          Envelope.from(new InternetAddress(s"${email.from}")))((e, to) => buildInetAddress(s"${to.trim}") match {
-            case Some(i) => e.to(i)
-            case None => e
-          })
-      .subject(email.subject))((e, m) => e.content(m))
+  // Sends to all valid recipients and returns the rejected (invalid)
+  // ones so the caller can report them in the SendMailReply — instead
+  // of silently dropping them as before. No valid recipient at all is
+  // a hard error rather than a mail without a "to".
+  private def executeMail(mailer: Mailer, email: MailContent)(implicit ec: ExecutionContext): Future[Seq[String]] = {
+    val (validTo, rejectedTo) = splitAddressList(email.to)
+    val (validCc, rejectedCc) = email.cc.map(splitAddressList).getOrElse((Seq.empty[String], Seq.empty[String]))
+    val rejected = rejectedTo ++ rejectedCc
 
-    mailer(email.cc match {
-      case Some(cc) if isValidEmail(cc) => envelope.cc(new InternetAddress(cc))
-      case _ => envelope
-    })(ec)
+    if (validTo.isEmpty) {
+      Future.failed(new IllegalArgumentException(s"no valid recipient address (rejected: ${rejected.mkString(";")})"))
+    } else {
+      val withTo = validTo.foldLeft(Envelope.from(new InternetAddress(s"${email.from}")))((e, to) => e.to(new InternetAddress(to)))
+      val withCc = validCc.foldLeft(withTo)((e, cc) => e.cc(new InternetAddress(cc)))
+      val envelope = email.content.foldLeft(withCc.subject(email.subject))((e, m) => e.content(m))
+
+      mailer(envelope)(ec).map(_ => rejected)
+    }
   }
 
-  private def isValidEmail(email: String): Boolean = if ("""^[-a-z0-9!#$%&'*+/=?^_`{|}~]+(\.[-a-z0-9!#$%&'*+/=?^_`{|}~]+)*@([a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?\.)*(aero|arpa|asia|biz|cat|com|coop|edu|gov|info|int|jobs|mil|mobi|museum|name|net|org|pro|tel|travel|[a-z][a-z])$""".r.findFirstIn(email).isEmpty) false else true
+  // Shared address rule across the suite (backend, eda-xp, billing,
+  // web): trimmed, ASCII local part, TLD of at least two letters — no
+  // TLD allowlist. The previous closed list (aero|...|travel|[a-z][a-z])
+  // silently dropped modern gTLDs like .energy or .online.
+  private def isValidEmail(email: String): Boolean =
+    """^(?i)[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$""".r.findFirstIn(email).isDefined
 
-  private def buildInetAddress(a: String) = {
-    if (isValidEmail(a)) Some(new InternetAddress(a))
-    else None
-  }
+  // Splits a ';'-separated address list, strips outer unicode
+  // whitespace (incl. NBSP) per part, drops empties and partitions
+  // into (valid, rejected).
+  private def splitAddressList(list: String): (Seq[String], Seq[String]) =
+    list.split(";").toSeq.map(_.strip()).filter(_.nonEmpty).partition(isValidEmail)
 }
