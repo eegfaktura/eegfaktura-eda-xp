@@ -47,7 +47,7 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
 
   private def bodyPart2String(body: BodyPart): Future[String] = Unmarshal(body.entity).to[String]
 
-  private def bodyPart2Xml(body: BodyPart) = bodyPart2String(body).map(scala.xml.XML.loadString)
+  private def bodyPart2Xml(body: BodyPart) = bodyPart2String(body).map(utils.SafeXml.loader.loadString)
 
   private def edaErrorMessage(error: String) = {
     EdaErrorMessage(EbMsMessage(

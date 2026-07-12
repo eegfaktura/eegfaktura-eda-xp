@@ -122,7 +122,7 @@ class Fetcher {
       parseSubject(m.getSubject) match {
         case Some(("ERROR", "", "")) =>
           (m, Some(ErrorMessage(m.getHeader("Message-ID").toList.head, "ERROR",
-            withAttachement(m).take(1).map(body => scala.xml.XML.load(body.getInputStream)) match {
+            withAttachement(m).take(1).map(body => utils.SafeXml.loader.load(body.getInputStream)) match {
               case List(x) => EbMsMessage(
                 messageCode = EbMsMessageType.ERROR_MESSAGE,
                 messageCodeVersion = Some("01.00"),
@@ -149,10 +149,10 @@ class Fetcher {
               protocol,
               messageId,
               mapXmlToEbms(XmlParseHandler.ParseHeader("", "", None, Some(protocol)),
-              scala.xml.XML.load(body.getInputStream))
+              utils.SafeXml.loader.load(body.getInputStream))
             )))
             //            case List(body) => MessageHelper.getEdaMessageFromHeader(EbMsProcessType.withName(protocol), version).map(
-            //              msg => msg.fromXML(scala.xml.XML.load(body.getInputStream)) match {
+            //              msg => msg.fromXML(utils.SafeXml.loader.load(body.getInputStream)) match {
             //                case Success(value) =>
             //                  (m, Some(
             //                    MailMessage(
@@ -190,7 +190,7 @@ class Fetcher {
 //    parseSubject(m.getSubject) match {
 //      case Some(("ERROR", "", "")) =>
 //        Right(ErrorMessage(m.getHeader("Message-ID").toList.head, "ERROR",
-//          withAttachement(m).take(1).map(body => scala.xml.XML.load(body.getInputStream)) match {
+//          withAttachement(m).take(1).map(body => utils.SafeXml.loader.load(body.getInputStream)) match {
 //            case List(x) => EdaErrorMessage.fromXML(x) match {
 //              case Success(e) => e
 //              case Failure(exception) => EdaErrorMessage(EbMsMessage(messageCode = EbMsMessageType.ERROR_MESSAGE, conversationId = "1", messageId = None,
@@ -207,7 +207,7 @@ class Fetcher {
 //      case Some((protocol, version, messageId)) =>
 //        withAttachement(m) match {
 //          case List(body) => MessageHelper.getEdaMessageFromHeader(EbMsProcessType.withName(protocol), version).map(
-//            msg => msg.fromXML(scala.xml.XML.load(body.getInputStream)) match {
+//            msg => msg.fromXML(utils.SafeXml.loader.load(body.getInputStream)) match {
 //              case Success(value) =>
 //                Right(
 //                  MailMessage(
