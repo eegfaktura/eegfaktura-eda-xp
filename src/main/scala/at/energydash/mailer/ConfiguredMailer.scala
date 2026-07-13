@@ -31,6 +31,8 @@ object ConfiguredMailer {
     val mergedMap:Map[String, Object] = config.toMap ++ AppConfig.getDomain(config.domain.getOrElse(""))
 
     properties.putAll(mergedMap.asJava)
+    // Message-ID uses this address' domain (eegfaktura.at) instead of the pod hostname (deliverability).
+    properties.put("mail.from", AppConfig.adminMailFrom)
 //    println(s"Mail Properties: ${properties}")
     def authenticatorFromConfig(user: String, pass: String) = {
       new javax.mail.Authenticator() {
@@ -60,6 +62,7 @@ object ConfiguredMailer {
     val map = config.getConfig("javaxmail").entrySet().asScala.map(e => e.getKey -> e.getValue.unwrapped()).toMap
 
     properties.putAll(map.asJava)
+    properties.put("mail.from", AppConfig.adminMailFrom)
 
     def authenticatorFromConfig(config: Config) = {
       new javax.mail.Authenticator() {
