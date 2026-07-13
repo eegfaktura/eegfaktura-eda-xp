@@ -59,7 +59,7 @@ class ECPartitionChangeSpec extends AnyWordSpec with Matchers {
       println(expectedProcessDate.toString)
       println(buildCalendarDate(expectedProcessDate.getTime))
       println(buildCalendarDate(expectedProcessDate1.getTime))
-      println(buildCalendarDate(expectedProcessDate2.getTime))
+      println(expectedProcessDate2)
       println(expectedProcessDate3)
 
       (node \ "ProcessDirectory" \ "MPListData" \ "MPTimeData" \ "ECPartFact").text shouldBe "25"

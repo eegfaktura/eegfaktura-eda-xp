@@ -16,6 +16,14 @@ this changelog highlights the changes relevant for overview and operations.
   (Prod CM + repo default + dev/env overlays). New-version discovery is handled by the
   monthly EDA-Prozessversionen-Watcher routine.
 
+### Fixed
+- Test module no longer compiles-broken: `CMRequestOnline/OfflineRegistrationSpec` and
+  `ECPartitionChangeSpec` called `.getTime` on `MessageHelper.getProcessDate`, which had been
+  refactored from a `Calendar` to a `String` (the ready `yyyy-MM-dd` process date) — so the
+  whole `Test` scope failed to compile and no eda-xp test could run. Use `getProcessDate`
+  directly (identical value) and drop the now-unused `buildCalendarDate` import in the two
+  CMRequest specs.
+
 ## [1.0.2] – 2026-07-05
 
 ### Fixed

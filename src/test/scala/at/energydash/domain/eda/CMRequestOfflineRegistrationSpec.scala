@@ -1,7 +1,7 @@
 package at.energydash.domain.eda
 
 import at.energydash.domain.{EbMsMessage, Meter, XmlParseHandler}
-import at.energydash.domain.eda.MessageHelper.{buildCalendarDate, getProcessDate}
+import at.energydash.domain.eda.MessageHelper.getProcessDate
 import at.energydash.domain.enums.{EbMsMessageType, MeterDirectionType}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -30,7 +30,7 @@ class CMRequestOfflineRegistrationSpec extends AnyWordSpecLike with Matchers {
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
-      (node \ "ProcessDirectory" \ "ProcessDate").text shouldBe buildCalendarDate(getProcessDate.getTime)
+      (node \ "ProcessDirectory" \ "ProcessDate").text shouldBe getProcessDate
 
       println(m.map(_.toRecord).get)
     }
@@ -50,7 +50,7 @@ class CMRequestOfflineRegistrationSpec extends AnyWordSpecLike with Matchers {
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
-      (node \ "ProcessDirectory" \ "ProcessDate").text shouldBe buildCalendarDate(getProcessDate.getTime)
+      (node \ "ProcessDirectory" \ "ProcessDate").text shouldBe getProcessDate
     }
 
     "build version 02.30 from eda message" in {
