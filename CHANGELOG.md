@@ -8,6 +8,14 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Docs
+- README: added "Adding a new EDA process version" — documents that outbound process
+  versions are stamped by the backend (`eda-process-versions`) and selected here by
+  `getVersion()` string match (unmatched → silent downgrade via `case _`), and the
+  in-order convention to update eda-xp XSD/`getVersion` **and** all backend-config copies
+  (Prod CM + repo default + dev/env overlays). New-version discovery is handled by the
+  monthly EDA-Prozessversionen-Watcher routine.
+
 ## [1.0.2] – 2026-07-05
 
 ### Fixed

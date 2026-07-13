@@ -74,6 +74,30 @@ Environment variables (names only): `SMTP_ADMIN_SERVER_HOST`, `SMTP_ADMIN_SERVER
 
 Exposed ports: **6090** (HTTP), **9093** (gRPC). Volumes: `/conf`, `/storage/prod`.
 
+## Adding a new EDA process version
+
+When ebUtilities/EDA publishes a **new version** of a process this service sends
+(e.g. `CM_REV_SP`, `EC_REQ_ONL`, `EC_REQ_OFF`, `EC_PODLIST`, `CR_REQ_PT`), the
+outbound version is **not** picked automatically — it is stamped by the sender and
+selected here by string match. Two coupled places must be updated **in order**:
+
+1. **eda-xp (this repo):** drop the new XSD into `src/main/xsd/` (regenerates the
+   scalaxb binding on `sbt compile`), add the concrete message class, and add a
+   `case Some("<xx.yy>")` branch in the relevant `getVersion()` (e.g.
+   `domain/eda/CMRevokeRequest.scala`). Note the `case _` default falls back to an
+   **older** version silently — an unmatched string does not error, it downgrades.
+2. **eegfaktura-backend config** `eda-process-versions.<CODE>`: bump the value to the
+   new version. The backend stamps it onto `MessageCodeVersion`
+   (`mqtt/messageBroker.go`) and this service uses it to pick the schema above. Bump
+   it in **all** copies: the Prod ConfigMap (eegfaktura-gitops base), the repo default
+   `config.yaml`, and the dev/env overlays (eegfaktura-platform) — they drift apart
+   otherwise (see the 2026-07-13 alignment).
+
+Discovery of new EDA publications is covered by the monthly **EDA-Prozessversionen-Watcher**
+routine (claude.ai/code/routines), which pings only when a published version exceeds the
+list it tracks. Codes not routed in `MessageHelper.getEdaMessageByType` (e.g. `CCMO`, `ECC`)
+or hard-coded (`CPF`, `GN`) ignore the config value.
+
 ## Dependencies
 
 - **Ponton X/P (KEP) messenger** — AS4 market communication with grid operators
