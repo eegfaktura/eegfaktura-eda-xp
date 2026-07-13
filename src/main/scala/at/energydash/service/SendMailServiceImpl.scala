@@ -79,24 +79,36 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
 
   private def shippingInlineHtmlEmail(mailer: Mailer, email: MailInlineMessage)(implicit ec: ExecutionContext): Future[Seq[String]] = {
 
-    val mailContent = email.inlineContent.foldLeft(Multipart(subtype = "related").html(email.htmlBody))((a, b) => {
+    val related = email.inlineContent.foldLeft(Multipart(subtype = "related").html(email.htmlBody, Utf8))((a, b) => {
       val imagePart = new MimeBodyPart()
       imagePart.setContentID(s"<${b.contentId}>")
       imagePart.setDisposition("inline")
       imagePart.setContent(b.content.toArray, b.mimeType)
       a.add(imagePart)
     })
+    // multipart/alternative { text/plain, multipart/related { html, inline images } }
+    val alternative = Multipart(subtype = "alternative").text(htmlToPlainText(email.htmlBody), Utf8).add(asBodyPart(related))
+    val mailContent = email.attachment
+      .map(a => Multipart().add(asBodyPart(alternative)).attachBytes(a.content.toArray, a.filename, a.mimeType))
+      .getOrElse(alternative)
 
-    executeMail(mailer, MailContent(email.from, email.to, email.cc, email.subject,
-      Some(email.attachment.map(a => mailContent.attachBytes(a.content.toArray, a.filename, a.mimeType)).getOrElse(mailContent))))(ec)
+    executeMail(mailer, MailContent(email.from, email.to, email.cc, email.subject, Some(mailContent)))(ec)
   }
 
   private def shippingEmail(mailer: Mailer, email: AdminMail)(implicit ex: ExecutionContext): Future[Seq[String]] = {
     system.log.info(s"About to send Email ${email.from} to ${email.to}")
 
-    val mailContent = email.attachment.foldLeft(email.body.foldLeft(Multipart())((m, b) => m.html(b, Charset.forName("UTF-8"))))((m, a) => {
-      m.attachBytes(a.content.toArray, a.filename, a.mimeType)
-    })
+    val mailContent = (email.body, email.attachment) match {
+      case (Some(html), Some(a)) =>
+        val alt = Multipart(subtype = "alternative").text(htmlToPlainText(html), Utf8).html(html, Utf8)
+        Multipart().add(asBodyPart(alt)).attachBytes(a.content.toArray, a.filename, a.mimeType)
+      case (Some(html), None) =>
+        Multipart(subtype = "alternative").text(htmlToPlainText(html), Utf8).html(html, Utf8)
+      case (None, Some(a)) =>
+        Multipart().attachBytes(a.content.toArray, a.filename, a.mimeType)
+      case (None, None) =>
+        Multipart()
+    }
 
     executeMail(mailer, MailContent(email.from, email.to, None, email.subject, Some(mailContent)))(ex)
   }
@@ -116,8 +128,39 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
       val withTo = validTo.foldLeft(Envelope.from(new InternetAddress(s"${email.from}")))((e, to) => e.to(new InternetAddress(to)))
       val withCc = validCc.foldLeft(withTo)((e, cc) => e.cc(new InternetAddress(cc)))
       val envelope = email.content.foldLeft(withCc.subject(email.subject))((e, m) => e.content(m))
+        .headers("Auto-Submitted" -> "auto-generated")
 
       mailer(envelope)(ec).map(_ => rejected)
+    }
+  }
+
+  private val Utf8: Charset = Charset.forName("UTF-8")
+
+  // Wrap a Courier Multipart as a MimeBodyPart so it can be nested inside
+  // another multipart (a multipart/related inside a multipart/alternative).
+  private def asBodyPart(mp: Multipart): MimeBodyPart = {
+    val part = new MimeBodyPart()
+    part.setContent(mp.parts)
+    part
+  }
+
+  // Derives a plain-text alternative from the rendered HTML. Good enough for
+  // readability next to the HTML part — not a full HTML renderer.
+  private def htmlToPlainText(html: String): String = {
+    if (html == null) "" else {
+      val stripped = html
+        .replaceAll("(?is)<(script|style)[^>]*>.*?</\\1>", "")
+        .replaceAll("(?i)<br\\s*/?>", "\n")
+        .replaceAll("(?i)</(p|div|tr|li|h[1-6]|table)>", "\n")
+        .replaceAll("(?s)<[^>]+>", "")
+      val decoded = stripped
+        .replace("&nbsp;", " ")
+        .replace("&auml;", "ä").replace("&ouml;", "ö").replace("&uuml;", "ü")
+        .replace("&Auml;", "Ä").replace("&Ouml;", "Ö").replace("&Uuml;", "Ü")
+        .replace("&szlig;", "ß")
+        .replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+        .replace("&quot;", "\"").replace("&#39;", "'")
+      decoded.replaceAll("[ \\t]+", " ").replaceAll("(?m)^[ \\t]+", "").replaceAll("\\n{3,}", "\n\n").trim
     }
   }
 

@@ -16,6 +16,13 @@ this changelog highlights the changes relevant for overview and operations.
   (Prod CM + repo default + dev/env overlays). New-version discovery is handled by the
   monthly EDA-Prozessversionen-Watcher routine.
 
+### Changed
+- Mail deliverability: member mails (activation / notifications sent via the gRPC `SendMail`
+  paths) now go out as **multipart/alternative** with a plain-text part derived from the HTML —
+  for the inline-logo path nested as `alternative { text, related { html, images } }` — carry an
+  `Auto-Submitted: auto-generated` header, and use a **Message-ID with the `eegfaktura.at` domain**
+  instead of the pod hostname (session `mail.from`).
+
 ## [1.0.2] – 2026-07-05
 
 ### Fixed
