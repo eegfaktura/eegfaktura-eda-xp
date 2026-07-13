@@ -1,6 +1,6 @@
 package at.energydash.domain.eda
 
-import at.energydash.domain.eda.MessageHelper.{buildCalendarDate, getProcessDate}
+import at.energydash.domain.eda.MessageHelper.getProcessDate
 import at.energydash.domain.enums.{EbMsMessageType, MeterDirectionType}
 import at.energydash.domain.{EbMsMessage, Meter, XmlParseHandler}
 import io.circe.generic.auto._
@@ -30,7 +30,7 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers {
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
-      (node \ "ProcessDirectory" \ "ProcessDate").text shouldBe buildCalendarDate(getProcessDate.getTime)
+      (node \ "ProcessDirectory" \ "ProcessDate").text shouldBe getProcessDate
     }
 
     "build 02.10 XML File" in {
@@ -48,7 +48,7 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers {
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
-      (node \ "ProcessDirectory" \ "ProcessDate").text shouldBe buildCalendarDate(getProcessDate.getTime)
+      (node \ "ProcessDirectory" \ "ProcessDate").text shouldBe getProcessDate
     }
 
     "build from JsonFile" in {
