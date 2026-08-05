@@ -9,6 +9,8 @@ this changelog highlights the changes relevant for overview and operations.
 ## [Unreleased]
 
 ### Added
+- MQTT: pin the CR_MSG gzip + standard Base64 wire format consumed by
+  eegfaktura-energystore with a cross-repository compatibility test.
 - CI builds `env/**` branches and deploys the resulting image into the matching feature
   environment (ADR-0008): a push to `env/<name>` pins this service in namespace `env-<name>`
   to that branch's `sha-…` image. Previously only the default branch, tags and `preview/**`
