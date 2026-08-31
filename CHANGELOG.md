@@ -8,6 +8,10 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Added
+- MQTT: pin the CR_MSG gzip + standard Base64 wire format consumed by
+  eegfaktura-energystore with a cross-repository compatibility test.
+
 ### Docs
 - README: added "Adding a new EDA process version" — documents that outbound process
   versions are stamped by the backend (`eda-process-versions`) and selected here by
