@@ -8,6 +8,8 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.0.3] – 2026-09-07
+
 ### Docs
 - README: added "Adding a new EDA process version" — documents that outbound process
   versions are stamped by the backend (`eda-process-versions`) and selected here by
