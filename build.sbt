@@ -76,12 +76,29 @@ lazy val dockerSettings = Seq(
   dockerAliases ++= {
     val repo = dockerRepository.value
 
-    Seq(
-//      DockerAlias(repo, Some("vfeeg-development"), name, Some(dockerVersion)),      // e.g. ghcr.io/eegfaktura/app:1.0.0
-//      DockerAlias(repo, Some("vfeeg-development"), name, Some("latest")),
-      DockerAlias(repo, Some("vfeeg-development"), "eegfaktura-kep", Some((ThisBuild / version).value)),
-      DockerAlias(repo, Some("vfeeg-development"), "eegfaktura-kep", Some("latest")),
-    )
+    // Die uebrigen Repos erzeugen ihre Image-Tags ueber docker/metadata-action und
+    // bekommen dadurch immer ein eindeutiges `sha-<short>`. Hier baut sbt-native-packager,
+    // das dieses Tag nicht kennt — Preview- und Env-Deploy (ADR-0007/0008) pinnen aber
+    // genau darauf und liefen deshalb in ImagePullBackOff. Also selbst erzeugen.
+    val shaAlias = sys.env.get("GITHUB_SHA").filter(_.nonEmpty).toSeq.map { sha =>
+      DockerAlias(repo, Some("vfeeg-development"), "eegfaktura-kep", Some("sha-" + sha.take(7)))
+    }
+
+    // `latest` und das Versions-Tag sind wandernd: die Dev-Zone zieht `latest`. Ein Build
+    // aus einem preview/**- oder env/**-Branch darf sie deshalb NICHT ueberschreiben,
+    // sonst laeuft die Dev-Zone unbemerkt auf einem Feature-Stand (passiert am 26.09.).
+    val ref = sys.env.getOrElse("GITHUB_REF", "")
+    val isFeatureBranchBuild =
+      ref.startsWith("refs/heads/preview/") || ref.startsWith("refs/heads/env/")
+
+    val movingAliases =
+      if (isFeatureBranchBuild) Seq.empty
+      else Seq(
+        DockerAlias(repo, Some("vfeeg-development"), "eegfaktura-kep", Some((ThisBuild / version).value)),
+        DockerAlias(repo, Some("vfeeg-development"), "eegfaktura-kep", Some("latest")),
+      )
+
+    movingAliases ++ shaAlias
   }
 )
 
