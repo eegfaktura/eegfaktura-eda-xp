@@ -8,6 +8,13 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Changed
+- A version label from the backend config without its own case in `getVersion` (ECON, ECOF,
+  CCMS, PT, ECP) now logs a warning naming the label, message code, conversation and the
+  fallback builder used. The message is still built as before; until now the fallback — usually
+  an outdated schema — happened silently. ECOF `02.00` gets its own case (same builder as
+  before), so the public compose stack, which sends 02.00, does not warn.
+
 ## [1.0.4] – 2026-10-05
 
 ### Added

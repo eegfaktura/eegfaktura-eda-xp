@@ -16,7 +16,7 @@ case class CMRequestRegistrationOnline(message: EbMsMessage) extends EdaMessage 
     // 02.40 = Schemaset von EC_REQ_ONL 03.00 (ab 05.10.2026): gleiches XML (cmrequest 01p30),
     // nur Versionskennung im Ponton-Header und im schemaLocation-Pfad.
     case Some(v @ ("02.30" | "02.40")) => Try(CMRequestRegistrationOnlineXMLMessageV0230(message, v))
-    case _ => Try(CMRequestRegistrationOnlineXMLMessageV0110(message))
+    case _ => fallbackVersion(CMRequestRegistrationOnlineXMLMessageV0110(message))
   }
 }
 

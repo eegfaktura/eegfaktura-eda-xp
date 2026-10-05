@@ -4,6 +4,7 @@ import org.apache.pekko.util.ByteString
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.enums.EbMsMessageType
 import at.energydash.domain.enums.EbMsMessageType.EbMsMessageType
+import org.slf4j.{Logger, LoggerFactory}
 import scalaxb.{CanWriteXML, DataRecord}
 
 import java.io.StringWriter
@@ -17,6 +18,24 @@ trait EdaMessage {
   val message: EbMsMessage
 
   def getVersion(version: Option[String]): Try[EdaXMLMessage[_]]
+
+  /**
+   * Fallback in getVersion for a version label without its own case. The message is still
+   * built (unchanged behaviour), but with a warning: the fallback is usually an outdated
+   * schema, and a messenger or grid operator may reject it.
+   */
+  protected def fallbackVersion(fallback: => EdaXMLMessage[_]): Try[EdaXMLMessage[_]] =
+    Try(fallback).map { built =>
+      EdaMessage.logger.warn(
+        s"Unknown version label ${message.messageCodeVersion.getOrElse("<none>")} for ${message.messageCode} " +
+          s"(conversationId=${message.conversationId}): falling back to ${built.getClass.getSimpleName}. " +
+          "Check eda-process-versions in the backend config.")
+      built
+    }
+}
+
+object EdaMessage {
+  private val logger: Logger = LoggerFactory.getLogger(classOf[EdaMessage])
 }
 
 
