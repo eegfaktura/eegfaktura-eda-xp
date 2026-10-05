@@ -11,6 +11,7 @@ import org.apache.pekko.stream.{ActorAttributes, CompletionStrategy, OverflowStr
 import org.apache.pekko.util.ByteString
 import at.energydash.config.Config.MqttConfig
 import at.energydash.domain.EbMsMessage
+import at.energydash.domain.enums.EbMsProcessType
 import at.energydash.mqtt.MqttProtocol._
 import at.energydash.mqtt.path.MqttPaths
 import at.energydash.utils.ActorContextImplicits
@@ -205,17 +206,18 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
   }
 
   private def eventToMqttMessage(event: EdaEvent): Option[MqttMessage] = {
-    // Todo: Encrypt and compress here
     val value = event.message.asJson.deepDropNullValues.noSpaces
-    val msg = event.protocol match {
-      case "CR_MSG" =>
-        // Compress
-        val compressed = gzip(value.getBytes("UTF-8"))
-        Base64.getEncoder.encodeToString(compressed)
-      case _ => value
-    }
+    val msg = encodeProtocolPayload(event.protocol, value)
     Some(MqttMessage(s"${edaProtocolModulePath(event.message.receiver, event.protocol)}", ByteString(msg)).withQos(MqttQoS.atLeastOnce).withRetained(false))
   }
+
+  /** Wire format consumed by eegfaktura-energystore. */
+  private[mqtt] def encodeProtocolPayload(protocol: String, value: String): String =
+    protocol match {
+      case energyResponse if energyResponse == EbMsProcessType.PROCESS_ENERGY_RESPONSE.toString =>
+        Base64.getEncoder.encodeToString(gzip(value.getBytes("UTF-8")))
+      case _ => value
+    }
 
   private def commandToMqttMessage(command: CommandMessage): Option[MqttMessage] = {
     val value = command.payload.deepDropNullValues.noSpaces
