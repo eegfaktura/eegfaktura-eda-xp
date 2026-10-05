@@ -11,8 +11,8 @@ import scala.xml.{NamespaceBinding, Node, TopScope}
 
 case class CPRequestZPList(message: EbMsMessage) extends EdaMessage {
   override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
-    // 02.10 = Schemaset von EC_PODLIST 02.10 (ab 05.10.2026): gleiches XML (cprequest 01p12),
-    // nur Versionskennung im Ponton-Header und im schemaLocation-Pfad.
+    // EC_PODLIST 02.10 (ab 05.10.2026): Prozessversion und Schemaset sind beide 02.10, gleiches XML
+    // (cprequest 01p12); nur die Version im Ponton-Header und im schemaLocation-Pfad aendert sich.
     case Some(v @ ("02.00" | "02.10")) => Try(CPRequestZPListXMLMessageV0200(message, v))
     case _ => fallbackVersion(CPRequestZPListXMLMessageV0200(message))
   }
