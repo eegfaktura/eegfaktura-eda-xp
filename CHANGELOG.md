@@ -8,6 +8,8 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.0.5] – 2026-10-05
+
 ### Changed
 - A version label from the backend config without its own case in `getVersion` (ECON, ECOF,
   CCMS, PT, ECP) now logs a warning naming the label, message code, conversation and the
