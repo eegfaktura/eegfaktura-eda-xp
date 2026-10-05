@@ -15,6 +15,12 @@ this changelog highlights the changes relevant for overview and operations.
   an outdated schema — happened silently. ECOF `02.00` gets its own case (same builder as
   before), so the public compose stack, which sends 02.00, does not warn.
 
+### Added
+- `ANFORDERUNG_ECP` accepts the version label `02.10` (schema set of EC_PODLIST 02.10, EDA change
+  of 2026-10-05). Same XML (`cprequest 01p12`); only the Ponton `MessageVersion` and the
+  `schemaLocation` path change. Ponton messengers that allow only the new schema sets reject
+  `02.00`.
+
 ## [1.0.4] – 2026-10-05
 
 ### Added

@@ -116,4 +116,26 @@ class CPRequestZPListXMLMessageSpec extends AnyWordSpecLike with Matchers {
         println(node)
       }
     }
+
+  "ECP — Versionskennung 02.00 (cprequest 01p12)" in {
+    val msg = EbMsMessage(
+      conversationId = "RC100130202310051506080740000003762",
+      sender = "RC100130", receiver = "AT003000", messageCode = EbMsMessageType.ZP_LIST,
+      messageCodeVersion = Some("02.00"),
+      ecId = Some("AT00300000000RC100130000000952832"))
+    val xml = CPRequestZPList(msg).getVersion().get
+    xml.schemaLocation.get should include("cprequest/01p12")
+    xml.schemaLocation.get should endWith("customerprocesses/EC_PODLIST/02.00/ANFORDERUNG_ECP")
+  }
+
+  "ECP — Versionskennung 02.10 (cprequest 01p12)" in {
+    val msg = EbMsMessage(
+      conversationId = "RC100130202310051506080740000003762",
+      sender = "RC100130", receiver = "AT003000", messageCode = EbMsMessageType.ZP_LIST,
+      messageCodeVersion = Some("02.10"),
+      ecId = Some("AT00300000000RC100130000000952832"))
+    val xml = CPRequestZPList(msg).getVersion().get
+    xml.schemaLocation.get should include("cprequest/01p12")
+    xml.schemaLocation.get should endWith("customerprocesses/EC_PODLIST/02.10/ANFORDERUNG_ECP")
+  }
 }
