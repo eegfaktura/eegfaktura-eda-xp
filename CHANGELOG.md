@@ -16,6 +16,14 @@ this changelog highlights the changes relevant for overview and operations.
   before), so the public compose stack, which sends 02.00, does not warn.
 
 ### Added
+- **Process version vs. schema set (EDA change of 2026-10-05).** Process version and schema set
+  version are no longer the same number: EC_REQ_ONL 03.00 uses schema set 02.40, EC_REQ_OFF 03.00
+  uses schema set 02.30. The Ponton EDA adapter resolves the schema set from the
+  `MessageVersion` in the header, which must therefore carry the **process version**; sending
+  `02.40` gave `adapter forced unknown schema (type:EC_REQ_ONL version:02.40 set:unknown)`.
+  `ANFORDERUNG_ECON` and `ANFORDERUNG_ECOF` now accept `03.00` and build the `cmrequest 01p30`
+  XML with the schema set path (`EC_REQ_ONL/02.40`, `EC_REQ_OFF/02.30`) in `schemaLocation`;
+  the header keeps `03.00`. The backend config selects it via `eda-process-versions`.
 - `ANFORDERUNG_ECP` accepts the version label `02.10` (schema set of EC_PODLIST 02.10, EDA change
   of 2026-10-05). Same XML (`cprequest 01p12`); only the Ponton `MessageVersion` and the
   `schemaLocation` path change. Ponton messengers that allow only the new schema sets reject
