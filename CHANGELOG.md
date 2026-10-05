@@ -8,6 +8,15 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Changed
+- A version label from the backend config without its own case in `getVersion` (ECON, ECOF,
+  CCMS, PT, ECP) now logs a warning naming the label, message code, conversation and the
+  fallback builder used. The message is still built as before; until now the fallback — usually
+  an outdated schema — happened silently. ECOF `02.00` gets its own case (same builder as
+  before), so the public compose stack, which sends 02.00, does not warn.
+
+## [1.0.4] – 2026-10-05
+
 ### Added
 - **Version labels for the EDA process change of 2026-10-05.** `ANFORDERUNG_ECON` accepts
   `02.40` (schema set of EC_REQ_ONL 03.00) and `ANFORDERUNG_ECOF` accepts `02.30` (schema set of
@@ -17,7 +26,6 @@ this changelog highlights the changes relevant for overview and operations.
   `case _` default and silently built the old 01p10/01p20 message. The previous labels (`02.30`,
   `02.20`) keep working. The backend config `eda-process-versions` selects which one is sent.
 
-### Added
 - MQTT: pin the CR_MSG gzip + standard Base64 wire format consumed by
   eegfaktura-energystore with a cross-repository compatibility test.
 - CI builds `env/**` branches and deploys the resulting image into the matching feature

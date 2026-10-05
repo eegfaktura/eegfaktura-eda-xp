@@ -11,11 +11,12 @@ import scala.xml.{NamespaceBinding, Node}
 
 case class CMRequestOfflineRegistration(message: EbMsMessage) extends EdaMessage {
   override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
+    case Some("02.00") => Try(CMRequestOfflineRegistrationXMLMessage(message))
     case Some("02.10") => Try(CMRequestOfflineRegistrationXMLMessageV0210(message))
     // 02.30 = Schemaset von EC_REQ_OFF 03.00 (ab 05.10.2026): gleiches XML (cmrequest 01p30),
     // nur Versionskennung im Ponton-Header und im schemaLocation-Pfad.
     case Some(v @ ("02.20" | "02.30")) => Try(CMRequestOfflineRegistrationXMLMessageV0220(message, v))
-    case _ => Try(CMRequestOfflineRegistrationXMLMessage(message))
+    case _ => fallbackVersion(CMRequestOfflineRegistrationXMLMessage(message))
   }
 }
 
