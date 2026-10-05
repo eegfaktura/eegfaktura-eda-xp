@@ -11,19 +11,21 @@ import scala.xml.{NamespaceBinding, Node, TopScope}
 
 case class CPRequestZPList(message: EbMsMessage) extends EdaMessage {
   override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
-    case Some("02.00") => Try(CPRequestZPListXMLMessageV0200(message))
+    // EC_PODLIST 02.10 (ab 05.10.2026): Prozessversion und Schemaset sind beide 02.10, gleiches XML
+    // (cprequest 01p12); nur die Version im Ponton-Header und im schemaLocation-Pfad aendert sich.
+    case Some(v @ ("02.00" | "02.10")) => Try(CPRequestZPListXMLMessageV0200(message, v))
     case _ => fallbackVersion(CPRequestZPListXMLMessageV0200(message))
   }
 }
 
-case class CPRequestZPListXMLMessageV0200(message: EbMsMessage) extends EdaXMLMessage[cprequest.v01p12.CPRequest] {
+case class CPRequestZPListXMLMessageV0200(message: EbMsMessage, processVersion: String = "02.00") extends EdaXMLMessage[cprequest.v01p12.CPRequest] {
   import java.util.GregorianCalendar
 
   override implicit val edaTypeCanWrite: CanWriteXML[cprequest.v01p12.CPRequest] = Cprequestv01p12_CPRequestFormat
   override def rootNodeLabel: Some[String] = Some("CPRequest")
 
   override def schemaLocation: Option[String] = Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12 " +
-    "http://www.ebutilities.at/schemata/customerprocesses/EC_PODLIST/02.00/ANFORDERUNG_ECP")
+    s"http://www.ebutilities.at/schemata/customerprocesses/EC_PODLIST/$processVersion/ANFORDERUNG_ECP")
 
   def toDoc: cprequest.v01p12.CPRequest = CPRequestV0112Document(message)
     .withExtension(message.timeline.map(t => {
