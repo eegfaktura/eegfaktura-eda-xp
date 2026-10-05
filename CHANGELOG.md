@@ -9,6 +9,15 @@ this changelog highlights the changes relevant for overview and operations.
 ## [Unreleased]
 
 ### Added
+- **Version labels for the EDA process change of 2026-10-05.** `ANFORDERUNG_ECON` accepts
+  `02.40` (schema set of EC_REQ_ONL 03.00) and `ANFORDERUNG_ECOF` accepts `02.30` (schema set of
+  EC_REQ_OFF 03.00). Both build the same XML as before (`cmrequest 01p30`); only the version in
+  the Ponton header (`MessageVersion`) and in the `schemaLocation` path changes. Needed once a
+  messenger allows only the new schema sets: until now these values fell through to the
+  `case _` default and silently built the old 01p10/01p20 message. The previous labels (`02.30`,
+  `02.20`) keep working. The backend config `eda-process-versions` selects which one is sent.
+
+### Added
 - MQTT: pin the CR_MSG gzip + standard Base64 wire format consumed by
   eegfaktura-energystore with a cross-repository compatibility test.
 - CI builds `env/**` branches and deploys the resulting image into the matching feature
