@@ -12,7 +12,9 @@ import scala.xml.{NamespaceBinding, Node}
 case class CMRequestOfflineRegistration(message: EbMsMessage) extends EdaMessage {
   override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
     case Some("02.10") => Try(CMRequestOfflineRegistrationXMLMessageV0210(message))
-    case Some("02.20") => Try(CMRequestOfflineRegistrationXMLMessageV0220(message))
+    // 02.30 = Schemaset von EC_REQ_OFF 03.00 (ab 05.10.2026): gleiches XML (cmrequest 01p30),
+    // nur Versionskennung im Ponton-Header und im schemaLocation-Pfad.
+    case Some(v @ ("02.20" | "02.30")) => Try(CMRequestOfflineRegistrationXMLMessageV0220(message, v))
     case _ => Try(CMRequestOfflineRegistrationXMLMessage(message))
   }
 }
@@ -71,14 +73,14 @@ case class CMRequestOfflineRegistrationXMLMessage(message: EbMsMessage) extends 
   }
 }
 
-case class CMRequestOfflineRegistrationXMLMessageV0220(message: EbMsMessage) extends EdaXMLMessage[cmrequest.v01p30.CMRequest] {
+case class CMRequestOfflineRegistrationXMLMessageV0220(message: EbMsMessage, processVersion: String = "02.20") extends EdaXMLMessage[cmrequest.v01p30.CMRequest] {
   override implicit val edaTypeCanWrite: CanWriteXML[v01p30.CMRequest] = Cmrequestv01p30_CMRequestFormat
 
   override def rootNodeLabel: Option[String] = Some("CMRequest")
 
   override def schemaLocation: Option[String] =
     Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p30 " +
-      "http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_OFF/02.20/ANFORDERUNG_ECOF")
+      s"http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_OFF/$processVersion/ANFORDERUNG_ECOF")
 
   override def toDoc: cmrequest.v01p30.CMRequest = CMRequestV0130Document(message).toDoc
 
