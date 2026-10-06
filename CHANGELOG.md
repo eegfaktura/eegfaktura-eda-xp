@@ -8,6 +8,23 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.0.7] – 2026-10-06
+
+### Fixed
+- **Change of participation factor (ANFORDERUNG_CPF) rejected since 2026-10-05.** The messenger
+  only has schema set EC_PRTFACT_CHANGE_01.10 active, which expects the payload in **ECMPList
+  01p20** (`No activated XML Schema for MessageType:ANFORDERUNG_CPF Version:01.00`). With version
+  label `01.10` from the backend config the request is now built in 01p20: new mandatory field
+  `DataType` = `EnergyCommunityRegistration` (the value the DSOs send in SENDEN_ECP 01p20),
+  `ECZoneLevel` left empty (optional), `PlantCategory` dropped. `01.00` keeps the 01p10 builder.
+- The Ponton header also carries the message type for **ANFORDERUNG_CPF** and
+  **ANFORDERUNG_ECOF** (in addition to ECP/ECON from 1.0.6); the adapter does not translate the
+  process code for the new schema sets. PT and CCMS still use the process code.
+
+### Changed
+- `src/main/xsd/ECMPList_01p20.xsd` replaced by the published version (`MPListData` 0..n), so an
+  empty ZP list in 01p20 (ABSCHLUSS_ECON/ECOF, SENDEN_ECP) is parsed instead of rejected.
+
 ## [1.0.6] – 2026-10-06
 
 ### Fixed

@@ -9,7 +9,7 @@
 			autor: Reinhold Hansmann
 			valid from: 2026-10
 			changes: Erweiterung ECType
-			         
+			         MPListData auf 0..n
 		</xsd:documentation>
 	</xsd:annotation>
 	<xsd:element name="ECMPList">
@@ -87,7 +87,7 @@
 					</xsd:restriction>
 				</xsd:simpleType>
 			</xsd:element>
-			<xsd:element name="MPListData" type="cp:MPListData" minOccurs="1" maxOccurs="unbounded">
+			<xsd:element name="MPListData" type="cp:MPListData" minOccurs="0" maxOccurs="unbounded">
 				<xsd:annotation>
 					<xsd:documentation>Zählpunktsdaten</xsd:documentation>
 				</xsd:annotation>
