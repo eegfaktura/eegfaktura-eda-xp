@@ -8,6 +8,12 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Documentation
+- README: Ponton header rule (message type + schema set version from the schema set
+  definition, not process code/process version), schema set version vs. process version,
+  ebUtilities API lookups and a checklist for EDA cut-over dates — lessons from the
+  2026-10-05 rejections.
+
 ## [1.0.7] – 2026-10-06
 
 ### Fixed
