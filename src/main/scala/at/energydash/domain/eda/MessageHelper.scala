@@ -103,6 +103,19 @@ object MessageHelper {
     }
   }
 
+  /**
+   * MessageType im Header des Ponton-EDA-Adapters. Grundsaetzlich der Prozesscode (CR_REQ_PT, ...);
+   * der Adapter uebersetzt ihn in den Nachrichtentyp des Schema Sets (z. B. EC_PRTFACT_CHANGE ->
+   * ANFORDERUNG_CPF). Fuer die Schema Sets EC_PODLIST_02.10 und EC_REQ_ONL_02.40 (EDA-Umstellung
+   * 05.10.2026) passiert das nicht: der Messenger sucht dann "EC_PODLIST/02.10" und findet kein
+   * aktiviertes Schema. Fuer diese beiden Anforderungen geht deshalb direkt der Nachrichtentyp aus
+   * dem Schema Set in den Header.
+   */
+  def pontonHeaderMessageType(msCode: EbMsMessageType): String = msCode match {
+    case ZP_LIST | ONLINE_REG_INIT => msCode.toString
+    case _ => EDAMessageCodeToProcessCode(msCode).toString
+  }
+
   def buildRequestId(messageId: String): String = {
     val crc32 = new CRC32()
     crc32.update(messageId.getBytes)

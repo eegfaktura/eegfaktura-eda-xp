@@ -8,6 +8,18 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.0.6] – 2026-10-06
+
+### Fixed
+- **ZP list and online registration rejected by the messenger since 2026-10-05.** The Ponton
+  header now carries the schema set message type `ANFORDERUNG_ECP` / `ANFORDERUNG_ECON` instead of
+  the process code `EC_PODLIST` / `EC_REQ_ONL`. With the new schema sets EC_PODLIST_02.10 and
+  EC_REQ_ONL_02.40 the adapter no longer translated the process code (it still does for
+  CR_REQ_PT and EC_PRTFACT_CHANGE), and the messenger answered
+  `No activated XML Schema for MessageType:EC_PODLIST Version:02.10`. All other requests keep
+  the process code. `MessageVersion` stays the schema set version from the backend config
+  (02.10 / 02.40).
+
 ## [1.0.5] – 2026-10-05
 
 ### Changed
