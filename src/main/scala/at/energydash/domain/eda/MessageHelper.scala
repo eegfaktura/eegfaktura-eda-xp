@@ -103,6 +103,18 @@ object MessageHelper {
     }
   }
 
+  /**
+   * MessageType im Header des Ponton-EDA-Adapters. Richtig ist der Nachrichtentyp aus der
+   * Schema-Set-Definition (ANFORDERUNG_ECP, ...), siehe Ponton Backend Integration Guide 2.1.1 und
+   * README "Ponton header". Mit dem Prozesscode (EC_PODLIST) findet der Messenger fuer die Sets der
+   * EDA-Umstellung 05.10.2026 kein Schema. PT und CCMS senden noch den Prozesscode und werden
+   * angenommen (warum, ist ungeklaert); umstellen mit ihrer naechsten Versionsaenderung.
+   */
+  def pontonHeaderMessageType(msCode: EbMsMessageType): String = msCode match {
+    case ZP_LIST | ONLINE_REG_INIT | OFFLINE_REG_INIT | CHANGE_METER_PARTITION => msCode.toString
+    case _ => EDAMessageCodeToProcessCode(msCode).toString
+  }
+
   def buildRequestId(messageId: String): String = {
     val crc32 = new CRC32()
     crc32.update(messageId.getBytes)
@@ -116,9 +128,7 @@ object MessageHelper {
     Base58.encode(compose.takeRight(5))
   }
 
-  def buildMessageId(participant: String, seqNumber: Long): String = {
-    val cal = Calendar.getInstance
-    val dateTime = cal.getTime
+  def buildMessageId(participant: String, seqNumber: Long, dateTime: Date = new Date): String = {
 
     val dateFormat = new SimpleDateFormat("dd")
     val date = dateFormat.format(dateTime)
@@ -126,7 +136,7 @@ object MessageHelper {
     val monthFormat = new SimpleDateFormat("MM")
     val month = monthFormat.format(dateTime)
 
-    val yearFormat = new SimpleDateFormat("YYYY")
+    val yearFormat = new SimpleDateFormat("yyyy")
     val year = yearFormat.format(dateTime)
 
     s"${participant}${year}${month}${date}${dateTime.getTime / 10000}${formatSeqNumber(seqNumber)}"
@@ -135,6 +145,16 @@ object MessageHelper {
   def formatSeqNumber(seqNumber: Long) = f"${seqNumber}%010d"
 
   def buildCalendarNow(): GregorianCalendar = new GregorianCalendar(new Locale("de", "AT"))
+
+  /**
+   * xsd:dateTime with the real UTC offset of the calendar's zone, including daylight saving
+   * time. scalaxb's Helper.toCalendar(GregorianCalendar) uses only the raw offset, so documents
+   * built in Europe/Vienna carried +01:00 with the summer wall-clock time (one hour off).
+   */
+  def toXmlDateTime(calendar: GregorianCalendar): javax.xml.datatype.XMLGregorianCalendar =
+    javax.xml.datatype.DatatypeFactory.newInstance().newXMLGregorianCalendar(calendar)
+
+  def xmlDateTime(date: Date): javax.xml.datatype.XMLGregorianCalendar = toXmlDateTime(buildCalendar(date))
 
   def buildCalendar(date: Date): GregorianCalendar = {
     val calendar: GregorianCalendar = buildCalendarNow()

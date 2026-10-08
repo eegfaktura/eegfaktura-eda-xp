@@ -6,7 +6,7 @@ import org.apache.pekko.actor.typed.ActorSystem
 import at.energydash.actors.PontonService.buildMessageId
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.eda.MessageHelper
-import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
+import at.energydash.domain.eda.MessageHelper.pontonHeaderMessageType
 import ponton.OutHeaderType
 import ponton.`package`.__NodeXMLFormat
 import scalaxb.{DataRecord, HttpClientsAsync, Soap11ClientsAsync}
@@ -40,7 +40,7 @@ trait OutboundDocument4SOAPBindings {
               SenderId = edaMessage.sender,
               ReceiverId = edaMessage.receiver,
               MessageVersion = edaMessage.messageCodeVersion.getOrElse("01.00"),
-              MessageType = EDAMessageCodeToProcessCode(edaMessage.messageCode).toString,
+              MessageType = pontonHeaderMessageType(edaMessage.messageCode),
               LogInfo = Some("VFEEG-OUT"))
             val body = ponton.OutboundMessage(outboundmessageoption = xmlObj.toRecord)
 

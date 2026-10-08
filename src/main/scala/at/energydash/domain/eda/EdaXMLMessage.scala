@@ -4,6 +4,7 @@ import org.apache.pekko.util.ByteString
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.enums.EbMsMessageType
 import at.energydash.domain.enums.EbMsMessageType.EbMsMessageType
+import org.slf4j.{Logger, LoggerFactory}
 import scalaxb.{CanWriteXML, DataRecord}
 
 import java.io.StringWriter
@@ -17,6 +18,23 @@ trait EdaMessage {
   val message: EbMsMessage
 
   def getVersion(version: Option[String]): Try[EdaXMLMessage[_]]
+
+  /**
+   * getVersion for a missing version label or one without its own case: the request is NOT
+   * built. Until 1.0.7 an outdated schema was sent instead (the messenger then rejects it, or
+   * header and body disagree). `fallback` is kept as documentation of what used to be sent.
+   */
+  protected def fallbackVersion(fallback: => EdaXMLMessage[_]): Try[EdaXMLMessage[_]] = {
+    val msg = s"Unknown version label ${message.messageCodeVersion.getOrElse("<none>")} for ${message.messageCode} " +
+      s"(conversationId=${message.conversationId}): request not sent. " +
+      "Check eda-process-versions in the backend config (schema set version, e.g. ANFORDERUNG_ECON 02.40)."
+    EdaMessage.logger.error(msg)
+    scala.util.Failure(new IllegalArgumentException(msg))
+  }
+}
+
+object EdaMessage {
+  private val logger: Logger = LoggerFactory.getLogger(classOf[EdaMessage])
 }
 
 

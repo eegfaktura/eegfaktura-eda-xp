@@ -149,6 +149,48 @@ class CMRequestOfflineRegistrationSpec extends AnyWordSpecLike with Matchers {
     }
   }
 
+  "ECOF — Versionskennung 02.20 (cmrequest 01p30)" in {
+    val msg = EbMsMessage(
+      conversationId = "AT003000202310051506076450000003761",
+      requestId = Some("5JWLV5Z3"),
+      messageId = Some("RC100130202310051506080740000003762"),
+      sender = "RC100130", receiver = "AT003000", messageCode = EbMsMessageType.OFFLINE_REG_INIT, messageCodeVersion = Some("02.20"),
+      meter = Some(Meter("AT0030000000000000000000000655856", Some(MeterDirectionType.CONSUMPTION))), ecId = Some("AT00300000000RC100130000000952832"))
+
+    val xml = CMRequestOfflineRegistration(msg).getVersion().get
+    xml.schemaLocation.get should include("cmrequest/01p30")
+    xml.schemaLocation.get should endWith("customerprocesses/EC_REQ_OFF/02.20/ANFORDERUNG_ECOF")
+    val node = xml.toXML
+    node.namespace shouldBe "http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p30"
+    (node \ "MarketParticipantDirectory" \ "@SchemaVersion").text shouldBe "01.30"
+    (node \ "MarketParticipantDirectory" \ "MessageCode").text shouldBe EbMsMessageType.OFFLINE_REG_INIT.toString
+  }
+
+  "ECOF — Versionskennung 02.30 (cmrequest 01p30)" in {
+    val msg = EbMsMessage(
+      conversationId = "AT003000202310051506076450000003761",
+      requestId = Some("5JWLV5Z3"),
+      messageId = Some("RC100130202310051506080740000003762"),
+      sender = "RC100130", receiver = "AT003000", messageCode = EbMsMessageType.OFFLINE_REG_INIT, messageCodeVersion = Some("02.30"),
+      meter = Some(Meter("AT0030000000000000000000000655856", Some(MeterDirectionType.CONSUMPTION))), ecId = Some("AT00300000000RC100130000000952832"))
+
+    val xml = CMRequestOfflineRegistration(msg).getVersion().get
+    xml.schemaLocation.get should include("cmrequest/01p30")
+    xml.schemaLocation.get should endWith("customerprocesses/EC_REQ_OFF/02.30/ANFORDERUNG_ECOF")
+    val node = xml.toXML
+    node.namespace shouldBe "http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p30"
+    (node \ "MarketParticipantDirectory" \ "@SchemaVersion").text shouldBe "01.30"
+    (node \ "MarketParticipantDirectory" \ "MessageCode").text shouldBe EbMsMessageType.OFFLINE_REG_INIT.toString
+  }
+
+  "ECOF — Prozessversion 03.00 ist kein Schema-Set-Label und wird nicht gebaut" in {
+    val msg = EbMsMessage(
+      conversationId = "AT003000202310051506076450000003761",
+      requestId = Some("5JWLV5Z3"),
+      messageId = Some("RC100130202310051506080740000003762"),
+      sender = "RC100130", receiver = "AT003000", messageCode = EbMsMessageType.OFFLINE_REG_INIT, messageCodeVersion = Some("03.00"),
+      meter = Some(Meter("AT0030000000000000000000000655856", Some(MeterDirectionType.CONSUMPTION))), ecId = Some("AT00300000000RC100130000000952832"))
+
+    CMRequestOfflineRegistration(msg).getVersion().isFailure shouldBe true
+  }
 }
-
-

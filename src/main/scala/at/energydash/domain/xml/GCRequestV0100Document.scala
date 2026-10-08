@@ -23,7 +23,7 @@ object GCRequestV0100Document {
         RoutingHeader = commontypes.v01p20.RoutingHeader(
           commontypes.v01p20.RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[commontypes.v01p20.AddressType](commontypes.v01p20.ECNumber)))),
           commontypes.v01p20.RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[commontypes.v01p20.AddressType](commontypes.v01p20.ECNumber)))),
-          Helper.toCalendar(MessageHelper.buildCalendar(new Date))
+          MessageHelper.xmlDateTime(new Date)
         ),
         Sector = commontypes.v01p20.Number01,
         MessageCode = MessageCode.fromString(message.messageCode.toString, TopScope),
