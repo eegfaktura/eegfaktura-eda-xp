@@ -20,6 +20,9 @@ this changelog highlights the changes relevant for overview and operations.
   catalog with golden files (first row: `ANFORDERUNG_ECON` 02.40).
 - Removed unused test dependencies (`slick-testkit`, `h2`, `flyway-core` 7.2.0) and the empty/commented specs.
 - `EXTERNAL_SOURCES.md` added.
+- On 1.0.8: a missing or unknown version label is a `refused` catalog row (no document, ERROR naming the
+  label, nothing sent, an error to the sender); guard 9 pins the Ponton header rule (message type + schema
+  set version; PT, CCMS and GN still send the process code, pinned to their current labels).
 
 ## [1.0.8] – 2026-10-08
 

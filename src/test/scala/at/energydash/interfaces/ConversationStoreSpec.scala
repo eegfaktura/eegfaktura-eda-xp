@@ -1,7 +1,7 @@
 package at.energydash.interfaces
 
 import at.energydash.EmbeddedDb
-import at.energydash.actors.ConversationEntity.{InitConversation, InitDone, MergeNotification, NotificationMerged}
+import at.energydash.actors.ConversationEntity.{ConversationMerged, InitConversation, InitDone, MergeConversation, MergeNotification, NotificationMerged}
 import at.energydash.actors.MqttPublisher.{AggregateNotification, EdaNotification, MqttCommand, MqttPublish}
 import at.energydash.actors.{ConversationEntity, EbMsAggregator, EdaCommand}
 import at.energydash.domain.enums.EbMsMessageType
@@ -31,6 +31,17 @@ class ConversationStoreSpec extends ScalaTestWithActorTestKit with AnyWordSpecLi
       entity ! MergeNotification(EdaNotification("CR_REQ_PT", answer), probe.ref)
       val merged = probe.expectMessageType[NotificationMerged].notification.message
       (merged.meter, merged.ecId) shouldBe ((request.meter, Some("EC-REQUEST")))
+    }
+    "merge a message into its stored request, and pass a message without a stored request through" in {
+      val entity = spawn(ConversationEntity())
+      val probe = createTestProbe[EdaCommand]()
+      entity ! InitConversation(request, probe.ref)
+      probe.expectMessage(InitDone(request))
+      entity ! MergeConversation(answer, probe.ref)
+      probe.expectMessageType[ConversationMerged].message.ecId shouldBe Some("EC-REQUEST")
+      val unknown = answer.copy(conversationId = "RC100401209901010000000000000099")
+      entity ! MergeConversation(unknown, probe.ref)
+      probe.expectMessage(ConversationMerged(unknown))
     }
   }
 

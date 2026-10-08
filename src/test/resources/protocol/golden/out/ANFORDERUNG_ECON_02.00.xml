@@ -23,7 +23,7 @@ xmlns:cmrequest="http://www.ebutilities.at/schemata/customerconsent/cmrequest/01
     <cmrequest:CMRequest>
       <cmrequest:ReqDatType>EnergyCommunityRegistration</cmrequest:ReqDatType>
       <cmrequest:DateFrom>2099-01-01</cmrequest:DateFrom>
-      <cmrequest:DateTo>2100-01-31</cmrequest:DateTo>
+      <cmrequest:DateTo>2099-12-31</cmrequest:DateTo>
       <cmrequest:ECID>AT00300000000RC100401000000000001</cmrequest:ECID>
       <cmrequest:ECPartFact>100</cmrequest:ECPartFact>
       <cmrequest:EnergyDirection>CONSUMPTION</cmrequest:EnergyDirection>

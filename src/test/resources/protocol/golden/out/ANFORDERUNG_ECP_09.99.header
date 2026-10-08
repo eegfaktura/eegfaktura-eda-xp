@@ -1,6 +1,0 @@
-LogInfo=VFEEG-OUT
-MessageId=@HEADER_MESSAGE_ID@
-MessageType=ANFORDERUNG_ECP
-MessageVersion=09.99
-ReceiverId=AT003000
-SenderId=RC100401
