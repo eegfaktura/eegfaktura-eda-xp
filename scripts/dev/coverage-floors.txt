@@ -2,20 +2,21 @@
 # milestone, never lowered. Checked by scripts/dev/coverage-check.py after `scripts/dev/test.sh --coverage`.
 # M0 2026-10-08: total 42.26 % statements, 30.59 % branches (floors in build.sbt).
 # M1 2026-10-08: total 57.98 % statements, 44.47 % branches.
+# M2 2026-10-08: total 74.26 % statements, 57.84 % branches.
 at.energydash                  50
-at.energydash.actors           42
-at.energydash.actors.http       9
+at.energydash.actors           54
+at.energydash.actors.http      85
 at.energydash.actors.soap      92
-at.energydash.config           26
-at.energydash.domain           92
-at.energydash.domain.dao       58
+at.energydash.config           50
+at.energydash.domain           98
+at.energydash.domain.dao       71
 at.energydash.domain.eda       79
 at.energydash.domain.enums     93
 at.energydash.domain.xml       81
-at.energydash.mailer           50
-at.energydash.mqtt              8
+at.energydash.mailer           60
+at.energydash.mqtt             72
 at.energydash.mqtt.path       100
-at.energydash.service           5
+at.energydash.service          83
 at.energydash.stream           61
-at.energydash.utils            91
+at.energydash.utils            94
 at.energydash.utils.zip        93
