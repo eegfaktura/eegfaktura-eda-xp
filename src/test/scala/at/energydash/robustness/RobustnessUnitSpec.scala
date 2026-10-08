@@ -61,7 +61,7 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   }
 
   "R4: a second update of a non-KEP tenant" should {
-    "keep the provider alive and answer ResponseOk [261005-ca3]" in knownError("261005-ca3") {
+    "keep the provider alive and answer ResponseOk [261005-ca3]" taggedAs Slow in knownError("261005-ca3") {
       val provider = spawn(TenantProvider(createTestProbe[MqttCommand]().ref))
       provider ! TenantStart
       Tenants.awaitReady(provider, testKit)
@@ -149,7 +149,7 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   }
 
   "R2: the broker is absent when the request stream starts" should {
-    "process requests once the broker is up [261005-ca2]" in knownError("261005-ca2") {
+    "process requests once the broker is up [261005-ca2]" taggedAs Slow in knownError("261005-ca2") {
       val prepare = createTestProbe[PrepareMessageActor.Command[PrepareMessageActor.PrepareMessageResult]]()
       val settings = MqttConnectionSettings(TestBroker.Url, s"r2-${System.nanoTime()}", new MemoryPersistence)
         .withAutomaticReconnect(true).withCleanSession(false)

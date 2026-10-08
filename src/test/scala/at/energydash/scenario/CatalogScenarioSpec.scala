@@ -52,7 +52,8 @@ class CatalogScenarioSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
           request(row.message.asJson)
           val error = await("eda/response/rc100401/protocol/error")
           error.hcursor.downField("errorMessage").as[String].toOption.get should include (row.code)
-          awaitPonton(1, 2.seconds) shouldBe empty
+          // The error is answered after the build failed, before any HTTP call: a short look suffices.
+          awaitPonton(1, 300.millis) shouldBe empty
         }
         val outcome = () => if (row.sends) run() else notSent()
         row.knownError match {

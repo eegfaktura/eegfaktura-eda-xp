@@ -5,6 +5,7 @@
 #
 #   bash scripts/dev/test.sh                     # whole suite
 #   bash scripts/dev/test.sh --only '*TenantProviderSpec'
+#   bash scripts/dev/test.sh --fast              # without the tests tagged Slow (robustness timeouts, ~1 min less)
 #   bash scripts/dev/test.sh --coverage          # clean, coverage, report, floors (build.sbt)
 #   bash scripts/dev/test.sh --update-golden     # rewrite protocol golden files, then review `git diff`
 #   bash scripts/dev/test.sh --private <dir>     # add a private test directory for this run
@@ -21,12 +22,13 @@ cmds=(test); props=(); private_dir=""; coverage=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --only) cmds=("testOnly $2"); shift 2 ;;
+    --fast) cmds=("testOnly * -- -l at.energydash.Slow"); shift ;;
     --coverage) cmds=(clean coverage test coverageReport); coverage=1; shift ;;
     --update-golden)
       if [ -n "${CI:-}" ]; then echo "--update-golden is not allowed in CI" >&2; exit 2; fi
       props+=("-Deda.golden.update=true"); shift ;;
     --private) private_dir="$(cd "$2" && pwd)"; shift 2 ;;
-    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
     *) echo "unknown option $1" >&2; exit 2 ;;
   esac
 done

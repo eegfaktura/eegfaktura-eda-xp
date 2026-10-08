@@ -66,7 +66,7 @@ trait ScenarioSupport extends BeforeAndAfterEach with BeforeAndAfterAll { this: 
 
   def awaitPonton(n: Int = 1, timeout: FiniteDuration = 10.seconds): List[FakePonton.Recorded] = {
     val deadline = timeout.fromNow
-    while (ponton.requests.size < n && deadline.hasTimeLeft()) Thread.onSpinWait()
+    while (ponton.requests.size < n && deadline.hasTimeLeft()) Thread.sleep(10)
     ponton.requests
   }
 
