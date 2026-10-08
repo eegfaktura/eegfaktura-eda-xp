@@ -21,7 +21,7 @@ object CMRequestV0130Document {
       RoutingHeader(
         RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
         RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
-        Helper.toCalendar(buildCalendar(new Date))
+        at.energydash.domain.eda.MessageHelper.xmlDateTime(new Date)
       ),
       Number01,
       message.messageCode.toString,
@@ -46,7 +46,7 @@ object CMRequestV0130Document {
         DateFrom = Helper.toCalendar(
           message.meter.flatMap(m => m.from.map (f => buildCalendarDate(f)))
             .getOrElse(getNow(Some(1)).toString)),
-        DateTo = Some(Helper.toCalendar(buildCalendarDate(new GregorianCalendar(2099, 12, 31).getTime))),
+        DateTo = Some(Helper.toCalendar(buildCalendarDate(new GregorianCalendar(2099, java.util.Calendar.DECEMBER, 31).getTime))),
         ECPartFact=message.meter.map { m => m.partFact.getOrElse(100)},
         MeteringIntervall = Some(v01p30.QH),
         TransmissionCycle = None, //Some(v01p30.D),

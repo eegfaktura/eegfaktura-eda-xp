@@ -13,12 +13,8 @@ case class CMRequestRegistrationOnline(message: EbMsMessage) extends EdaMessage 
   override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
     case Some("02.00") => Try(CMRequestRegistrationOnlineXMLMessageV0200(message))
     case Some("02.10") => Try(new CMRequestRegistrationOnlineXMLMessageV0210(message))
-    // Seit 05.10.2026 sind Prozessversion und Schemaset entkoppelt: EC_REQ_ONL 03.00 nutzt das
-    // Schemaset 02.40 (gleiches XML, cmrequest 01p30). Die Version aus der Config geht als
-    // MessageVersion in den Ponton-Header; der Ponton-EDA-Adapter erwartet dort die
-    // Prozessversion (03.00) und waehlt das Schemaset selbst. Im schemaLocation steht der
-    // Schemaset-Pfad (02.40).
-    case Some("03.00") => Try(CMRequestRegistrationOnlineXMLMessageV0230(message, "02.40"))
+    // Das Label ist die Schema-Set-Version (EC_REQ_ONL_02.40), nicht die Prozessversion (03.00);
+    // sie geht unveraendert als MessageVersion in den Ponton-Header (README, "Ponton header").
     case Some(v @ ("02.30" | "02.40")) => Try(CMRequestRegistrationOnlineXMLMessageV0230(message, v))
     case _ => fallbackVersion(CMRequestRegistrationOnlineXMLMessageV0110(message))
   }
@@ -76,7 +72,7 @@ case class CMRequestRegistrationOnlineXMLMessageV0200(message: EbMsMessage) exte
 
 case class CMRequestRegistrationOnlineXMLMessageV0110(message: EbMsMessage) extends EdaXMLMessage[cmrequest.v01p10.CMRequest] {
   override implicit val edaTypeCanWrite: CanWriteXML[cmrequest.v01p10.CMRequest] = Cmrequestv01p10_CMRequestFormat
-  override def rootNodeLabel: Option[String] = Some("ns2:CMRequest")
+  override def rootNodeLabel: Option[String] = Some("CMRequest")
 
   override def schemaLocation: Option[String] =
     Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10 " +

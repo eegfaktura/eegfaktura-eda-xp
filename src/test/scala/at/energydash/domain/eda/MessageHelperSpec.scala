@@ -20,4 +20,23 @@ class MessageHelperSpec extends AnyWordSpec with Matchers {
     }
   }
 
+
+  "buildMessageId" should {
+    "use the calendar year, not the week-based year" in {
+      val cal = new java.util.GregorianCalendar(2026, java.util.Calendar.DECEMBER, 29, 12, 0)
+      MessageHelper.buildMessageId("RC100130", 1, cal.getTime) should startWith("RC10013020261229")
+    }
+  }
+
+  "toXmlDateTime" should {
+    "carry the daylight saving offset" in {
+      val vienna = java.util.TimeZone.getTimeZone("Europe/Vienna")
+      val summer = new java.util.GregorianCalendar(vienna)
+      summer.clear(); summer.set(2026, java.util.Calendar.JULY, 1, 12, 0, 0)
+      MessageHelper.toXmlDateTime(summer).toXMLFormat should endWith("+02:00")
+      val winter = new java.util.GregorianCalendar(vienna)
+      winter.clear(); winter.set(2026, java.util.Calendar.JANUARY, 15, 12, 0, 0)
+      MessageHelper.toXmlDateTime(winter).toXMLFormat should endWith("+01:00")
+    }
+  }
 }

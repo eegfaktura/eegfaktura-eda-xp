@@ -183,7 +183,7 @@ class CMRequestOfflineRegistrationSpec extends AnyWordSpecLike with Matchers {
     (node \ "MarketParticipantDirectory" \ "MessageCode").text shouldBe EbMsMessageType.OFFLINE_REG_INIT.toString
   }
 
-  "ECOF — Prozessversion 03.00 baut Schemaset 02.30 (cmrequest 01p30)" in {
+  "ECOF — Prozessversion 03.00 ist kein Schema-Set-Label und wird nicht gebaut" in {
     val msg = EbMsMessage(
       conversationId = "AT003000202310051506076450000003761",
       requestId = Some("5JWLV5Z3"),
@@ -191,9 +191,6 @@ class CMRequestOfflineRegistrationSpec extends AnyWordSpecLike with Matchers {
       sender = "RC100130", receiver = "AT003000", messageCode = EbMsMessageType.OFFLINE_REG_INIT, messageCodeVersion = Some("03.00"),
       meter = Some(Meter("AT0030000000000000000000000655856", Some(MeterDirectionType.CONSUMPTION))), ecId = Some("AT00300000000RC100130000000952832"))
 
-    val xml = CMRequestOfflineRegistration(msg).getVersion().get
-    xml.schemaLocation.get should include("cmrequest/01p30")
-    xml.schemaLocation.get should endWith("customerprocesses/EC_REQ_OFF/02.30/ANFORDERUNG_ECOF")
-    (xml.toXML \ "MarketParticipantDirectory" \ "@SchemaVersion").text shouldBe "01.30"
+    CMRequestOfflineRegistration(msg).getVersion().isFailure shouldBe true
   }
 }

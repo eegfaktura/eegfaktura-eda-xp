@@ -41,7 +41,7 @@ object CMRevokeV0100Document {
       RoutingHeader = RoutingHeader(
         Sender = RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
         Receiver = RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
-        DocumentCreationDateTime = Helper.toCalendar(buildCalendar(new Date))
+        DocumentCreationDateTime = at.energydash.domain.eda.MessageHelper.xmlDateTime(new Date)
       ),
       Sector = Number01,
       MessageCode = v01p00.MessageCode.fromString(message.messageCode.toString, TopScope),
