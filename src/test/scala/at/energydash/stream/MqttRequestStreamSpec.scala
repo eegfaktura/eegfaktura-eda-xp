@@ -59,7 +59,6 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
 
         val s = storeActorProbe.expectMessageType[InitConversation]
         s.replyTo ! InitDone(s.message)
-        println("finish")
 
         probe.requestNext().topic shouldBe "eda/response/myeeg-kep/protocol/ec_req_onl"
       }
@@ -102,7 +101,6 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
 
         val s = storeActorProbe.expectMessageType[InitConversation]
         s.replyTo ! InitDone(s.message)
-        println("finish")
 
         probe.requestNext().topic shouldBe "eda/response/myeeg/protocol/ec_req_onl"
 
@@ -143,7 +141,6 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
         val edaCommand = edaActorProbe.expectMessageType[PassEdaCommand]
         edaCommand.replyTo ! SendResponseError("myeeg", "netz linz", "Local address contains control or whitespace", "Send Mail")
 
-        println("finish")
 
         val expectedPayload = EbMsMessage(
           conversationId = "0", sender = "myeeg", receiver = "netz linz",
@@ -191,7 +188,6 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
         val edaCommand = edaActorProbe.expectMessageType[PassEdaCommand]
         edaCommand.replyTo ! SendResponseError("myeeg", "netz linz", "Local address contains control or whitespace", "Send Mail")
 
-        println("finish")
 
         val expectedPayload = EbMsMessage(
           conversationId = "0", sender = "myeeg", receiver = "netz linz",

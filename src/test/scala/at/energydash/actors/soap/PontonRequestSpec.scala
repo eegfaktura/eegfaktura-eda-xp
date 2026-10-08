@@ -70,7 +70,7 @@ class PontonRequestSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike w
       testService.mock
         //        .expects(HttpRequest(uri = "http://dummy.restapiexample.com/api/v1/employees"))
         .expects ( where {
-          (request: HttpRequest) => request.uri == Uri("http://10.10.10.51:6060/ponton/eda/webservice/outbound")
+          (request: HttpRequest) => request.uri == Uri("http://127.0.0.1:16060/ponton/eda/webservice/outbound")
         })
 //        .returning(Future.successful(HttpResponse(entity = HttpEntity(ByteString("stripString")))))
         .returning(Future.successful(HttpResponse(status=StatusCodes.OK, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, NodeSeq.Empty.toString()))))

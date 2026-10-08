@@ -41,6 +41,26 @@ sbt clean compile   # runs scalaxb XSD codegen + Pekko gRPC protoc codegen
 sbt test
 ```
 
+## Tests
+
+```bash
+bash scripts/dev/test.sh                  # whole suite (local sbt, or the pinned sbt image via docker)
+bash scripts/dev/test.sh --only '*TenantProviderSpec'
+bash scripts/dev/test.sh --coverage       # + scoverage report and the coverage floors
+bash scripts/dev/test.sh --update-golden  # rewrite the protocol golden files, then review `git diff`
+```
+
+- Everything a test talks to is a loopback stand-in started by the tests: embedded PostgreSQL (port 54325,
+  migrated with the production migrations), embedded MQTT broker (18831), a fake Ponton messenger (16060).
+  **No test ever sends to a real KEP endpoint.** Configuration: `src/test/resources/application-test.conf`.
+- Files a run writes stay under `target/`; the JVM runs in `Europe/Vienna`.
+- A known defect is tested as `knownError("<id>") { … }`: the test asserts the correct behaviour, is
+  reported as *pending* while the defect exists and fails once it is fixed (remove the marker with the fix).
+- **Protocol catalog** (`src/test/resources/protocol/`): one row per outbound message code and version
+  label; each row is a test (builder chosen, Ponton header, XSD-valid document, golden document). A new
+  process version is tested by adding its row — see "Adding a new EDA process version" below.
+- CI: `.github/workflows/test.yml` runs the suite with coverage before the image is built.
+
 ## Run
 
 Local (requires PostgreSQL and an MQTT broker):
@@ -87,6 +107,9 @@ selected here by string match. Two coupled places must be updated **in order**:
    `domain/eda/CMRevokeRequest.scala`). Note the `case _` default falls back to an
    **older** version — an unmatched string does not error, it downgrades (since 1.0.5
    with a WARN log naming the label).
+   Then add the row for the new label to `src/test/resources/protocol/catalog.conf` (builder, XSD, Ponton
+   header), run `bash scripts/dev/test.sh --only '*Protocol*' --update-golden` and review the new golden
+   files with `git diff` before committing them.
 2. **eegfaktura-backend config** `eda-process-versions.<CODE>`: bump the value to the
    new version. The backend stamps it onto `MessageCodeVersion`
    (`mqtt/messageBroker.go`) and this service uses it to pick the schema above. Bump

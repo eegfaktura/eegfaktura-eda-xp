@@ -46,10 +46,8 @@ class CPRequestZPListXMLMessageSpec extends AnyWordSpecLike with Matchers {
 
         val xmlObj = CPRequestZPList(testMessage).getVersion().get
         val record = xmlObj.toRecord
-        println(record)
 
         val node = CPRequestZPList(testMessage).getVersion().map(_.toXML).get
-        println(node)
 
         val body = ponton.OutboundMessage(outboundmessageoption = record)
 //        scalaxb.toXML(ponton.OutboundDocument(header, body), targetNamespace, "OutboundDocument",
@@ -58,7 +56,6 @@ class CPRequestZPListXMLMessageSpec extends AnyWordSpecLike with Matchers {
         val bodyDoc = scalaxb.toXML(ponton.OutboundDocument(header, body), None, Some("OutboundDocument"),
           scalaxb.toScope(scalaxb.fromScope(scope).foldRight(scalaxb.fromScope(xmlObj.toScope)){ (a, b) => a :: b }.reverse : _*/*.distinct: _**/), true
         )
-        println(bodyDoc)
 
         val headers = Nil
         val bodyRecords = bodyDoc.toSeq map { DataRecord(None, None, _) }
@@ -113,7 +110,6 @@ class CPRequestZPListXMLMessageSpec extends AnyWordSpecLike with Matchers {
         }
         (node \\ "ECPartFact").text shouldBe "90"
         (node \\ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0020000000000000000000020901971"
-        println(node)
       }
     }
 

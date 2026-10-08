@@ -8,6 +8,19 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Tests
+- **Tests gate the image:** `rolling-release.yml` runs the new `test.yml` (suite + coverage floors) before
+  the image job; a red test no longer ships.
+- One command for the suite, `scripts/dev/test.sh` (local sbt or the pinned sbt image); the tests use
+  loopback stand-ins only — the test configuration pointed the Ponton client at a network address before
+  and one spec sent to it.
+- Embedded PostgreSQL once per run, migrated with the **production** migrations (the hand-written test
+  schema is gone); embedded broker without persistence; fixed zone `Europe/Vienna`; nothing written outside `target/`.
+- Defect tests for known errors (`knownError`), coverage with sbt-scoverage and floors, the protocol
+  catalog with golden files (first row: `ANFORDERUNG_ECON` 02.40).
+- Removed unused test dependencies (`slick-testkit`, `h2`, `flyway-core` 7.2.0) and the empty/commented specs.
+- `EXTERNAL_SOURCES.md` added.
+
 ## [1.0.8] – 2026-10-08
 
 Fixes from the EDA-XP buglist (eegfaktura-platform#111).

@@ -2,6 +2,7 @@ package at.energydash.actors
 
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import at.energydash.EmbeddedDb
+import at.energydash.testsupport.TestDb
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttPublish}
 import at.energydash.domain.EbMsMessage
 import at.energydash.mqtt.MqttProtocol.{EdaEventReceived, MqttCmd}
@@ -10,6 +11,16 @@ import io.circe.parser.decode
 import org.scalatest.wordspec.AnyWordSpecLike
 
 class MqttPublisherSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with EmbeddedDb {
+
+  // The two requests whose answers the tests publish (formerly in the test-only migration V000.002).
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    TestDb.reset()
+    TestDb.seedConversation("RC100699202407221900383040000107598",
+      """{"conversationId":"RC100699202407221900383040000107598","messageId":"RC100699202407221900383040000107597","sender":"RC100699","receiver":"AT003100","messageCode":"ANFORDERUNG_ECON","messageCodeVersion":"02.00","requestId":"48NaALA","meter":{"meteringPoint":"AT0031000000099000000000000005832","direction":"GENERATION","partFact":100},"ecId":"AT00310000000RC100699EGR000600001"}""")
+    TestDb.seedConversation("RC102537202407222114235490000107920",
+      """{"conversationId":"RC102537202407222114235490000107920","messageId":"RC102537202407222114235490000107919","sender":"RC102537","receiver":"AT003000","messageCode":"ANFORDERUNG_PT","messageCodeVersion":"03.00","requestId":"F8kbZt4","meter":{"meteringPoint":"AT0030000000000000000000030083164"},"ecId":"AT00300000000RC102537000000971834","timeline":{"from":1719784800000,"to":1721684700000}}""")
+  }
   import at.energydash.domain.JsonImplicit._
   "MqttPublisher" should {
     "receive eda ANTWORT_ECON command" in {

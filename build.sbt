@@ -102,6 +102,31 @@ lazy val dockerSettings = Seq(
   }
 )
 
+// Test environment (docs: scripts/dev/test.sh). One forked JVM, suites one after another, fixed zone,
+// the test configuration by resource name (ScalaTestWithActorTestKit loads `application-test` by name),
+// every file a test writes under target/. EDA_XP_EXTRA_TESTS adds a private test directory for one run.
+lazy val testSettings = Seq(
+  Test / fork := true,
+  Test / parallelExecution := false,
+  Test / testForkedParallel := false,
+  Test / javaOptions ++= Seq(
+    "-Duser.timezone=Europe/Vienna",
+    "-Dconfig.resource=application-test.conf",
+    s"-Djava.io.tmpdir=${(ThisBuild / baseDirectory).value / "target" / "test-tmp"}",
+    s"-Deda.test.storage=${(ThisBuild / baseDirectory).value / "target" / "test-storage"}",
+  ) ++ sys.props.get("eda.golden.update").map(v => s"-Deda.golden.update=$v").toSeq,
+  Test / unmanagedSourceDirectories ++= sys.env.get("EDA_XP_EXTRA_TESTS").map(file).toSeq,
+  Test / testOptions += Tests.Setup(() => IO.createDirectory((ThisBuild / baseDirectory).value / "target" / "test-tmp")),
+  // Coverage (sbt-scoverage): generated scalaxb and pekko-grpc code excluded; floors below.
+  coverageExcludedPackages := Seq("generated", "ponton", "soapenvelope11", "scalaxb", "dataplatform",
+    "cmnotification", "ecmplist", "gcrequestap", "gcrequest", "consumptionrecord", "cmrequest", "cmrevoke",
+    "cpnotification", "cprequest", "commontypes", "cpdocument", "xmlschema", "at\\.energydash\\.admin")
+    .map(p => s"$p\\..*").mkString(";"),
+  coverageFailOnMinimum := true,
+  coverageMinimumStmtTotal := 42,   // floors: the clean run rounded down, raised per milestone, never lowered;
+  coverageMinimumBranchTotal := 30, // per-package floors in scripts/dev/coverage-floors.txt
+)
+
 lazy val root = (project in file("."))
   .enablePlugins(ScalaxbPlugin)
   .enablePlugins(PekkoGrpcPlugin)
@@ -150,13 +175,9 @@ lazy val root = (project in file("."))
       "org.apache.pekko" %% "pekko-stream-testkit" % pekkoVersion,
       "org.apache.pekko" %% "pekko-actor-testkit-typed" % pekkoVersion,
       "org.jvnet.mock-javamail" % "mock-javamail" % "1.12",
-      "com.typesafe.slick" %% "slick-testkit" % slickVersion,
-      "com.h2database" % "h2" % "2.2.224",
       "com.opentable.components" % "otj-pg-embedded" % "0.13.3",
-      "org.flywaydb" % "flyway-core" % "7.2.0",
       "org.mockito" %% "mockito-scala" % "1.17.31",
       "org.scalamock" %% "scalamock" % "6.0.0",
-      "com.typesafe.slick" %% "slick-testkit" % slickVersion,
       "io.moquette"      % "moquette-broker"  % "0.17",
     ).map(_ % Test),
 
@@ -181,3 +202,4 @@ lazy val root = (project in file("."))
 
     testOptions += Tests.Argument(TestFrameworks.JUnit, "-q", "-v", "-s", "-a")
   )
+  .settings(testSettings)

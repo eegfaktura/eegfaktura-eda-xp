@@ -1,0 +1,43 @@
+# Tests and coverage gate, called by rolling-release.yml (which runs on pull requests and pushes), so a red
+# run blocks the image and the deploy dispatch. The suite needs no service containers: PostgreSQL, the MQTT
+# broker and the Ponton messenger are embedded loopback stand-ins (scripts/dev/test.sh). New actions are
+# pinned by commit SHA; checked 2026-10-08, each release older than 7 days.
+name: Tests
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup JDK 17 (Temurin)
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'sbt'
+
+      - name: Setup sbt
+        uses: sbt/setup-sbt@6158cb0903b8ceeae04f830055f3155e1b6a5ad7 # v1.5.11
+
+      - name: Tests with coverage
+        run: sbt -batch clean coverage test coverageReport
+
+      - name: Coverage floors per package
+        run: python3 scripts/dev/coverage-check.py
+
+      - name: Coverage report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: scoverage-report
+          path: target/scala-2.13/scoverage-report/
+          if-no-files-found: ignore
