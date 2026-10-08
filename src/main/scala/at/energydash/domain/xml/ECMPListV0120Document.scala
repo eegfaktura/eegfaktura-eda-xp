@@ -62,7 +62,7 @@ object ECMPListV0120Document {
       RoutingHeader = commontypes.v01p20.RoutingHeader(
         commontypes.v01p20.RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[commontypes.v01p20.AddressType](commontypes.v01p20.ECNumber)))),
         commontypes.v01p20.RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[commontypes.v01p20.AddressType](commontypes.v01p20.ECNumber)))),
-        Helper.toCalendar(buildCalendar(new Date))
+        at.energydash.domain.eda.MessageHelper.xmlDateTime(new Date)
       ),
       Sector = commontypes.v01p20.Number01,
       MessageCode = message.messageCode.toString,
@@ -79,7 +79,7 @@ object ECMPListV0120Document {
       MessageId = message.messageId.get,
       ConversationId = message.conversationId,
       ProcessDate = Helper.toCalendar(getProcessDate),
-      ECID = message.ecId,
+      ECID = Some(message.ecId.getOrElse(throw new IllegalArgumentException("ANFORDERUNG_CPF without ecId"))),
       ECType = Some(message.ecType match {
         case Some(EcTypeEnum.GEA) => ecmplist.v01p20.GC
         case Some(EcTypeEnum.REGIONAL) => ecmplist.v01p20.RC_R
@@ -99,7 +99,7 @@ object ECMPListV0120Document {
             case Some(MeterDirectionType.CONSUMPTION) => ecmplist.v01p20.CONSUMPTION
             case _ => ecmplist.v01p20.GENERATION
           }),
-          ECPartFact = m.partFact,
+          ECPartFact = Some(m.partFact.getOrElse(throw new IllegalArgumentException(s"ANFORDERUNG_CPF without participation factor for ${m.meteringPoint}"))),
           DataType = PartitionChangeDataType,
           DateActivate = Helper.toCalendar(buildCalendarDate(m.activation.get)),
         ))

@@ -125,6 +125,13 @@ class ECPartitionChangeSpec extends AnyWordSpec with Matchers {
       noException should be thrownBy schema.newValidator().validate(new StreamSource(new StringReader(node.toString)))
     }
 
+    "refuse a request without ecId or participation factor" in {
+      val m = decode[EbMsMessage](json).toOption.get
+      an[IllegalArgumentException] should be thrownBy ECPartitionChangeMessage(m.copy(ecId = None)).getVersion().get.toXML
+      val noFactor = m.copy(meterList = m.meterList.map(_.map(_.copy(partFact = None))))
+      an[IllegalArgumentException] should be thrownBy ECPartitionChangeMessage(noFactor).getVersion().get.toXML
+    }
+
     "keep 01p10 for version 01.00" in {
       val m = decode[EbMsMessage](json.replace("\"01.10\"", "\"01.00\"")).toOption.get
       ECPartitionChangeMessage(m).getVersion().get shouldBe a[ECPartitionChangeXMLMessage]

@@ -43,7 +43,14 @@ object Config {
 
   def getDomain(domain: String):Map[String, Object] = config.getConfig(s"epmsmail.mail.${domain}.javaxmail").entrySet().asScala.map(e => e.getKey -> e.getValue.unwrapped()).toMap
 
-  def interfaceMode = config.getString("app.interface.mode")
+  /**
+   * Document mode of outbound EDA documents: only PROD or SIMU (any case). Anything else is an
+   * error; it used to fall through to PROD (legally binding) in every builder.
+   */
+  def interfaceMode: String = config.getString("app.interface.mode").trim.toUpperCase match {
+    case m @ ("PROD" | "SIMU") => m
+    case other => throw new IllegalStateException(s"app.interface.mode must be PROD or SIMU, got '$other'")
+  }
 
   def edaKepServer: AkkaConfig = config.getConfig("app.kepserver")
 

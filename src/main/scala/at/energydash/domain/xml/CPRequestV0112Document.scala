@@ -28,7 +28,7 @@ object CPRequestV0112Document {
         commontypes.v01p20.RoutingHeader(
           commontypes.v01p20.RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[commontypes.v01p20.AddressType](commontypes.v01p20.ECNumber)))),
           commontypes.v01p20.RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[commontypes.v01p20.AddressType](commontypes.v01p20.ECNumber)))),
-          Helper.toCalendar(buildCalendar(new Date))
+          at.energydash.domain.eda.MessageHelper.xmlDateTime(new Date)
         ),
         commontypes.v01p20.Number01,
         message.messageCode.toString,

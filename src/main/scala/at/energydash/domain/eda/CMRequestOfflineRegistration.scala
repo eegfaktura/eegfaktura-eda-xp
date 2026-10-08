@@ -13,9 +13,7 @@ case class CMRequestOfflineRegistration(message: EbMsMessage) extends EdaMessage
   override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
     case Some("02.00") => Try(CMRequestOfflineRegistrationXMLMessage(message))
     case Some("02.10") => Try(CMRequestOfflineRegistrationXMLMessageV0210(message))
-    // EC_REQ_OFF 03.00 (ab 05.10.2026) nutzt das Schemaset 02.30 (gleiches XML, cmrequest 01p30):
-    // Prozessversion 03.00 in den Ponton-Header, Schemaset-Pfad 02.30 ins schemaLocation.
-    case Some("03.00") => Try(CMRequestOfflineRegistrationXMLMessageV0220(message, "02.30"))
+    // Label = Schema-Set-Version (EC_REQ_OFF_02.30), nicht die Prozessversion (03.00).
     case Some(v @ ("02.20" | "02.30")) => Try(CMRequestOfflineRegistrationXMLMessageV0220(message, v))
     case _ => fallbackVersion(CMRequestOfflineRegistrationXMLMessage(message))
   }
