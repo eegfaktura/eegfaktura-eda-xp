@@ -23,6 +23,9 @@ this changelog highlights the changes relevant for overview and operations.
 - On 1.0.8: a missing or unknown version label is a `refused` catalog row (no document, ERROR naming the
   label, nothing sent, an error to the sender); guard 9 pins the Ponton header rule (message type + schema
   set version; PT, CCMS and GN still send the process code, pinned to their current labels).
+- Tests of the protocol checks: the guards and the row check are functions (`ProtocolChecks`);
+  `ProtocolSelfTestSpec` feeds each a broken catalog or a wrong row and requires it to name the problem
+  (guard 1 could not report rows for a code without a builder before). `--fast` skips the Slow-tagged tests.
 
 ## [1.0.8] – 2026-10-08
 
