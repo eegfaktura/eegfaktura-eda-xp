@@ -1,0 +1,36 @@
+{
+  "conversationId" : "RC100130202301231674475740000000030",
+  "ecId" : "AT00300000000RC100130000000956508",
+  "messageCode" : "SENDEN_ECP",
+  "messageCodeVersion" : "01.00",
+  "messageId" : "AT003000202301231309096940118091675",
+  "meterList" : [
+    {
+      "activation" : 1660687200000,
+      "direction" : "GENERATION",
+      "from" : 1660687200000,
+      "meteringPoint" : "AT0030000000000000000000030013146",
+      "plantCategory" : "Photovoltaik",
+      "share" : 0.0000,
+      "to" : 1665093600000
+    },
+    {
+      "activation" : 1660687200000,
+      "direction" : "CONSUMPTION",
+      "from" : 1660687200000,
+      "meteringPoint" : "AT0030000000000000000000000200959",
+      "share" : 0.0000,
+      "to" : 1665093600000
+    },
+    {
+      "activation" : 1661896800000,
+      "direction" : "CONSUMPTION",
+      "from" : 1661896800000,
+      "meteringPoint" : "AT0030000000000000000000000426007",
+      "share" : 0.0000,
+      "to" : 1665093600000
+    }
+  ],
+  "receiver" : "RC100130",
+  "sender" : "AT003000"
+}

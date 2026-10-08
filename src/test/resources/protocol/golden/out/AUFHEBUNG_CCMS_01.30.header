@@ -1,0 +1,6 @@
+LogInfo=VFEEG-OUT
+MessageId=@HEADER_MESSAGE_ID@
+MessageType=CM_REV_SP
+MessageVersion=01.30
+ReceiverId=AT003000
+SenderId=RC100401

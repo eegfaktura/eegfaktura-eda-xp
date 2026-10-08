@@ -1,0 +1,25 @@
+<cmrevoke:CMRevoke 
+xmlns:cmrevoke="http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p10" xmlns:types="http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20">
+  <cmrevoke:MarketParticipantDirectory DocumentMode="SIMU" Duplicate="false" SchemaVersion="01.10">
+    <types:RoutingHeader>
+      <types:Sender AddressType="ECNumber">
+        <types:MessageAddress>RC100401</types:MessageAddress>
+      </types:Sender>
+      <types:Receiver AddressType="ECNumber">
+        <types:MessageAddress>AT003000</types:MessageAddress>
+      </types:Receiver>
+      <types:DocumentCreationDateTime>@CREATED@</types:DocumentCreationDateTime>
+    </types:RoutingHeader>
+    <types:Sector>01</types:Sector>
+    <cmrevoke:MessageCode>AUFHEBUNG_CCMS</cmrevoke:MessageCode>
+  </cmrevoke:MarketParticipantDirectory>
+  <cmrevoke:ProcessDirectory>
+    <types:MessageId>@MESSAGE_ID@</types:MessageId>
+    <types:ConversationId>@CONVERSATION_ID@</types:ConversationId>
+    <cmrevoke:ConsentId>AT003000209901010000000000000401</cmrevoke:ConsentId>
+    <cmrevoke:MeteringPoint>AT0030000000000000000000000401001</cmrevoke:MeteringPoint>
+    <cmrevoke:ConsentEnd>2099-12-31</cmrevoke:ConsentEnd>
+    <cmrevoke:ReasonKey>1</cmrevoke:ReasonKey>
+    <cmrevoke:Reason>Austritt</cmrevoke:Reason>
+  </cmrevoke:ProcessDirectory>
+</cmrevoke:CMRevoke>

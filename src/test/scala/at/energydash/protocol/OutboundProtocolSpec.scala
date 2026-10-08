@@ -18,8 +18,10 @@ class OutboundProtocolSpec extends ScalaTestWithActorTestKit with AnyWordSpecLik
 
   private def check(row: Outbound): Unit = {
     val message = row.message
-    val built = MessageHelper.getEdaMessageByType(message)
+    val (built, logs) = LogCapture("at.energydash.domain.eda.EdaMessage")(MessageHelper.getEdaMessageByType(message))
     assert(built.isDefined, s"no builder for ${row.code}")
+    val warned = LogCapture.messages(logs).exists(_.startsWith("Unknown version label"))
+    assert(warned == row.fallback, if (row.fallback) "fallback without its WARN" else "unexpected fallback WARN")
     row.builder.foreach(b => assert(built.get.getClass.getSimpleName == b, "builder chosen by getVersion"))
 
     val before = Normalise.dateTokens(LocalDate.now(Normalise.Vienna))
@@ -30,8 +32,11 @@ class OutboundProtocolSpec extends ScalaTestWithActorTestKit with AnyWordSpecLik
     row.headerVersion.foreach(v => assert(captured.pontonHeader("MessageVersion") == v, "Ponton header MessageVersion"))
     row.xsd.foreach(x => Xsd.validate(captured.document, x))
 
-    Golden.check(row.goldenBase + ".header", Seq(Normalise.header(captured.pontonHeader)))
-    Golden.check(row.goldenBase + ".xml", Seq(before, after).distinct.map(d => Normalise.document(captured.document, d)))
+    // A row of a known error states the correct outcome by its assertions; no golden file from wrong output.
+    if (row.knownError.isEmpty) {
+      Golden.check(row.goldenBase + ".header", Seq(Normalise.header(captured.pontonHeader)))
+      Golden.check(row.goldenBase + ".xml", Seq(before, after).distinct.map(d => Normalise.document(captured.document, d)))
+    }
   }
 
   "Outbound protocol" should {

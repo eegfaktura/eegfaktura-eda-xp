@@ -1,0 +1,33 @@
+<cmrequest:CMRequest 
+xmlns:cmrequest="http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p30" xmlns:types="http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20">
+  <cmrequest:MarketParticipantDirectory DocumentMode="SIMU" Duplicate="false" SchemaVersion="01.30">
+    <types:RoutingHeader>
+      <types:Sender AddressType="ECNumber">
+        <types:MessageAddress>RC100401</types:MessageAddress>
+      </types:Sender>
+      <types:Receiver AddressType="ECNumber">
+        <types:MessageAddress>AT003000</types:MessageAddress>
+      </types:Receiver>
+      <types:DocumentCreationDateTime>@CREATED@</types:DocumentCreationDateTime>
+    </types:RoutingHeader>
+    <types:Sector>01</types:Sector>
+    <cmrequest:MessageCode>ANFORDERUNG_ECON</cmrequest:MessageCode>
+  </cmrequest:MarketParticipantDirectory>
+  <cmrequest:ProcessDirectory>
+    <types:MessageId>@MESSAGE_ID@</types:MessageId>
+    <types:ConversationId>@CONVERSATION_ID@</types:ConversationId>
+    <cmrequest:ProcessDate>@TOMORROW@</cmrequest:ProcessDate>
+    <cmrequest:MeteringPoint>AT0030000000000000000000000401001</cmrequest:MeteringPoint>
+    <cmrequest:CMRequestId>@REQUEST_ID@</cmrequest:CMRequestId>
+    <cmrequest:ConsentId>AT003000209901010000000000000401</cmrequest:ConsentId>
+    <cmrequest:CMRequest>
+      <cmrequest:ReqDatType>EnergyCommunityRegistration</cmrequest:ReqDatType>
+      <cmrequest:DateFrom>2099-01-01</cmrequest:DateFrom>
+      <cmrequest:DateTo>2100-01-31</cmrequest:DateTo>
+      <cmrequest:MeteringIntervall>QH</cmrequest:MeteringIntervall>
+      <cmrequest:ECID>AT00300000000RC100401000000000001</cmrequest:ECID>
+      <cmrequest:ECPartFact>100</cmrequest:ECPartFact>
+      <cmrequest:EnergyDirection>CONSUMPTION</cmrequest:EnergyDirection>
+    </cmrequest:CMRequest>
+  </cmrequest:ProcessDirectory>
+</cmrequest:CMRequest>
