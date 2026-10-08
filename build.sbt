@@ -124,7 +124,7 @@ lazy val testSettings = Seq(
     .map(p => s"$p\\..*").mkString(";"),
   coverageFailOnMinimum := true,
   coverageMinimumStmtTotal := 78,   // floors: the clean run rounded down, raised per milestone, never lowered;
-  coverageMinimumBranchTotal := 61, // per-package floors in scripts/dev/coverage-floors.txt
+  coverageMinimumBranchTotal := 62, // per-package floors in scripts/dev/coverage-floors.txt
 )
 
 lazy val root = (project in file("."))
