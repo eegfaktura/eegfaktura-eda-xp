@@ -14,19 +14,21 @@ this changelog highlights the changes relevant for overview and operations.
   `/pontonxp/message` answer 500, so Ponton redelivered or parked it forever, and no one was
   notified. It is now acknowledged (204), logged as ERROR with conversation and receiver, and
   published to the receiver's `protocol/error` topic, where the backend logs it. The same applies
-  to a known document that cannot be read (e.g. a MessageCode eda-xp does not know yet, a missing
-  element): it becomes an error message for the receiver from the Ponton header, logged with the
-  exception, instead of a 500. Only an unreadable envelope or Ponton header still answers 500.
+  to a document that parses but cannot be mapped (e.g. a MessageCode eda-xp does not know yet): it
+  becomes an error message for the receiver from the Ponton header, logged with the exception,
+  instead of a 500. A message that does not parse against the schema (envelope, header or
+  document, incl. a SOAP Fault) still answers 500, so Ponton keeps it.
 - **The conversation is stored before a request is sent (261005-ca6).** It used to be stored only
   after the send succeeded. When the backend's 30 s wait ran out but Ponton still accepted the
   message, later answers found no conversation and lost ecId, metering point and consent end.
+  The store does not wait for the database, so a slow or failing insert never delays the send.
 - **The sender gets the real reason when a request cannot be built** (1.0.8 follow-up), e.g. the
   unknown version label, instead of "No XML mapping for message type …".
-- **ANFORDERUNG_GN needs a version label** like every other request; without one it went out with
-  header version 01.00 (1.0.8 follow-up).
+- **ANFORDERUNG_GN needs the version label of its body, `03.12`** (MD_REQ_GN), like every other
+  request; without one it went out with header version 01.00 (1.0.8 follow-up).
 
 ### Changed
-- The unreachable ECON 01p10 builder is removed (1.0.8 follow-up).
+- The unreachable ECON 01p10 builder and its document class are removed (1.0.8 follow-up).
 - GN enum names match their wire strings (261005-ca15): `EEG_BASE_REJECTION` = `ABLEHNUNG_GN`,
   `EEG_BASE_RESPONSE` = `ANTWORT_GN`. Wire format unchanged.
 

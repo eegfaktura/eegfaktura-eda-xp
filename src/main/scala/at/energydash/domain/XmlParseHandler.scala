@@ -53,21 +53,16 @@ object XmlParseHandler {
   }
 
   /**
-   * Like [[mapDataRecordToEbms]], but a document that cannot be read (e.g. a MessageCode unknown
-   * to eda-xp, a missing element) becomes an ERROR_MESSAGE for the receiver from the Ponton header
-   * instead of failing — so the message is neither redelivered forever nor lost silently
-   * (platform#111 ca11).
+   * Like [[mapDataRecordToEbms]], but a document that scalaxb could parse and eda-xp cannot map
+   * (e.g. a MessageCode unknown to eda-xp) becomes an ERROR_MESSAGE for the receiver from the
+   * Ponton header instead of failing (platform#111 ca11). Documents that do not even parse against
+   * the schema fail earlier, in responseInbound, and still answer 500.
    */
   def mapDataRecordToEbmsOrError(header: ParseHeader, dr: scalaxb.DataRecord[Any]): EbMsMessage =
     scala.util.Try(mapDataRecordToEbms(header, dr)).recover { case ex =>
       logger.error(s"Cannot read ${header.MessageType.getOrElse("MISSING")} (conversation ${header.ConversationId.getOrElse("MISSING")}, sender ${header.SenderId}, receiver ${header.ReceiverId})", ex)
-      EbMsMessage(
-        conversationId = header.ConversationId.getOrElse("MISSING"),
-        sender = header.SenderId,
-        receiver = header.ReceiverId,
-        messageCode = EbMsMessageType.ERROR_MESSAGE,
-        errorMessage = Some(s"Cannot read MessageType ${header.MessageType.getOrElse("MISSING")}: ${ex}")
-      )
+      DefaultEbMsMessage.Error(header.ConversationId.getOrElse("MISSING"), header.SenderId, header.ReceiverId,
+        s"Cannot read MessageType ${header.MessageType.getOrElse("MISSING")}: ${ex}", None)
     }.get
 
   def mapXmlToEbms(header: ParseHeader, xml: scala.xml.Elem): EbMsMessage = {

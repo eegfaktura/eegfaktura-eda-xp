@@ -83,9 +83,9 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand])(implicit val system: Act
                     mqttPublisher ! MqttPublish(notification :: Nil)
                     complete(HttpResponse(StatusCodes.NoContent))
                   case Failure(ex) =>
-                    // Envelope or Ponton header unreadable: no receiver to notify, so keep the 500 and
-                    // let Ponton hold the message. Unreadable documents are handled in
-                    // XmlParseHandler.mapDataRecordToEbmsOrError (platform#111 ca11).
+                    // Envelope, Ponton header or document does not parse against the schema (incl. a
+                    // SOAP Fault): keep the 500 and let Ponton hold the message. Parsed documents
+                    // eda-xp cannot map are handled in XmlParseHandler.mapDataRecordToEbmsOrError.
                     logger.error("Error while parsing message from edaAdapter", ex)
                     mqttPublisher ! MqttPublishError("NotSpecified", ex.getMessage)
                     complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
