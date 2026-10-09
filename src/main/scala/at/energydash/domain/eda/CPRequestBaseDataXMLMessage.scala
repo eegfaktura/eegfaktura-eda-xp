@@ -16,8 +16,7 @@ case class CPRequestBaseData(message: EbMsMessage) extends EdaMessage {
   // (without one the header said 01.00, platform#111).
   override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
     case Some("03.12") => Try(CPRequestBaseDataXMLMessage(message))
-    case Some(_) => fallbackVersion()
-    case None => fallbackVersion()
+    case _ => fallbackVersion()
   }
 }
 

@@ -23,7 +23,8 @@ this changelog highlights the changes relevant for overview and operations.
   message, later answers found no conversation and lost ecId, metering point and consent end.
   The store does not wait for the database, so a slow or failing insert never delays the send.
 - **The sender gets the real reason when a request cannot be built** (1.0.8 follow-up), e.g. the
-  unknown version label, instead of "No XML mapping for message type …".
+  unknown version label, instead of "No XML mapping for message type …". Ponton path only; the
+  e-mail path still reports "No XML mapping" and logs the reason.
 - **ANFORDERUNG_GN needs the version label of its body, `03.12`** (MD_REQ_GN), like every other
   request; without one it went out with header version 01.00 (1.0.8 follow-up).
 
