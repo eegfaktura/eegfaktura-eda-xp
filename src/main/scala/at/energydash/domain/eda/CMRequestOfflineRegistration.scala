@@ -15,7 +15,7 @@ case class CMRequestOfflineRegistration(message: EbMsMessage) extends EdaMessage
     case Some("02.10") => Try(CMRequestOfflineRegistrationXMLMessageV0210(message))
     // Label = Schema-Set-Version (EC_REQ_OFF_02.30), nicht die Prozessversion (03.00).
     case Some(v @ ("02.20" | "02.30")) => Try(CMRequestOfflineRegistrationXMLMessageV0220(message, v))
-    case _ => fallbackVersion(CMRequestOfflineRegistrationXMLMessage(message))
+    case _ => fallbackVersion()
   }
 }
 

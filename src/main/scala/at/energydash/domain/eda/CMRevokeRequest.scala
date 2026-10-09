@@ -14,7 +14,7 @@ case class CMRevokeRequest(message: EbMsMessage) extends EdaMessage {
     case Some("01.02") => Try(CMRevokeRequestV0100(message))
     case Some("01.10") => Try(CMRevokeRequestV0110(message))
     case Some("01.30") => Try(CMRevokeRequestV0130(message))
-    case _ => fallbackVersion(CMRevokeRequestV0110(message))
+    case _ => fallbackVersion()
   }
 }
 

@@ -11,7 +11,12 @@ import scala.util.Try
 import scala.xml.{NamespaceBinding, Node, XML}
 
 case class CPRequestBaseData(message: EbMsMessage) extends EdaMessage {
-  override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = Try(CPRequestBaseDataXMLMessage(message))
+  // Like every other request, ANFORDERUNG_GN needs a version label: it goes into the Ponton header
+  // as MessageVersion (without one the header said 01.00, platform#111).
+  override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
+    case Some(_) => Try(CPRequestBaseDataXMLMessage(message))
+    case None => fallbackVersion()
+  }
 }
 
 case class CPRequestBaseDataXMLMessage(message: EbMsMessage) extends EdaXMLMessage[cprequest.v01p12.CPRequest] {

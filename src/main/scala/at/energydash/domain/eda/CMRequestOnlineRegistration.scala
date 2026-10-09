@@ -1,7 +1,7 @@
 package at.energydash.domain.eda
 
 import at.energydash.domain.EbMsMessage
-import at.energydash.domain.xml.{CMRequestV0110Document, CMRequestV0120Document,  CMRequestV0121Document, CMRequestV0130Document}
+import at.energydash.domain.xml.{CMRequestV0120Document,  CMRequestV0121Document, CMRequestV0130Document}
 import ponton.`package`._
 import scalaxb.CanWriteXML
 
@@ -16,7 +16,7 @@ case class CMRequestRegistrationOnline(message: EbMsMessage) extends EdaMessage 
     // Das Label ist die Schema-Set-Version (EC_REQ_ONL_02.40), nicht die Prozessversion (03.00);
     // sie geht unveraendert als MessageVersion in den Ponton-Header (README, "Ponton header").
     case Some(v @ ("02.30" | "02.40")) => Try(CMRequestRegistrationOnlineXMLMessageV0230(message, v))
-    case _ => fallbackVersion(CMRequestRegistrationOnlineXMLMessageV0110(message))
+    case _ => fallbackVersion()
   }
 }
 
@@ -65,29 +65,6 @@ case class CMRequestRegistrationOnlineXMLMessageV0200(message: EbMsMessage) exte
 
   override def toXML: Node = {
     scalaxb.toXML[cmrequest.v01p20.CMRequest](toDoc, schemaLocation, rootNodeLabel,
-      toScope,
-      typeAttribute = true).head
-  }
-}
-
-case class CMRequestRegistrationOnlineXMLMessageV0110(message: EbMsMessage) extends EdaXMLMessage[cmrequest.v01p10.CMRequest] {
-  override implicit val edaTypeCanWrite: CanWriteXML[cmrequest.v01p10.CMRequest] = Cmrequestv01p10_CMRequestFormat
-  override def rootNodeLabel: Option[String] = Some("CMRequest")
-
-  override def schemaLocation: Option[String] =
-    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10 " +
-      "http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_ONL/01.00/ANFORDERUNG_ECON")
-
-  override def toDoc: cmrequest.v01p10.CMRequest = CMRequestV0110Document(message).toDoc
-
-  override def toScope: NamespaceBinding = scalaxb.toScope(
-    None -> "http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10",
-    Some("ct") -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
-    Some("xsi") -> "http://www.w3.org/2001/XMLSchema-instance"
-  )
-
-  override def toXML: Node = {
-    scalaxb.toXML[cmrequest.v01p10.CMRequest](toDoc, schemaLocation, rootNodeLabel,
       toScope,
       typeAttribute = true).head
   }

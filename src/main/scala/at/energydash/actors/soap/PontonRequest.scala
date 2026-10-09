@@ -32,8 +32,8 @@ trait OutboundDocument4SOAPBindings {
         Nil, scope, baseAddress, "POST", Some(new java.net.URI("http://xp.ponton.de/eda/v320/outboundDocument"))).map({ case x => () })
 
     def sendRequest(edaMessage: EbMsMessage)(implicit ec: ExecutionContext): Future[Envelope] /*Future[(scala.xml.NodeSeq, scala.xml.NodeSeq)]*/ = {
-      MessageHelper.getEdaMessageByType(edaMessage) match {
-        case Some(xmlObj) =>
+      MessageHelper.getEdaMessageByTypeTry(edaMessage) match {
+        case scala.util.Success(xmlObj) =>
           try {
             val header = OutHeaderType(
               MessageId = buildMessageId(edaMessage.sender, edaMessage.seqNr.getOrElse(10000)),
@@ -64,7 +64,7 @@ trait OutboundDocument4SOAPBindings {
           catch {
             case e: Throwable => Future(throw e)
           }
-        case None => Future(throw new RuntimeException(s"No XML mapping for message type ${edaMessage.messageCode}"))
+        case scala.util.Failure(e) => Future.failed(e)
       }
     }
   }

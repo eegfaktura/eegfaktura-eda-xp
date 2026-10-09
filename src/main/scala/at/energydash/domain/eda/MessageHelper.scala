@@ -32,7 +32,13 @@ object MessageHelper {
   /**
    * Extract Message Type for Sending to Marktteilnehmer.
    */
-  def getEdaMessageByType(message: EbMsMessage): Option[EdaXMLMessage[_]] = {
+  def getEdaMessageByType(message: EbMsMessage): Option[EdaXMLMessage[_]] = getEdaMessageByTypeTry(message)
+
+  /**
+   * Like [[getEdaMessageByType]], but keeps the reason when no document can be built (e.g. the
+   * unknown version label), so the sender gets it instead of "No XML mapping".
+   */
+  def getEdaMessageByTypeTry(message: EbMsMessage): Try[EdaXMLMessage[_]] = {
     (message.messageCode match {
       case ONLINE_REG_INIT => CMRequestRegistrationOnline(message).getVersion()
       case OFFLINE_REG_INIT => CMRequestOfflineRegistration(message).getVersion()
@@ -41,7 +47,7 @@ object MessageHelper {
       case ENERGY_SYNC_REQ => CPRequestMeteringValue(message).getVersion()
       case EDA_MSG_AUFHEBUNG_CCMS => CMRevokeRequest(message).getVersion()
       case CHANGE_METER_PARTITION => ECPartitionChangeMessage(message).getVersion()
-      case _ => None
+      case _ => Failure(new IllegalArgumentException(s"No XML mapping for message type ${message.messageCode}"))
     })
 //    matcn {
 //      case Success(obj) => Some(obj)
