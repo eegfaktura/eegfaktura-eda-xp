@@ -9,7 +9,8 @@ import scalaxb.DataRecord
 import scala.io.Source
 import scala.xml.XML
 
-// platform#111 ca11: a known document that cannot be read must reach the receiver as an error
+// platform#111 ca11: a known document eda-xp cannot map must fail (route answers 500, Ponton keeps
+// it for a redelivery after the fix) instead of being acknowledged and lost
 class XmlParseHandlerSpec extends AnyWordSpec with Matchers {
   import cmnotification.v01p11.CMNotification
   import ponton.`package`._
@@ -22,17 +23,13 @@ class XmlParseHandlerSpec extends AnyWordSpec with Matchers {
     DataRecord(scalaxb.fromXML[CMNotification](XML.loadString(xml)))
   }
 
-  "mapDataRecordToEbmsOrError" should {
-    "read a known document as before" in {
-      val m = XmlParseHandler.mapDataRecordToEbmsOrError(header, notification("ZUSTIMMUNG_ECON"))
+  "mapDataRecordToEbms" should {
+    "read a known document" in {
+      val m = XmlParseHandler.mapDataRecordToEbms(header, notification("ZUSTIMMUNG_ECON"))
       m.messageCode shouldBe EbMsMessageType.ONLINE_REG_APPROVAL
     }
-    "turn a MessageCode unknown to eda-xp into an error for the receiver" in {
-      val m = XmlParseHandler.mapDataRecordToEbmsOrError(header, notification("ZUSTIMMUNG_NEU"))
-      m.messageCode shouldBe EbMsMessageType.ERROR_MESSAGE
-      m.receiver shouldBe "RC100001"
-      m.conversationId shouldBe "RC100001202307111689063030000000055"
-      m.errorMessage.get should include("ZUSTIMMUNG_NEU")
+    "fail for a MessageCode unknown to eda-xp" in {
+      a[NoSuchElementException] should be thrownBy XmlParseHandler.mapDataRecordToEbms(header, notification("ZUSTIMMUNG_NEU"))
     }
   }
 }

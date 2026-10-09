@@ -47,23 +47,10 @@ object XmlParseHandler {
   }
 
   def reponseEbMsMessage(envelope: Envelope)(implicit ec: ExecutionContext) : Future[EbMsMessage] = {
-    responseInbound(envelope).map(x => mapDataRecordToEbmsOrError(
+    responseInbound(envelope).map(x => mapDataRecordToEbms(
       ParseHeader(x.Header.SenderId, x.Header.ReceiverId, Some(x.Header.ConversationId), Some(x.Header.MessageType)),
       x.Message.inboundmessageoption))
   }
-
-  /**
-   * Like [[mapDataRecordToEbms]], but a document that scalaxb could parse and eda-xp cannot map
-   * (e.g. a MessageCode unknown to eda-xp) becomes an ERROR_MESSAGE for the receiver from the
-   * Ponton header instead of failing (platform#111 ca11). Documents that do not even parse against
-   * the schema fail earlier, in responseInbound, and still answer 500.
-   */
-  def mapDataRecordToEbmsOrError(header: ParseHeader, dr: scalaxb.DataRecord[Any]): EbMsMessage =
-    scala.util.Try(mapDataRecordToEbms(header, dr)).recover { case ex =>
-      logger.error(s"Cannot read ${header.MessageType.getOrElse("MISSING")} (conversation ${header.ConversationId.getOrElse("MISSING")}, sender ${header.SenderId}, receiver ${header.ReceiverId})", ex)
-      DefaultEbMsMessage.Error(header.ConversationId.getOrElse("MISSING"), header.SenderId, header.ReceiverId,
-        s"Cannot read MessageType ${header.MessageType.getOrElse("MISSING")}: ${ex}", None)
-    }.get
 
   def mapXmlToEbms(header: ParseHeader, xml: scala.xml.Elem): EbMsMessage = {
     mapDataRecordToEbms(header, scalaxb.DataRecord(scalaxb.ElemName(xml)))

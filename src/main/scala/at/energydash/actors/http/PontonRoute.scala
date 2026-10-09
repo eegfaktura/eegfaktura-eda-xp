@@ -83,9 +83,10 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand])(implicit val system: Act
                     mqttPublisher ! MqttPublish(notification :: Nil)
                     complete(HttpResponse(StatusCodes.NoContent))
                   case Failure(ex) =>
-                    // Envelope, Ponton header or document does not parse against the schema (incl. a
-                    // SOAP Fault): keep the 500 and let Ponton hold the message. Parsed documents
-                    // eda-xp cannot map are handled in XmlParseHandler.mapDataRecordToEbmsOrError.
+                    // The message does not parse, or a known document cannot be mapped (e.g. a new
+                    // MessageCode): keep the 500 so Ponton holds it and redelivers it after a fix
+                    // (team decision, platform#111 ca11). Only unknown document types are
+                    // acknowledged above, because eda-xp can never process them.
                     logger.error("Error while parsing message from edaAdapter", ex)
                     mqttPublisher ! MqttPublishError("NotSpecified", ex.getMessage)
                     complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
