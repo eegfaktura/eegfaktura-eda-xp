@@ -22,7 +22,6 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContextExecutor, Future}
-import scala.util.Try
 
 class MqttRequestStream(tenantService: ActorRef[EdaCommand],
                         messageTransformer: ActorRef[PrepareMessageActor.Command[PrepareMessageActor.PrepareMessageResult]],
@@ -57,18 +56,21 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
         message
     }
 
-  private val storeMessageFlow: Flow[EbMsMessage, MqttMessage, NotUsed] =
+  // Store the conversation BEFORE sending (platform#111 ca6): if the send times out on our side
+  // but Ponton accepted the message, later answers still find their request and get ecId, meter
+  // and consent end merged. ConversationEntity replies before the insert completes, so a slow or
+  // failing DB neither delays nor blocks the send. A request that is then not sent (unknown label,
+  // send error) leaves a conversation row behind; it is never matched by an answer.
+  private val storeMessageFlow: Flow[EbMsMessage, EbMsMessage, NotUsed] =
     ActorFlow.ask(conversationEntity)(InitConversation).collect {
-      case InitDone(id) => Try {
-        edaReqResPath(id.sender, EDAMessageCodeToProcessCode(id.messageCode).toString)
-      } fold(
-        exc => throw exc,
-        topic => {
-          MqttMessage(
-            topic,
-            ByteString(id.asJson.toString()))
-//            .withQos(MqttQoS.atLeastOnce).withRetained(false)
-        })
+      case InitDone(message) => message
+    }
+
+  private val responseFlow: Flow[EbMsMessage, MqttMessage, NotUsed] =
+    Flow[EbMsMessage].map { m =>
+      MqttMessage(
+        edaReqResPath(m.sender, EDAMessageCodeToProcessCode(m.messageCode).toString),
+        ByteString(m.asJson.toString()))
     }
 
   private def fakeFlow: Flow[EbMsMessage, MqttMessage, NotUsed] =
@@ -81,6 +83,7 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
     Source.single[String](input)
       .via(decodingFlow)
       .via(prepareMessageFlow)
+      .via(storeMessageFlow)
       .via(
         ActorFlow.ask(parallelism = 1)(tenantService)((msg: EbMsMessage, replyTo: ActorRef[EdaCommand]) =>
           PassEdaCommand(msg.sender, msg, replyTo))(30.seconds).collect {
@@ -92,7 +95,7 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
                 DefaultEbMsMessage.Error("0", err.tenant, err.receiver, err.message, Some(err.step)).asJson.toString())), err.message)
         }
       )
-      .via(storeMessageFlow)
+      .via(responseFlow)
 //      .via(fakeFlow)
       .recover {
         case me: MqttException =>

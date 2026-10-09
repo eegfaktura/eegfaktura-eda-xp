@@ -39,4 +39,35 @@ class MessageHelperSpec extends AnyWordSpec with Matchers {
       MessageHelper.toXmlDateTime(winter).toXMLFormat should endWith("+01:00")
     }
   }
+
+  // platform#111: the sender gets the reason instead of "No XML mapping"; GN needs a label too
+  "getEdaMessageByTypeTry" should {
+    import at.energydash.domain.EbMsMessage
+    import at.energydash.domain.enums.EbMsMessageType
+
+    def request(code: EbMsMessageType.Value, label: Option[String]) = EbMsMessage(
+      conversationId = "RC100001202610090000000000000000001", messageId = Some("RC100001202610090000000000000000002"),
+      sender = "RC100001", receiver = "AT003000", messageCode = code, messageCodeVersion = label,
+      ecId = Some("AT00300000000RC100001000000000001"))
+
+    "name the unknown version label in the failure" in {
+      val result = MessageHelper.getEdaMessageByTypeTry(request(EbMsMessageType.ONLINE_REG_INIT, Some("09.99")))
+      result.isFailure shouldBe true
+      result.failed.get.getMessage should include("09.99")
+      MessageHelper.getEdaMessageByType(request(EbMsMessageType.ONLINE_REG_INIT, Some("09.99"))) shouldBe None
+    }
+    "fail for a message type without a request document" in {
+      MessageHelper.getEdaMessageByTypeTry(request(EbMsMessageType.ZP_LIST_RESPONSE, None)).failed.get.getMessage should
+        include("No XML mapping for message type SENDEN_ECP")
+    }
+    "build ANFORDERUNG_GN only with the label of its body (03.12)" in {
+      MessageHelper.getEdaMessageByTypeTry(request(EbMsMessageType.EEG_BASE_DATA, None)).isFailure shouldBe true
+      MessageHelper.getEdaMessageByTypeTry(request(EbMsMessageType.EEG_BASE_DATA, Some("03.40"))).isFailure shouldBe true
+      MessageHelper.getEdaMessageByTypeTry(request(EbMsMessageType.EEG_BASE_DATA, Some("03.12"))).isSuccess shouldBe true
+    }
+    "keep the GN wire strings after the enum rename" in {
+      EbMsMessageType.EEG_BASE_REJECTION.toString shouldBe "ABLEHNUNG_GN"
+      EbMsMessageType.EEG_BASE_RESPONSE.toString shouldBe "ANTWORT_GN"
+    }
+  }
 }

@@ -45,8 +45,8 @@ object EbMsMessageType extends Enumeration {
   val ZP_LIST_REJECTION: EbMsMessageType.Value = Value("ABLEHNUNG_ECP")
 
   val EEG_BASE_DATA: EbMsMessageType.Value = Value("ANFORDERUNG_GN")
-  val EEG_BASE_RESPONSRE: EbMsMessageType.Value = Value("ABLEHNUNG_GN")
-  val EEG_BASE_REJECTION: EbMsMessageType.Value = Value("ANTWORT_GN")
+  val EEG_BASE_REJECTION: EbMsMessageType.Value = Value("ABLEHNUNG_GN")
+  val EEG_BASE_RESPONSE: EbMsMessageType.Value = Value("ANTWORT_GN")
 
   val ERROR_MESSAGE: EbMsMessageType.Value = Value("ERROR_MESSAGE")
 }
