@@ -60,9 +60,10 @@ class MessageHelperSpec extends AnyWordSpec with Matchers {
       MessageHelper.getEdaMessageByTypeTry(request(EbMsMessageType.ZP_LIST_RESPONSE, None)).failed.get.getMessage should
         include("No XML mapping for message type SENDEN_ECP")
     }
-    "refuse ANFORDERUNG_GN without a label and build it with one" in {
+    "build ANFORDERUNG_GN only with the label of its body (03.12)" in {
       MessageHelper.getEdaMessageByTypeTry(request(EbMsMessageType.EEG_BASE_DATA, None)).isFailure shouldBe true
-      MessageHelper.getEdaMessageByTypeTry(request(EbMsMessageType.EEG_BASE_DATA, Some("03.40"))).isSuccess shouldBe true
+      MessageHelper.getEdaMessageByTypeTry(request(EbMsMessageType.EEG_BASE_DATA, Some("03.40"))).isFailure shouldBe true
+      MessageHelper.getEdaMessageByTypeTry(request(EbMsMessageType.EEG_BASE_DATA, Some("03.12"))).isSuccess shouldBe true
     }
     "keep the GN wire strings after the enum rename" in {
       EbMsMessageType.EEG_BASE_REJECTION.toString shouldBe "ABLEHNUNG_GN"

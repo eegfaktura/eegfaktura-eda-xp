@@ -32,7 +32,8 @@ object MessageHelper {
   /**
    * Extract Message Type for Sending to Marktteilnehmer.
    */
-  def getEdaMessageByType(message: EbMsMessage): Option[EdaXMLMessage[_]] = getEdaMessageByTypeTry(message)
+  // .toOption on purpose (not the implicit toOptionSE): the reason is already logged where it arises
+  def getEdaMessageByType(message: EbMsMessage): Option[EdaXMLMessage[_]] = getEdaMessageByTypeTry(message).toOption
 
   /**
    * Like [[getEdaMessageByType]], but keeps the reason when no document can be built (e.g. the
