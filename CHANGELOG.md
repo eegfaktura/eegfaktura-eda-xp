@@ -8,6 +8,14 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Fixed
+- **Unknown inbound messages no longer block Ponton (261005-ca11, eegfaktura-platform#111).** A
+  message type eda-xp cannot map to a process (e.g. not registered, `ERROR_MESSAGE`) made
+  `/pontonxp/message` answer 500, so Ponton redelivered or parked it forever, and no one was
+  notified. It is now acknowledged (204), logged as ERROR with conversation and receiver, and
+  published to the receiver's `protocol/error` topic, where the backend logs it. A message that
+  cannot be parsed at all is acknowledged as well (ERROR log); it stays in the Ponton messenger.
+
 ## [1.0.8] – 2026-10-08
 
 Fixes from the EDA-XP buglist (eegfaktura-platform#111).
