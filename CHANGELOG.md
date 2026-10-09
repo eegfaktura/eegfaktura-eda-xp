@@ -13,8 +13,10 @@ this changelog highlights the changes relevant for overview and operations.
   message type eda-xp cannot map to a process (e.g. not registered, `ERROR_MESSAGE`) made
   `/pontonxp/message` answer 500, so Ponton redelivered or parked it forever, and no one was
   notified. It is now acknowledged (204), logged as ERROR with conversation and receiver, and
-  published to the receiver's `protocol/error` topic, where the backend logs it. A message that
-  cannot be parsed at all is acknowledged as well (ERROR log); it stays in the Ponton messenger.
+  published to the receiver's `protocol/error` topic, where the backend logs it. The same applies
+  to a known document that cannot be read (e.g. a MessageCode eda-xp does not know yet, a missing
+  element): it becomes an error message for the receiver from the Ponton header, logged with the
+  exception, instead of a 500. Only an unreadable envelope or Ponton header still answers 500.
 
 ## [1.0.8] – 2026-10-08
 

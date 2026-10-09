@@ -47,10 +47,28 @@ object XmlParseHandler {
   }
 
   def reponseEbMsMessage(envelope: Envelope)(implicit ec: ExecutionContext) : Future[EbMsMessage] = {
-    responseInbound(envelope).map(x => mapDataRecordToEbms(
+    responseInbound(envelope).map(x => mapDataRecordToEbmsOrError(
       ParseHeader(x.Header.SenderId, x.Header.ReceiverId, Some(x.Header.ConversationId), Some(x.Header.MessageType)),
       x.Message.inboundmessageoption))
   }
+
+  /**
+   * Like [[mapDataRecordToEbms]], but a document that cannot be read (e.g. a MessageCode unknown
+   * to eda-xp, a missing element) becomes an ERROR_MESSAGE for the receiver from the Ponton header
+   * instead of failing — so the message is neither redelivered forever nor lost silently
+   * (platform#111 ca11).
+   */
+  def mapDataRecordToEbmsOrError(header: ParseHeader, dr: scalaxb.DataRecord[Any]): EbMsMessage =
+    scala.util.Try(mapDataRecordToEbms(header, dr)).recover { case ex =>
+      logger.error(s"Cannot read ${header.MessageType.getOrElse("MISSING")} (conversation ${header.ConversationId.getOrElse("MISSING")}, sender ${header.SenderId}, receiver ${header.ReceiverId})", ex)
+      EbMsMessage(
+        conversationId = header.ConversationId.getOrElse("MISSING"),
+        sender = header.SenderId,
+        receiver = header.ReceiverId,
+        messageCode = EbMsMessageType.ERROR_MESSAGE,
+        errorMessage = Some(s"Cannot read MessageType ${header.MessageType.getOrElse("MISSING")}: ${ex}")
+      )
+    }.get
 
   def mapXmlToEbms(header: ParseHeader, xml: scala.xml.Elem): EbMsMessage = {
     mapDataRecordToEbms(header, scalaxb.DataRecord(scalaxb.ElemName(xml)))

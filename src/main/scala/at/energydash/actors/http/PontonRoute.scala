@@ -83,11 +83,12 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand])(implicit val system: Act
                     mqttPublisher ! MqttPublish(notification :: Nil)
                     complete(HttpResponse(StatusCodes.NoContent))
                   case Failure(ex) =>
-                    // Parsing is deterministic: a 5xx would only make Ponton redeliver the same message
-                    // forever (platform#111 ca11). Acknowledge it; the message stays in the messenger.
-                    logger.error(s"Error while parsing message from edaAdapter, message acknowledged and dropped: ${ex.getMessage}")
+                    // Envelope or Ponton header unreadable: no receiver to notify, so keep the 500 and
+                    // let Ponton hold the message. Unreadable documents are handled in
+                    // XmlParseHandler.mapDataRecordToEbmsOrError (platform#111 ca11).
+                    logger.error("Error while parsing message from edaAdapter", ex)
                     mqttPublisher ! MqttPublishError("NotSpecified", ex.getMessage)
-                    complete(HttpResponse(StatusCodes.NoContent))
+                    complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                   case _ =>
                     logger.error(s"Undefined Error while parsing message from edaAdapter ")
                     complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
