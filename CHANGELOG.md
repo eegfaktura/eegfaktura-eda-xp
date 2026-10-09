@@ -17,6 +17,18 @@ this changelog highlights the changes relevant for overview and operations.
   to a known document that cannot be read (e.g. a MessageCode eda-xp does not know yet, a missing
   element): it becomes an error message for the receiver from the Ponton header, logged with the
   exception, instead of a 500. Only an unreadable envelope or Ponton header still answers 500.
+- **The conversation is stored before a request is sent (261005-ca6).** It used to be stored only
+  after the send succeeded. When the backend's 30 s wait ran out but Ponton still accepted the
+  message, later answers found no conversation and lost ecId, metering point and consent end.
+- **The sender gets the real reason when a request cannot be built** (1.0.8 follow-up), e.g. the
+  unknown version label, instead of "No XML mapping for message type …".
+- **ANFORDERUNG_GN needs a version label** like every other request; without one it went out with
+  header version 01.00 (1.0.8 follow-up).
+
+### Changed
+- The unreachable ECON 01p10 builder is removed (1.0.8 follow-up).
+- GN enum names match their wire strings (261005-ca15): `EEG_BASE_REJECTION` = `ABLEHNUNG_GN`,
+  `EEG_BASE_RESPONSE` = `ANTWORT_GN`. Wire format unchanged.
 
 ## [1.0.8] – 2026-10-08
 
