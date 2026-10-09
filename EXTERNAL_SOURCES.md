@@ -59,6 +59,7 @@ Removed 2026-10-08 (test environment): `slick-testkit` (listed twice), `h2`, `fl
 | Trivy (release binary) | 0.75.0 (2026-10-01), SHA-256 checked | Apache-2.0 | CI `security-scan.yml`: secrets, vulnerabilities, misconfigurations | open |
 | OSV-Scanner (release binary) | 2.6.0 (2026-09-14), SHA-256 checked | Apache-2.0 | CI `security-scan.yml`: vulnerable dependencies (from the pom `sbt makePom` exports) | open |
 | Gitleaks (release binary) | 8.30.1 (2026-03-21), SHA-256 checked | MIT | CI `security-scan.yml`: secrets in the new commits | open |
+| actions/download-artifact | v8.0.1 `3e5f45b…` (2026-03-11) | MIT | CI `security-scan.yml`: hands the `sbt makePom` poms to the scan job | open |
 | Temurin JDK via actions/setup-java (`pr-checks.yml`, `security-scan.yml`) | 17.0.19+10 | GPL-2.0 with Classpath Exception | CI | open |
 
 ## Specifications and test data
