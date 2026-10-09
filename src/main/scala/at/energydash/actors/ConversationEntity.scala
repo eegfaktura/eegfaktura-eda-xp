@@ -75,13 +75,11 @@ object ConversationEntity {
 
       Behaviors.receiveMessage {
         case InitConversation(message, replyTo) =>
-          conversationRepo.create(message) onComplete {
-            case Success(_) => replyTo ! InitDone(message)
-            case Failure(e) => {
-              logger.error(s"${e.getMessage}")
-              replyTo ! InitDone(message)
-            }
-          }
+          // Reply at once: the request is sent right after this (platform#111 ca6), and a slow
+          // or failing insert must not delay or block the send. Answers arrive minutes later.
+          conversationRepo.create(message).failed.foreach(e =>
+            logger.error(s"Cannot store conversation ${message.conversationId}: ${e.getMessage}"))
+          replyTo ! InitDone(message)
           Behaviors.same
         case MergeConversation(message, replyTo) =>
           merge(message) onComplete {

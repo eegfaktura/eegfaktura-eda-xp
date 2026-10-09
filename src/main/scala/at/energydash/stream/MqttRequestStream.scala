@@ -58,7 +58,9 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
 
   // Store the conversation BEFORE sending (platform#111 ca6): if the send times out on our side
   // but Ponton accepted the message, later answers still find their request and get ecId, meter
-  // and consent end merged. A failed store is logged and does not block the send.
+  // and consent end merged. ConversationEntity replies before the insert completes, so a slow or
+  // failing DB neither delays nor blocks the send. A request that is then not sent (unknown label,
+  // send error) leaves a conversation row behind; it is never matched by an answer.
   private val storeMessageFlow: Flow[EbMsMessage, EbMsMessage, NotUsed] =
     ActorFlow.ask(conversationEntity)(InitConversation).collect {
       case InitDone(message) => message
