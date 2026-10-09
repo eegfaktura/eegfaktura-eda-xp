@@ -8,6 +8,10 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### CI
+- `pr-checks.yml`: unit tests and the full test suite on every pull request (unit = the suite without the `Slow` tag; full = `test.yml` (coverage and floors)).
+- `security-scan.yml`: leaked secrets in the new commits (Gitleaks, Trivy), vulnerable dependencies (Trivy, OSV-Scanner) and misconfigurations (Trivy). A pull request fails on what it adds; pushes to the default branch and a weekly run fail on every HIGH/CRITICAL finding. Scanners are fixed versions checked by SHA-256, each release at least 7 days old; actions pinned by commit SHA.
+
 ### Tests
 - **Tests gate the image:** `rolling-release.yml` runs the new `test.yml` (suite + coverage floors) before
   the image job; a red test no longer ships.
