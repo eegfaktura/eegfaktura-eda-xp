@@ -8,6 +8,9 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### CI
+- `rolling-release.yml`: no image build on a draft pull request — it runs when the pull request is marked ready for review (`ready_for_review`) and on every later push to it; `pr-checks.yml` still checks drafts. Pushes, tags and the deploy dispatch are unchanged.
+
 ### Tests
 - **Coverage floors gate the image:** `test.yml` (run by `rolling-release.yml` before the image job since
   1.1.0) also checks the coverage floors per package; falling below one stops the image like a red test.
