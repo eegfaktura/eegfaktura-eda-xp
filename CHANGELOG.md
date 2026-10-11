@@ -19,15 +19,15 @@ this changelog highlights the changes relevant for overview and operations.
   processes it with its own database. Ponton gets 204 only when the other adapter answered 2xx; an
   error, an unreachable target or no answer within 10 s (`app.forward-timeout`; normally below the server's
   20 s request timeout; Ponton waits 30 s) gives 500, so Ponton keeps the message and redelivers it — at least once, as
-  Ponton's own redelivery: a target that answers after the timeout can see a message twice. `/status`
+  Ponton's own redelivery: a target that finishes after the timeout processes the message, and Ponton's redelivery a second time. `/status`
   and `/notification` are not forwarded (they are only logged); a failed forward publishes no MQTT
   error, because this zone's backend no longer owns the community. Loop guard: forwarded requests
   carry `X-Eegfaktura-Forwarded` and are refused (500) by an adapter that would forward them again.
   An entry that is not an absolute http(s) URL with a host, or the same RC number twice, stops the start.
   **Empty by default — the message route is then exactly the previous one (no read deadline, no size
-  cap); with entries, every message is read completely (no size cap) and must arrive within 5 s
+  cap); with entries, every message is read completely (no size cap) and must arrive within 8 s
   (`app.forward-read-timeout`).** Both deadlines can be raised without a release
-  (`FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`); a loop shows up as ERROR lines
+  (`FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, with unit, e.g. `15s`; below 1 s stops the start); a loop shows up as ERROR lines
   `arrived already forwarded` (README).
 
 ## [1.0.8] – 2026-10-11

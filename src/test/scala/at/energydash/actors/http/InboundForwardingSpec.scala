@@ -47,17 +47,18 @@ class InboundForwardingSpec extends AnyWordSpec with Matchers {
   }
 
   "timeouts" should {
-    "default to 5 s read and 10 s answer (reference.conf, and without the keys)" in {
-      InboundForwarding.timeouts(ConfigFactory.defaultReference()) shouldBe InboundForwarding.Timeouts(5.seconds, 10.seconds)
-      InboundForwarding.timeouts(ConfigFactory.parseString("app {}")) shouldBe InboundForwarding.Timeouts(5.seconds, 10.seconds)
+    "default to 8 s read and 10 s answer (reference.conf, and without the keys)" in {
+      InboundForwarding.timeouts(ConfigFactory.defaultReference()) shouldBe InboundForwarding.Timeouts(8.seconds, 10.seconds)
+      InboundForwarding.timeouts(ConfigFactory.parseString("app {}")) shouldBe InboundForwarding.Timeouts(8.seconds, 10.seconds)
     }
     "take configured values" in {
       val cfg = ConfigFactory.parseString("app { forward-read-timeout = 12s, forward-timeout = 3500ms }")
       InboundForwarding.timeouts(cfg) shouldBe InboundForwarding.Timeouts(12.seconds, 3500.millis)
     }
-    "refuse zero or negative values" in {
+    "refuse values below 1 s, also a bare number (milliseconds in HOCON)" in {
       an[IllegalArgumentException] should be thrownBy InboundForwarding.timeouts(ConfigFactory.parseString("app.forward-read-timeout = 0s"))
       an[IllegalArgumentException] should be thrownBy InboundForwarding.timeouts(ConfigFactory.parseString("app.forward-timeout = -1s"))
+      an[IllegalArgumentException] should be thrownBy InboundForwarding.timeouts(ConfigFactory.parseString("app.forward-timeout = 10"))
     }
   }
 

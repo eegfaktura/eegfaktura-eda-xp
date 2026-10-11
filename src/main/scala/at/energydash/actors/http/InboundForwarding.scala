@@ -30,25 +30,26 @@ object InboundForwarding {
   final case class Timeouts(read: FiniteDuration, forward: FiniteDuration)
 
   /**
-   * `app.forward-read-timeout` / `app.forward-timeout` (env FORWARD_READ_TIMEOUT / FORWARD_TIMEOUT);
-   * the defaults when unset. Zero or negative stops the start.
+   * `app.forward-read-timeout` / `app.forward-timeout` (env FORWARD_READ_TIMEOUT / FORWARD_TIMEOUT,
+   * with unit, e.g. `15s`); the defaults when unset. Below 1 s stops the start: HOCON reads a number
+   * without unit as milliseconds, so `FORWARD_TIMEOUT=10` would otherwise mean 10 ms.
    */
   def timeouts(config: TsConfig): Timeouts = {
     def duration(path: String, default: FiniteDuration): FiniteDuration =
       if (config.hasPath(path)) config.getDuration(path).toMillis.millis else default
     val t = Timeouts(duration("app.forward-read-timeout", DefaultReadTimeout),
                      duration("app.forward-timeout", DefaultForwardTimeout))
-    if (t.read <= Duration.Zero || t.forward <= Duration.Zero)
-      throw new IllegalArgumentException(s"app.forward-read-timeout and app.forward-timeout must be positive: $t")
+    if (t.read < 1.second || t.forward < 1.second)
+      throw new IllegalArgumentException(s"app.forward-read-timeout and app.forward-timeout must be at least 1s (give a unit, e.g. 10s): $t")
     t
   }
 
-  val DefaultReadTimeout: FiniteDuration = 5.seconds
+  val DefaultReadTimeout: FiniteDuration = 8.seconds
   val DefaultForwardTimeout: FiniteDuration = 10.seconds
 
-  /** ReceiverId of the Ponton InboundDocument header, without parsing the message body. */
+  /** ReceiverId of the Ponton InboundDocument header (Envelope/Body/InboundDocument/Header), a direct path. */
   def receiverOf(envelope: NodeSeq): Option[String] =
-    (envelope \\ "InboundDocument" \ "Header" \ "ReceiverId").headOption.map(_.text.trim).filter(_.nonEmpty)
+    (envelope \ "Body" \ "InboundDocument" \ "Header" \ "ReceiverId").headOption.map(_.text.trim).filter(_.nonEmpty)
 
   /**
    * `app.forward`: RC number (the Ponton ReceiverId, not the tenant — all GEA tenants of one RC number

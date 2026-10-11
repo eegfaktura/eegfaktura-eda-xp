@@ -25,8 +25,8 @@ import scala.xml.NodeSeq
 
 class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                   forwardTargets: Map[String, Uri] = Map.empty,
-                  forwardTimeout: FiniteDuration = PontonRoute.ForwardTimeout,
-                  readTimeout: FiniteDuration = PontonRoute.StrictEntityTimeout)(implicit val system: ActorSystem[_]) {
+                  forwardTimeout: FiniteDuration = InboundForwarding.DefaultForwardTimeout,
+                  readTimeout: FiniteDuration = InboundForwarding.DefaultReadTimeout)(implicit val system: ActorSystem[_]) {
 
   implicit val timeout: Timeout = 3.seconds
   implicit val scheduler: Scheduler = system.scheduler
@@ -37,20 +37,28 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
   logger.debug("Start Ponton Routes ...")
   if (forwardTargets.nonEmpty) {
     logger.info(s"Inbound messages forwarded to another zone for: ${forwardTargets.map { case (rc, uri) => s"$rc -> $uri" }.mkString(", ")} (read within $readTimeout, answer within $forwardTimeout)")
-    val serverTimeout = system.settings.config.getDuration("pekko.http.server.request-timeout").toMillis.millis
-    if (readTimeout + forwardTimeout >= serverTimeout)
-      logger.warn(s"app.forward-read-timeout + app.forward-timeout ($readTimeout + $forwardTimeout) reach pekko.http.server.request-timeout ($serverTimeout): the server's 503 can answer before the forward result")
+    // `infinite` is a valid request-timeout and has no Duration: then nothing to warn about
+    val serverTimeout = Try(system.settings.config.getDuration("pekko.http.server.request-timeout").toMillis.millis).toOption
+    if (serverTimeout.exists(readTimeout + forwardTimeout >= _))
+      logger.warn(s"app.forward-read-timeout + app.forward-timeout ($readTimeout + $forwardTimeout) reach pekko.http.server.request-timeout (${serverTimeout.get}): the server's 503 can answer before the forward result")
   }
 
   /**
    * Hands an inbound message on unchanged (body, content type, SOAPAction) to the adapter of the
    * zone the community moved to. Its status decides what Ponton gets back: anything but 2xx, or no
-   * answer within forwardTimeout, fails the request so Ponton redelivers (at-least-once, as Ponton's
-   * own redelivery already is: a target that answers after the timeout may see the message twice).
+   * answer within forwardTimeout, fails the request so Ponton redelivers (at-least-once). The request
+   * to the target is not cancelled on timeout: a target that finishes after it processes the message,
+   * and then Ponton's redelivery a second time (an extra history/notification row in its backend,
+   * energy slots overwritten with the same values).
    * The client connection gets the same idle timeout, so a hanging target does not keep pool slots.
+   * Time waiting in the pool queue counts against forwardTimeout, so the pool is sized for a burst of
+   * energy data (pekko's default is 4 connections / 32 queued requests).
    */
   private val forwardPool: ConnectionPoolSettings =
-    ConnectionPoolSettings(system).withConnectionSettings(ClientConnectionSettings(system).withIdleTimeout(forwardTimeout))
+    ConnectionPoolSettings(system)
+      .withMaxConnections(16)
+      .withMaxOpenRequests(256)
+      .withConnectionSettings(ClientConnectionSettings(system).withIdleTimeout(forwardTimeout))
 
   private def forward(target: Uri, request: HttpRequest): Future[StatusCode] = {
     val headers = request.headers.filter(_.is("soapaction")) :+ RawHeader(InboundForwarding.ForwardedHeader, "true")
@@ -176,16 +184,14 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
 object PontonRoute {
   val ErrorProtocol = "ERROR"
 
-  /**
-   * Defaults of app.forward-read-timeout / app.forward-timeout. Reading the body, parsing it and
-   * forwarding normally stay below the server's request-timeout (pekko default 20 s, counted from the
-   * start of the request), so the forward result decides the answer; the route warns at start when the
-   * configured values reach it. A very large, slowly read body can still run into the server's own 503;
-   * Ponton then redelivers as well (at-least-once). Ponton's EDA add-on waits 30 s
+  /*
+   * Deadlines: app.forward-read-timeout / app.forward-timeout (InboundForwarding.timeouts). Reading the
+   * body, parsing it and forwarding normally stay below the server's request-timeout (pekko default
+   * 20 s, counted from the start of the request), so the forward result decides the answer; the route
+   * warns at start when the configured values reach it. A very large, slowly read body can still run
+   * into the server's own 503; Ponton then redelivers as well. Ponton's EDA add-on waits 30 s
    * (eda.adapter.httpclient_timeout).
    */
-  val StrictEntityTimeout: FiniteDuration = InboundForwarding.DefaultReadTimeout
-  val ForwardTimeout: FiniteDuration = InboundForwarding.DefaultForwardTimeout
 
   /**
    * MQTT notification for an inbound message. Messages without a process mapping (unknown or

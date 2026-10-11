@@ -99,9 +99,14 @@ object SupervisorActor {
 
       val mqttRequestStream = MqttRequestStream(tenantProvider, messageTransformer, conversationEntity)
 
-      val forwarding = InboundForwarding.timeouts(Config.config)
-      val routes = new PontonRoute(mqttPublisher, InboundForwarding.targets(Config.config),
-                                   forwardTimeout = forwarding.forward, readTimeout = forwarding.read)
+      val targets = InboundForwarding.targets(Config.config)
+      // deadlines only matter (and are only checked) when something is forwarded
+      val routes =
+        if (targets.isEmpty) new PontonRoute(mqttPublisher)
+        else {
+          val deadlines = InboundForwarding.timeouts(Config.config)
+          new PontonRoute(mqttPublisher, targets, forwardTimeout = deadlines.forward, readTimeout = deadlines.read)
+        }
       val fileService = FileService(system, mqttPublisher)
       val adminRoutes = new ServiceRoute(fileService)
       //      val pontonPublisher = ctx.spawn(PontonService(), name = "ponton-service")
