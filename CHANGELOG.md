@@ -8,6 +8,8 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.0.9] – 2026-10-11
+
 ### Added
 - **Forward inbound messages of a community that moved to another zone** (e.g. the pilot zone:
   the community's Ponton agreements stay on the prod adapter, which hands its messages on). Ponton's EDA
