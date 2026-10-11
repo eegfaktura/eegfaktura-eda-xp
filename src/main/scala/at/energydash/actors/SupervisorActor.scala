@@ -8,7 +8,7 @@ import org.apache.pekko.http.scaladsl.{ConnectionContext, Http, HttpsConnectionC
 import org.apache.pekko.pki.pem.{DERPrivateKeyLoader, PEMDecoder}
 import org.apache.pekko.util.Timeout
 import at.energydash.actors.TenantProvider.TenantStart
-import at.energydash.actors.http.{PontonRoute, ServiceRoute}
+import at.energydash.actors.http.{InboundForwarding, PontonRoute, ServiceRoute}
 import at.energydash.config.Config
 import at.energydash.mqtt.MqttSystem
 import at.energydash.service.FileService
@@ -99,7 +99,7 @@ object SupervisorActor {
 
       val mqttRequestStream = MqttRequestStream(tenantProvider, messageTransformer, conversationEntity)
 
-      val routes = new PontonRoute(mqttPublisher)
+      val routes = new PontonRoute(mqttPublisher, InboundForwarding.targets(Config.config))
       val fileService = FileService(system, mqttPublisher)
       val adminRoutes = new ServiceRoute(fileService)
       //      val pontonPublisher = ctx.spawn(PontonService(), name = "ponton-service")

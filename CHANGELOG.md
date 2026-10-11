@@ -8,6 +8,19 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Added
+- **Forward inbound messages of a community that moved to another zone** (pilot zone,
+  `konzept-eeg-umzug-pilot.md`). Ponton's EDA add-on delivers every inbound message to one backend
+  URL and cannot run a second instance (tried on 2026-10-11), so the split happens here: new config
+  `app.forward` (RC number → URL of the other adapter's `/pontonxp/message`). A message whose Ponton
+  header ReceiverId is listed is handed on unchanged and not processed or published here; the other
+  adapter processes it with its own database. Ponton gets 204 only when the other adapter answered
+  2xx; an error, an unreachable target or no answer within 20 s (Ponton waits 30 s) gives 500, so
+  Ponton keeps the message and redelivers it. `/status` and `/notification` are not forwarded (they
+  are only logged). Loop guard: forwarded requests carry `X-Eegfaktura-Forwarded` and are refused
+  (500) by an adapter that would forward them again. **Empty by default — no behaviour change until
+  an entry is configured.**
+
 ### Fixed
 - **Unknown inbound messages no longer block Ponton (261005-ca11, eegfaktura-platform#111).** A
   message type eda-xp cannot map to a process (e.g. not registered, `ERROR_MESSAGE`) made
