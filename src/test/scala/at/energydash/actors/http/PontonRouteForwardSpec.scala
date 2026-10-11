@@ -31,8 +31,9 @@ class PontonRouteForwardSpec extends ScalaTestWithActorTestKit with AnyWordSpecL
   /** Stand-in for the pilot adapter: records requests, answers with the given status after the given delay. */
   private def withTarget[T](status: StatusCode, delay: FiniteDuration = Duration.Zero)(test: Target => T): T = {
     val received = new ConcurrentLinkedQueue[Received]()
+    // no size limit, like the real target adapter with an empty app.forward
     val route = path("pontonxp" / "message") {
-      post {
+      (post & withoutSizeLimit) {
         extractRequest { req =>
           entity(as[String]) { body =>
             received.add(Received(body, req.headers))
@@ -140,6 +141,20 @@ class PontonRouteForwardSpec extends ScalaTestWithActorTestKit with AnyWordSpecL
       withAdapter(Map.empty, probe) { uri =>
         send(uri, body = largeEnvelope) shouldBe StatusCodes.NoContent
         probe.expectMessageType[MqttPublish](10.seconds)
+      }
+    }
+
+    "forward a message over 8 MiB for a listed receiver unchanged" in {
+      val probe = createTestProbe[MqttCommand]()
+      withTarget(StatusCodes.NoContent) { target =>
+        withAdapter(Map("RC100181" -> target.uri), probe) { uri =>
+          send(uri, body = largeEnvelope) shouldBe StatusCodes.NoContent
+          val got = target.received.asScala.toList
+          got should have size 1
+          got.head.body.length shouldBe largeEnvelope.length
+          got.head.body shouldBe largeEnvelope
+          probe.expectNoMessage(300.millis)
+        }
       }
     }
 

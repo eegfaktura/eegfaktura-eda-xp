@@ -122,11 +122,12 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
           post {
             withoutSizeLimit {
               if (forwardTargets.isEmpty)
-                // no community forwarded: exactly the previous route (streamed body, no size cap)
+                // no community forwarded: exactly the previous route (no read deadline, no size cap)
                 entity(as[NodeSeq])(processLocally)
               else
                 // strict, so the unchanged body can be forwarded after reading the receiver; no size
-                // cap (the default max-to-strict-bytes of 8 MiB would reject large energy data)
+                // cap (the default max-to-strict-bytes of 8 MiB would reject large energy data), but
+                // every message, forwarded or not, must arrive within StrictEntityTimeout
                 toStrictEntity(PontonRoute.StrictEntityTimeout, Long.MaxValue) {
                   extractRequest { request =>
                     entity(as[NodeSeq]) { response =>
@@ -171,13 +172,14 @@ object PontonRoute {
   val ErrorProtocol = "ERROR"
 
   /**
-   * Both stay below the server's request-timeout (pekko default 20 s, counted from the start of the
-   * request): reading the body from Ponton on the LAN takes well under StrictEntityTimeout, so the
-   * forward result, not the server's 503, decides the answer. Ponton's EDA add-on waits 30 s
+   * Reading the body (StrictEntityTimeout), parsing it and forwarding (ForwardTimeout) normally stay
+   * below the server's request-timeout (pekko default 20 s, counted from the start of the request),
+   * so the forward result decides the answer. A very large, slowly read body can still run into the
+   * server's own 503; Ponton then redelivers as well (at-least-once). Ponton's EDA add-on waits 30 s
    * (eda.adapter.httpclient_timeout).
    */
   val StrictEntityTimeout: FiniteDuration = 5.seconds
-  val ForwardTimeout: FiniteDuration = 12.seconds
+  val ForwardTimeout: FiniteDuration = 10.seconds
 
   /**
    * MQTT notification for an inbound message. Messages without a process mapping (unknown or

@@ -37,6 +37,7 @@ class InboundForwardingSpec extends AnyWordSpec with Matchers {
       an[IllegalArgumentException] should be thrownBy InboundForwarding.targets(ConfigFactory.parseString("""app.forward { CC100153 = "" }"""))
       an[IllegalArgumentException] should be thrownBy InboundForwarding.targets(ConfigFactory.parseString("""app.forward { CC100153 = "/pontonxp/message" }"""))
       an[IllegalArgumentException] should be thrownBy InboundForwarding.targets(ConfigFactory.parseString("""app.forward { CC100153 = "ftp://x/pontonxp/message" }"""))
+      an[IllegalArgumentException] should be thrownBy InboundForwarding.targets(ConfigFactory.parseString("""app.forward { CC100153 = "http:/xp-adapter:6090/pontonxp/message" }"""))
     }
     "refuse keys that differ only in case" in {
       val cfg = ConfigFactory.parseString("""app.forward { CC100153 = "http://a:6090/m", cc100153 = "http://b:6090/m" }""")

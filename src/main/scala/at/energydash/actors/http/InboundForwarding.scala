@@ -3,6 +3,7 @@ package at.energydash.actors.http
 import com.typesafe.config.{Config => TsConfig}
 import org.apache.pekko.http.scaladsl.model.Uri
 
+import java.util.Locale
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 import scala.xml.NodeSeq
@@ -39,9 +40,9 @@ object InboundForwarding {
       val forward = config.getConfig("app.forward")
       val entries = forward.root().keySet().asScala.toSeq.map { key =>
         val raw = forward.getString(s"\"$key\"")
-        val uri = Try(Uri(raw)).filter(u => u.isAbsolute && Set("http", "https").contains(u.scheme))
+        val uri = Try(Uri(raw)).filter(u => u.isAbsolute && Set("http", "https").contains(u.scheme) && u.authority.host.address.nonEmpty)
           .getOrElse(throw new IllegalArgumentException(s"app.forward.$key must be an absolute http(s) URL, got '$raw'"))
-        key.trim.toUpperCase -> uri
+        key.trim.toUpperCase(Locale.ROOT) -> uri
       }
       entries.groupBy(_._1).collectFirst { case (rc, dup) if dup.size > 1 => rc }.foreach { rc =>
         throw new IllegalArgumentException(s"app.forward lists $rc more than once (keys differ only in case)")
@@ -50,7 +51,7 @@ object InboundForwarding {
     }
 
   def decide(targets: Map[String, Uri], receiver: Option[String], alreadyForwarded: Boolean): Decision =
-    receiver.map(_.trim.toUpperCase).flatMap(rc => targets.get(rc).map(rc -> _)) match {
+    receiver.map(_.trim.toUpperCase(Locale.ROOT)).flatMap(rc => targets.get(rc).map(rc -> _)) match {
       case Some((rc, target)) if alreadyForwarded => Loop(rc, target)
       case Some((rc, target)) => Forward(rc, target)
       case None => Local

@@ -70,10 +70,11 @@ docker run -p 6090:6090 -p 9093:9093 \
   other adapter's /pontonxp/message"`. The key is the RC number in the Ponton header ReceiverId, not the
   tenant: all GEA tenants of one RC number move together. Inbound Ponton messages whose ReceiverId is
   listed are forwarded unchanged (body, content type, SOAPAction) instead of being processed here; the
-  other adapter's answer decides what Ponton gets (2xx → 204, anything else or no answer within 12 s →
+  other adapter's answer decides what Ponton gets (2xx → 204, anything else or no answer within 10 s →
   500, so Ponton redelivers — at least once, like Ponton itself: a target that answers after the
-  timeout can see a message twice). Empty by default: the route is then exactly the previous one.
-  An entry that is not an absolute http(s) URL, or the same RC number twice, stops the start.
+  timeout can see a message twice). Empty by default: the route is then exactly the previous one. With entries, every message
+  (forwarded or not) is read completely, without size cap, and must arrive within 5 s.
+  An entry that is not an absolute http(s) URL with a host, or the same RC number twice, stops the start.
   `/status` and `/notification` are not forwarded (only logged). A forwarded request carries
   `X-Eegfaktura-Forwarded`; an adapter that would forward it again refuses it (500) to avoid a loop.
 - `epmsmail.*` — IMAP/SMTP accounts for EDA-over-email

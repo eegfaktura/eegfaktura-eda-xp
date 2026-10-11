@@ -16,15 +16,15 @@ this changelog highlights the changes relevant for overview and operations.
   tenant, so all GEA tenants of one RC number move together). A message whose Ponton header
   ReceiverId is listed is handed on unchanged and not processed or published here; the other adapter
   processes it with its own database. Ponton gets 204 only when the other adapter answered 2xx; an
-  error, an unreachable target or no answer within 12 s (below the server's 20 s request timeout;
+  error, an unreachable target or no answer within 10 s (normally below the server's 20 s request timeout;
   Ponton waits 30 s) gives 500, so Ponton keeps the message and redelivers it — at least once, as
   Ponton's own redelivery: a target that answers after the timeout can see a message twice. `/status`
   and `/notification` are not forwarded (they are only logged); a failed forward publishes no MQTT
   error, because this zone's backend no longer owns the community. Loop guard: forwarded requests
   carry `X-Eegfaktura-Forwarded` and are refused (500) by an adapter that would forward them again.
-  An entry that is not an absolute http(s) URL, or the same RC number twice, stops the start.
-  **Empty by default — the message route is then exactly the previous one (streamed, no size cap);
-  with entries, bodies are read completely (no size cap either) to forward them unchanged.**
+  An entry that is not an absolute http(s) URL with a host, or the same RC number twice, stops the start.
+  **Empty by default — the message route is then exactly the previous one (no read deadline, no size
+  cap); with entries, every message is read completely (no size cap) and must arrive within 5 s.**
 
 ### Fixed
 - **Unknown inbound messages no longer block Ponton (261005-ca11, eegfaktura-platform#111).** A
