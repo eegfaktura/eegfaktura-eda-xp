@@ -5,6 +5,7 @@ import org.apache.pekko.http.scaladsl.model.Uri
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import scala.concurrent.duration._
 import scala.xml.XML
 
 class InboundForwardingSpec extends AnyWordSpec with Matchers {
@@ -42,6 +43,21 @@ class InboundForwardingSpec extends AnyWordSpec with Matchers {
     "refuse keys that differ only in case" in {
       val cfg = ConfigFactory.parseString("""app.forward { CC100153 = "http://a:6090/m", cc100153 = "http://b:6090/m" }""")
       an[IllegalArgumentException] should be thrownBy InboundForwarding.targets(cfg)
+    }
+  }
+
+  "timeouts" should {
+    "default to 5 s read and 10 s answer (reference.conf, and without the keys)" in {
+      InboundForwarding.timeouts(ConfigFactory.defaultReference()) shouldBe InboundForwarding.Timeouts(5.seconds, 10.seconds)
+      InboundForwarding.timeouts(ConfigFactory.parseString("app {}")) shouldBe InboundForwarding.Timeouts(5.seconds, 10.seconds)
+    }
+    "take configured values" in {
+      val cfg = ConfigFactory.parseString("app { forward-read-timeout = 12s, forward-timeout = 3500ms }")
+      InboundForwarding.timeouts(cfg) shouldBe InboundForwarding.Timeouts(12.seconds, 3500.millis)
+    }
+    "refuse zero or negative values" in {
+      an[IllegalArgumentException] should be thrownBy InboundForwarding.timeouts(ConfigFactory.parseString("app.forward-read-timeout = 0s"))
+      an[IllegalArgumentException] should be thrownBy InboundForwarding.timeouts(ConfigFactory.parseString("app.forward-timeout = -1s"))
     }
   }
 

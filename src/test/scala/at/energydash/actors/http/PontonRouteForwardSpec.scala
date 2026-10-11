@@ -14,8 +14,9 @@ import scala.concurrent.{Await, Future}
 import scala.io.Source
 import scala.jdk.CollectionConverters._
 
-// konzept-eeg-umzug-pilot.md, "Weg B": inbound messages for a moved community go unchanged to the other zone
+// A community moved to another zone: its inbound messages go unchanged to that zone's adapter
 class PontonRouteForwardSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
+  import PontonRouteForwardSpec._
 
   private implicit val ec: scala.concurrent.ExecutionContext = system.executionContext
 
@@ -25,8 +26,6 @@ class PontonRouteForwardSpec extends ScalaTestWithActorTestKit with AnyWordSpecL
   private val soapAction = RawHeader("SOAPAction", "http://xp.ponton.de/eda/v320/inboundDocument")
   private val forwardedHeader = RawHeader(InboundForwarding.ForwardedHeader, "true")
 
-  private final case class Received(body: String, headers: Seq[HttpHeader])
-  private final case class Target(uri: Uri, received: ConcurrentLinkedQueue[Received])
 
   /** Stand-in for the pilot adapter: records requests, answers with the given status after the given delay. */
   private def withTarget[T](status: StatusCode, delay: FiniteDuration = Duration.Zero)(test: Target => T): T = {
@@ -166,4 +165,10 @@ class PontonRouteForwardSpec extends ScalaTestWithActorTestKit with AnyWordSpecL
       }
     }
   }
+}
+
+object PontonRouteForwardSpec {
+  // top level of the companion, not inside the class: no outer reference in the pattern match
+  final case class Received(body: String, headers: Seq[HttpHeader])
+  final case class Target(uri: Uri, received: ConcurrentLinkedQueue[Received])
 }

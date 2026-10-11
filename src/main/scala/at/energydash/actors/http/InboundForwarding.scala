@@ -4,6 +4,7 @@ import com.typesafe.config.{Config => TsConfig}
 import org.apache.pekko.http.scaladsl.model.Uri
 
 import java.util.Locale
+import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 import scala.xml.NodeSeq
@@ -12,7 +13,8 @@ import scala.xml.NodeSeq
  * Inbound messages for communities that moved to another zone (e.g. the pilot) are handed on
  * unchanged to that zone's adapter instead of being processed here. Ponton's EDA add-on delivers
  * every inbound message to one backend URL, so the zone split happens in this adapter, by the
- * ReceiverId of the Ponton header (konzept-eeg-umzug-pilot.md, "Weg B").
+ * ReceiverId of the Ponton header: the moved community's Ponton agreements keep pointing at the
+ * adapter of its old zone, which hands its messages on unchanged.
  */
 object InboundForwarding {
 
@@ -23,6 +25,26 @@ object InboundForwarding {
   case object Local extends Decision
   final case class Forward(receiver: String, target: Uri) extends Decision
   final case class Loop(receiver: String, target: Uri) extends Decision
+
+  /** Deadlines of the forwarding route: body read (every message) and target answer. */
+  final case class Timeouts(read: FiniteDuration, forward: FiniteDuration)
+
+  /**
+   * `app.forward-read-timeout` / `app.forward-timeout` (env FORWARD_READ_TIMEOUT / FORWARD_TIMEOUT);
+   * the defaults when unset. Zero or negative stops the start.
+   */
+  def timeouts(config: TsConfig): Timeouts = {
+    def duration(path: String, default: FiniteDuration): FiniteDuration =
+      if (config.hasPath(path)) config.getDuration(path).toMillis.millis else default
+    val t = Timeouts(duration("app.forward-read-timeout", DefaultReadTimeout),
+                     duration("app.forward-timeout", DefaultForwardTimeout))
+    if (t.read <= Duration.Zero || t.forward <= Duration.Zero)
+      throw new IllegalArgumentException(s"app.forward-read-timeout and app.forward-timeout must be positive: $t")
+    t
+  }
+
+  val DefaultReadTimeout: FiniteDuration = 5.seconds
+  val DefaultForwardTimeout: FiniteDuration = 10.seconds
 
   /** ReceiverId of the Ponton InboundDocument header, without parsing the message body. */
   def receiverOf(envelope: NodeSeq): Option[String] =

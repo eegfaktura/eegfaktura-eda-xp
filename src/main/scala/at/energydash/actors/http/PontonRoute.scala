@@ -17,7 +17,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import soapenvelope11.Envelope
 
 import java.util.concurrent.TimeoutException
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
@@ -25,7 +25,8 @@ import scala.xml.NodeSeq
 
 class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                   forwardTargets: Map[String, Uri] = Map.empty,
-                  forwardTimeout: FiniteDuration = PontonRoute.ForwardTimeout)(implicit val system: ActorSystem[_]) {
+                  forwardTimeout: FiniteDuration = PontonRoute.ForwardTimeout,
+                  readTimeout: FiniteDuration = PontonRoute.StrictEntityTimeout)(implicit val system: ActorSystem[_]) {
 
   implicit val timeout: Timeout = 3.seconds
   implicit val scheduler: Scheduler = system.scheduler
@@ -34,8 +35,12 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
   var logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   logger.debug("Start Ponton Routes ...")
-  if (forwardTargets.nonEmpty)
-    logger.info(s"Inbound messages forwarded to another zone for: ${forwardTargets.map { case (rc, uri) => s"$rc -> $uri" }.mkString(", ")}")
+  if (forwardTargets.nonEmpty) {
+    logger.info(s"Inbound messages forwarded to another zone for: ${forwardTargets.map { case (rc, uri) => s"$rc -> $uri" }.mkString(", ")} (read within $readTimeout, answer within $forwardTimeout)")
+    val serverTimeout = system.settings.config.getDuration("pekko.http.server.request-timeout").toMillis.millis
+    if (readTimeout + forwardTimeout >= serverTimeout)
+      logger.warn(s"app.forward-read-timeout + app.forward-timeout ($readTimeout + $forwardTimeout) reach pekko.http.server.request-timeout ($serverTimeout): the server's 503 can answer before the forward result")
+  }
 
   /**
    * Hands an inbound message on unchanged (body, content type, SOAPAction) to the adapter of the
@@ -127,8 +132,8 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
               else
                 // strict, so the unchanged body can be forwarded after reading the receiver; no size
                 // cap (the default max-to-strict-bytes of 8 MiB would reject large energy data), but
-                // every message, forwarded or not, must arrive within StrictEntityTimeout
-                toStrictEntity(PontonRoute.StrictEntityTimeout, Long.MaxValue) {
+                // every message, forwarded or not, must arrive within readTimeout
+                toStrictEntity(readTimeout, Long.MaxValue) {
                   extractRequest { request =>
                     entity(as[NodeSeq]) { response =>
                       val receiver = InboundForwarding.receiverOf(response)
@@ -172,14 +177,15 @@ object PontonRoute {
   val ErrorProtocol = "ERROR"
 
   /**
-   * Reading the body (StrictEntityTimeout), parsing it and forwarding (ForwardTimeout) normally stay
-   * below the server's request-timeout (pekko default 20 s, counted from the start of the request),
-   * so the forward result decides the answer. A very large, slowly read body can still run into the
-   * server's own 503; Ponton then redelivers as well (at-least-once). Ponton's EDA add-on waits 30 s
+   * Defaults of app.forward-read-timeout / app.forward-timeout. Reading the body, parsing it and
+   * forwarding normally stay below the server's request-timeout (pekko default 20 s, counted from the
+   * start of the request), so the forward result decides the answer; the route warns at start when the
+   * configured values reach it. A very large, slowly read body can still run into the server's own 503;
+   * Ponton then redelivers as well (at-least-once). Ponton's EDA add-on waits 30 s
    * (eda.adapter.httpclient_timeout).
    */
-  val StrictEntityTimeout: FiniteDuration = 5.seconds
-  val ForwardTimeout: FiniteDuration = 10.seconds
+  val StrictEntityTimeout: FiniteDuration = InboundForwarding.DefaultReadTimeout
+  val ForwardTimeout: FiniteDuration = InboundForwarding.DefaultForwardTimeout
 
   /**
    * MQTT notification for an inbound message. Messages without a process mapping (unknown or

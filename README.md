@@ -71,17 +71,25 @@ docker run -p 6090:6090 -p 9093:9093 \
   tenant: all GEA tenants of one RC number move together. Inbound Ponton messages whose ReceiverId is
   listed are forwarded unchanged (body, content type, SOAPAction) instead of being processed here; the
   other adapter's answer decides what Ponton gets (2xx → 204, anything else or no answer within 10 s →
-  500, so Ponton redelivers — at least once, like Ponton itself: a target that answers after the
+  500 (`app.forward-timeout`), so Ponton redelivers — at least once, like Ponton itself: a target that answers after the
   timeout can see a message twice). Empty by default: the route is then exactly the previous one. With entries, every message
-  (forwarded or not) is read completely, without size cap, and must arrive within 5 s.
+  (forwarded or not) is read completely, without size cap, and must arrive within 5 s
+  (`app.forward-read-timeout`).
   An entry that is not an absolute http(s) URL with a host, or the same RC number twice, stops the start.
   `/status` and `/notification` are not forwarded (only logged). A forwarded request carries
   `X-Eegfaktura-Forwarded`; an adapter that would forward it again refuses it (500) to avoid a loop.
+  **Finding a loop:** it shows only as ERROR lines `arrived already forwarded` in the log and Ponton
+  redelivering the same message; check `app.forward` in both zones (the target must not list the RC number).
+  A forwarded duplicate (target answered after the timeout, Ponton redelivered) is processed twice by the
+  target: an extra history/notification row in the backend, energy slots overwritten with the same values.
+- `app.forward-read-timeout` (5 s, env `FORWARD_READ_TIMEOUT`), `app.forward-timeout` (10 s, env
+  `FORWARD_TIMEOUT`) — the two deadlines above, adjustable without a release. Together they should stay below
+  `pekko.http.server.request-timeout` (20 s); the adapter warns at start when they reach it.
 - `epmsmail.*` — IMAP/SMTP accounts for EDA-over-email
 - `slick.pgsql.local.db.*` / `flyway.*` — PostgreSQL connection + migrations
 
 Environment variables (names only): `SMTP_ADMIN_SERVER_HOST`, `SMTP_ADMIN_SERVER_PORT`,
-`EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `TZ`, `JAVA_OPTS`.
+`EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `TZ`, `JAVA_OPTS`.
 
 Exposed ports: **6090** (HTTP), **9093** (gRPC). Volumes: `/conf`, `/storage/prod`.
 

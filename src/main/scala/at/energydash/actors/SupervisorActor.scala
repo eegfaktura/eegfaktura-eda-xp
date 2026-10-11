@@ -99,7 +99,9 @@ object SupervisorActor {
 
       val mqttRequestStream = MqttRequestStream(tenantProvider, messageTransformer, conversationEntity)
 
-      val routes = new PontonRoute(mqttPublisher, InboundForwarding.targets(Config.config))
+      val forwarding = InboundForwarding.timeouts(Config.config)
+      val routes = new PontonRoute(mqttPublisher, InboundForwarding.targets(Config.config),
+                                   forwardTimeout = forwarding.forward, readTimeout = forwarding.read)
       val fileService = FileService(system, mqttPublisher)
       val adminRoutes = new ServiceRoute(fileService)
       //      val pontonPublisher = ctx.spawn(PontonService(), name = "ponton-service")
