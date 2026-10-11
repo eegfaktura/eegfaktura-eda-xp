@@ -85,8 +85,8 @@ class MessageHelperSpec extends AnyWordSpec with Matchers {
 
   // platform#111: the sender gets the reason instead of "No XML mapping"; GN needs a label too
   "getEdaMessageByTypeTry" should {
-    import at.energydash.domain.EbMsMessage
-    import at.energydash.domain.enums.EbMsMessageType
+    import _root_.at.energydash.domain.EbMsMessage
+    import _root_.at.energydash.domain.enums.EbMsMessageType
 
     def request(code: EbMsMessageType.Value, label: Option[String]) = EbMsMessage(
       conversationId = "RC100001202610090000000000000000001", messageId = Some("RC100001202610090000000000000000002"),

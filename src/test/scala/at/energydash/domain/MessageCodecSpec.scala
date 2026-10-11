@@ -32,9 +32,9 @@ class MessageCodecSpec extends AnyWordSpec with Matchers {
   }
 
   "EbMsMessageType wire strings" should {
-    "keep the GN strings although the names are swapped (261005-ca15, pinned)" in {
-      EbMsMessageType.EEG_BASE_RESPONSRE.toString shouldBe "ABLEHNUNG_GN"
-      EbMsMessageType.EEG_BASE_REJECTION.toString shouldBe "ANTWORT_GN"
+    "keep the GN strings with the corrected names (261005-ca15, fixed in 1.0.8)" in {
+      EbMsMessageType.EEG_BASE_REJECTION.toString shouldBe "ABLEHNUNG_GN"
+      EbMsMessageType.EEG_BASE_RESPONSE.toString shouldBe "ANTWORT_GN"
     }
     "be unique" in {
       val all = EbMsMessageType.values.toList.map(_.toString)
