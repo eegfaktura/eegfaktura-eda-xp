@@ -8,6 +8,28 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Added
+- **Forward inbound messages of a community that moved to another zone** (e.g. the pilot zone:
+  the community's Ponton agreements stay on the prod adapter, which hands its messages on). Ponton's EDA
+  add-on delivers every inbound message to one backend
+  URL and cannot run a second instance (tried on 2026-10-11), so the split happens here: new config
+  `app.forward` (RC number → URL of the other adapter's `/pontonxp/message`; the RC number, not the
+  tenant, so all GEA tenants of one RC number move together). A message whose Ponton header
+  ReceiverId is listed is handed on unchanged and not processed or published here; the other adapter
+  processes it with its own database. Ponton gets 204 only when the other adapter answered 2xx; an
+  error, an unreachable target or no answer within 10 s (`app.forward-timeout`; normally below the server's
+  20 s request timeout; Ponton waits 30 s) gives 500, so Ponton keeps the message and redelivers it — at least once, as
+  Ponton's own redelivery: a target that finishes after the timeout processes the message, and Ponton's redelivery a second time. `/status`
+  and `/notification` are not forwarded (they are only logged); a failed forward publishes no MQTT
+  error, because this zone's backend no longer owns the community. Loop guard: forwarded requests
+  carry `X-Eegfaktura-Forwarded` and are refused (500) by an adapter that would forward them again.
+  An entry that is not an absolute http(s) URL with a host, or the same RC number twice, stops the start.
+  **Empty by default — the message route is then exactly the previous one (no read deadline, no size
+  cap); with entries, every message is read completely (no size cap) and must arrive within 8 s
+  (`app.forward-read-timeout`).** Both deadlines can be raised without a release
+  (`FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, with unit, e.g. `15s`; below 1 s stops the start); a loop shows up as ERROR lines
+  `arrived already forwarded` (README).
+
 ## [1.0.8] – 2026-10-11
 
 Fixes from the EDA-XP buglist (eegfaktura-platform#111). First released 2026-10-11 together with the
