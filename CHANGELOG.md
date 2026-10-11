@@ -26,7 +26,38 @@ this changelog highlights the changes relevant for overview and operations.
   **Empty by default — the message route is then exactly the previous one (no read deadline, no size
   cap); with entries, every message is read completely (no size cap) and must arrive within 5 s.**
 
+## [1.0.8] – 2026-10-11
+
+Fixes from the EDA-XP buglist (eegfaktura-platform#111). First released 2026-10-11 together with the
+follow-ups below; 1.0.8 was never deployed on its own.
+
+### Changed
+- **No silent fallback to an old schema any more (261005-ca5).** A request with a missing version
+  label, or a label without its own case, is no longer built with an outdated schema. It is
+  refused with an ERROR log naming the label, and the sender gets an error. Prod sends a label
+  with a case for every routed request (ECON 02.40, ECOF 02.30, ECP 02.10, CPF 01.10, PT 03.00,
+  CCMS 01.30).
+- **ECON/ECOF label `03.00` removed (261008-ca1).** 03.00 is the process version, not a schema set
+  version; it now fails like any unknown label (see README, "Ponton header").
+- **`app.interface.mode` must be PROD or SIMU (261005-ca8).** Any other value (e.g. a typo) used
+  to fall through to PROD in every document builder; it is now an error. Case is ignored.
+- ANFORDERUNG_CPF 01p20 refuses a request without ECID or participation factor instead of sending
+  it without them (261008-ca3).
+- The unreachable ECON 01p10 builder and its document class are removed (1.0.8 follow-up).
+- GN enum names match their wire strings (261005-ca15): `EEG_BASE_REJECTION` = `ABLEHNUNG_GN`,
+  `EEG_BASE_RESPONSE` = `ANTWORT_GN`. Wire format unchanged.
+
 ### Fixed
+- **Message ids around new year (261005-ca9).** The year in MessageId/ConversationId came from
+  the week-based year (`YYYY`): from 28 to 31 December the ids carried the next year. Now the
+  calendar year.
+- **`DocumentCreationDateTime` was one hour off in summer (261008-ca12).** The offset was the raw
+  standard-time offset (+01:00) with the summer wall-clock time; it now includes daylight saving
+  time (+02:00 in summer).
+- `DateTo` of the open end of ECON/ECOF requests is 2099-12-31 again, not 2100-01-31 (0-based
+  month, 261008-ca16).
+- The ECON 01p10 builder declared the root element with an unbound `ns2:` prefix (261008-ca17).
+- Outdated comment on the Ponton header message type (261008-ca4).
 - **Unknown inbound messages no longer block Ponton (261005-ca11, eegfaktura-platform#111).** A
   message type eda-xp cannot map to a process (e.g. not registered, `ERROR_MESSAGE`) made
   `/pontonxp/message` answer 500, so Ponton redelivered or parked it forever, and no one was
@@ -44,40 +75,6 @@ this changelog highlights the changes relevant for overview and operations.
   e-mail path still reports "No XML mapping" and logs the reason.
 - **ANFORDERUNG_GN needs the version label of its body, `03.12`** (MD_REQ_GN), like every other
   request; without one it went out with header version 01.00 (1.0.8 follow-up).
-
-### Changed
-- The unreachable ECON 01p10 builder and its document class are removed (1.0.8 follow-up).
-- GN enum names match their wire strings (261005-ca15): `EEG_BASE_REJECTION` = `ABLEHNUNG_GN`,
-  `EEG_BASE_RESPONSE` = `ANTWORT_GN`. Wire format unchanged.
-
-## [1.0.8] – 2026-10-08
-
-Fixes from the EDA-XP buglist (eegfaktura-platform#111).
-
-### Changed
-- **No silent fallback to an old schema any more (261005-ca5).** A request with a missing version
-  label, or a label without its own case, is no longer built with an outdated schema. It is
-  refused with an ERROR log naming the label, and the sender gets an error. Prod sends a label
-  with a case for every routed request (ECON 02.40, ECOF 02.30, ECP 02.10, CPF 01.10, PT 03.00,
-  CCMS 01.30).
-- **ECON/ECOF label `03.00` removed (261008-ca1).** 03.00 is the process version, not a schema set
-  version; it now fails like any unknown label (see README, "Ponton header").
-- **`app.interface.mode` must be PROD or SIMU (261005-ca8).** Any other value (e.g. a typo) used
-  to fall through to PROD in every document builder; it is now an error. Case is ignored.
-- ANFORDERUNG_CPF 01p20 refuses a request without ECID or participation factor instead of sending
-  it without them (261008-ca3).
-
-### Fixed
-- **Message ids around new year (261005-ca9).** The year in MessageId/ConversationId came from
-  the week-based year (`YYYY`): from 28 to 31 December the ids carried the next year. Now the
-  calendar year.
-- **`DocumentCreationDateTime` was one hour off in summer (261008-ca12).** The offset was the raw
-  standard-time offset (+01:00) with the summer wall-clock time; it now includes daylight saving
-  time (+02:00 in summer).
-- `DateTo` of the open end of ECON/ECOF requests is 2099-12-31 again, not 2100-01-31 (0-based
-  month, 261008-ca16).
-- The ECON 01p10 builder declared the root element with an unbound `ns2:` prefix (261008-ca17).
-- Outdated comment on the Ponton header message type (261008-ca4).
 
 ### Documentation
 - README: Ponton header rule (message type + schema set version from the schema set
