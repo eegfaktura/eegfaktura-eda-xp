@@ -67,12 +67,15 @@ docker run -p 6090:6090 -p 9093:9093 \
 - `app.kepserver.url` — Ponton X/P outbound endpoint
 - `app.server.port` (HTTP, 6090), `app.grpc.port` (gRPC, 9093)
 - `app.forward` — communities that moved to another zone (e.g. the pilot): `RC number = "URL of the
-  other adapter's /pontonxp/message"`. Inbound Ponton messages whose header ReceiverId is listed are
-  forwarded unchanged (body, content type, SOAPAction) instead of being processed here; the other
-  adapter's answer decides what Ponton gets (2xx → 204, anything else or no answer within 20 s → 500,
-  so Ponton redelivers). Empty by default. `/status` and `/notification` are not forwarded (only
-  logged). A forwarded request carries `X-Eegfaktura-Forwarded`; an adapter that would forward it
-  again refuses it (500) to avoid a loop.
+  other adapter's /pontonxp/message"`. The key is the RC number in the Ponton header ReceiverId, not the
+  tenant: all GEA tenants of one RC number move together. Inbound Ponton messages whose ReceiverId is
+  listed are forwarded unchanged (body, content type, SOAPAction) instead of being processed here; the
+  other adapter's answer decides what Ponton gets (2xx → 204, anything else or no answer within 12 s →
+  500, so Ponton redelivers — at least once, like Ponton itself: a target that answers after the
+  timeout can see a message twice). Empty by default: the route is then exactly the previous one.
+  An entry that is not an absolute http(s) URL, or the same RC number twice, stops the start.
+  `/status` and `/notification` are not forwarded (only logged). A forwarded request carries
+  `X-Eegfaktura-Forwarded`; an adapter that would forward it again refuses it (500) to avoid a loop.
 - `epmsmail.*` — IMAP/SMTP accounts for EDA-over-email
 - `slick.pgsql.local.db.*` / `flyway.*` — PostgreSQL connection + migrations
 

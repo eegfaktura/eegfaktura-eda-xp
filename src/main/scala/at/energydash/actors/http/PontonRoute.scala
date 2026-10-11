@@ -8,6 +8,7 @@ import org.apache.pekko.http.scaladsl.model.{ContentTypes, HttpEntity, HttpMetho
 import org.apache.pekko.pattern.after
 import org.apache.pekko.http.scaladsl.server.Directives._
 import org.apache.pekko.http.scaladsl.server.Route
+import org.apache.pekko.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
 import org.apache.pekko.util.Timeout
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish, MqttPublishError}
 import at.energydash.domain.{EbMsMessage, XmlParseHandler}
@@ -39,11 +40,16 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
   /**
    * Hands an inbound message on unchanged (body, content type, SOAPAction) to the adapter of the
    * zone the community moved to. Its status decides what Ponton gets back: anything but 2xx, or no
-   * answer within forwardTimeout (below Ponton's 30 s), fails the request so Ponton redelivers.
+   * answer within forwardTimeout, fails the request so Ponton redelivers (at-least-once, as Ponton's
+   * own redelivery already is: a target that answers after the timeout may see the message twice).
+   * The client connection gets the same idle timeout, so a hanging target does not keep pool slots.
    */
+  private val forwardPool: ConnectionPoolSettings =
+    ConnectionPoolSettings(system).withConnectionSettings(ClientConnectionSettings(system).withIdleTimeout(forwardTimeout))
+
   private def forward(target: Uri, request: HttpRequest): Future[StatusCode] = {
     val headers = request.headers.filter(_.is("soapaction")) :+ RawHeader(InboundForwarding.ForwardedHeader, "true")
-    val sent = Http().singleRequest(HttpRequest(HttpMethods.POST, target, headers, request.entity)).map { r =>
+    val sent = Http().singleRequest(HttpRequest(HttpMethods.POST, target, headers, request.entity), settings = forwardPool).map { r =>
       r.discardEntityBytes()
       r.status
     }
@@ -115,37 +121,44 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
         path("message") {
           post {
             withoutSizeLimit {
-              // strict, so the unchanged body can be forwarded after reading the receiver
-              toStrictEntity(PontonRoute.StrictEntityTimeout) {
-                extractRequest { request =>
-                  entity(as[NodeSeq]) { response =>
-                    val receiver = InboundForwarding.receiverOf(response)
-                    val alreadyForwarded = request.headers.exists(_.is(InboundForwarding.ForwardedHeader.toLowerCase))
-                    InboundForwarding.decide(forwardTargets, receiver, alreadyForwarded) match {
-                      case InboundForwarding.Local => processLocally(response)
-                      case InboundForwarding.Loop(rc, target) =>
-                        logger.error(s"Inbound message for $rc arrived already forwarded, but $rc is forwarded again to $target here; refusing it to avoid a loop")
-                        complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
-                      case InboundForwarding.Forward(rc, target) =>
-                        val started = System.nanoTime()
-                        onComplete(forward(target, request)) { result =>
-                          val ms = (System.nanoTime() - started) / 1000000
-                          result match {
-                            case Success(status) if status.isSuccess() =>
-                              logger.info(s"Inbound message for $rc forwarded to $target: $status in $ms ms")
-                              complete(HttpResponse(StatusCodes.NoContent))
-                            case Success(status) =>
-                              logger.error(s"Inbound message for $rc not accepted by $target: $status in $ms ms; Ponton will redeliver")
-                              complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
-                            case Failure(ex) =>
-                              logger.error(s"Inbound message for $rc could not be forwarded to $target after $ms ms: ${ex.getMessage}; Ponton will redeliver")
-                              complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
+              if (forwardTargets.isEmpty)
+                // no community forwarded: exactly the previous route (streamed body, no size cap)
+                entity(as[NodeSeq])(processLocally)
+              else
+                // strict, so the unchanged body can be forwarded after reading the receiver; no size
+                // cap (the default max-to-strict-bytes of 8 MiB would reject large energy data)
+                toStrictEntity(PontonRoute.StrictEntityTimeout, Long.MaxValue) {
+                  extractRequest { request =>
+                    entity(as[NodeSeq]) { response =>
+                      val receiver = InboundForwarding.receiverOf(response)
+                      val alreadyForwarded = request.headers.exists(_.is(InboundForwarding.ForwardedHeader.toLowerCase))
+                      InboundForwarding.decide(forwardTargets, receiver, alreadyForwarded) match {
+                        case InboundForwarding.Local => processLocally(response)
+                        case InboundForwarding.Loop(rc, target) =>
+                          logger.error(s"Inbound message for $rc arrived already forwarded, but $rc is forwarded again to $target here; refusing it to avoid a loop")
+                          complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
+                        case InboundForwarding.Forward(rc, target) =>
+                          // No MqttPublishError on failure: this zone's backend does not own the
+                          // community any more; the error stays in this log and Ponton redelivers.
+                          val started = System.nanoTime()
+                          onComplete(forward(target, request)) { result =>
+                            val ms = (System.nanoTime() - started) / 1000000
+                            result match {
+                              case Success(status) if status.isSuccess() =>
+                                logger.info(s"Inbound message for $rc forwarded to $target: $status in $ms ms")
+                                complete(HttpResponse(StatusCodes.NoContent))
+                              case Success(status) =>
+                                logger.error(s"Inbound message for $rc not accepted by $target: $status in $ms ms; Ponton will redeliver")
+                                complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
+                              case Failure(ex) =>
+                                logger.error(s"Inbound message for $rc could not be forwarded to $target after $ms ms: ${ex.getMessage}; Ponton will redeliver")
+                                complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
+                            }
                           }
-                        }
+                      }
                     }
                   }
                 }
-              }
             }
           }
         }
@@ -157,9 +170,14 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
 object PontonRoute {
   val ErrorProtocol = "ERROR"
 
-  /** Ponton's EDA add-on waits 30 s for the backend (eda.adapter.httpclient_timeout); answer before that. */
-  val ForwardTimeout: FiniteDuration = 20.seconds
-  val StrictEntityTimeout: FiniteDuration = 10.seconds
+  /**
+   * Both stay below the server's request-timeout (pekko default 20 s, counted from the start of the
+   * request): reading the body from Ponton on the LAN takes well under StrictEntityTimeout, so the
+   * forward result, not the server's 503, decides the answer. Ponton's EDA add-on waits 30 s
+   * (eda.adapter.httpclient_timeout).
+   */
+  val StrictEntityTimeout: FiniteDuration = 5.seconds
+  val ForwardTimeout: FiniteDuration = 12.seconds
 
   /**
    * MQTT notification for an inbound message. Messages without a process mapping (unknown or

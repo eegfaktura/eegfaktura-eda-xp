@@ -4,6 +4,7 @@ import com.typesafe.config.{Config => TsConfig}
 import org.apache.pekko.http.scaladsl.model.Uri
 
 import scala.jdk.CollectionConverters._
+import scala.util.Try
 import scala.xml.NodeSeq
 
 /**
@@ -26,12 +27,26 @@ object InboundForwarding {
   def receiverOf(envelope: NodeSeq): Option[String] =
     (envelope \\ "InboundDocument" \ "Header" \ "ReceiverId").headOption.map(_.text.trim).filter(_.nonEmpty)
 
-  /** `app.forward`: RC number -> URL of the target adapter's /pontonxp/message; keys compared upper case. */
+  /**
+   * `app.forward`: RC number (the Ponton ReceiverId, not the tenant — all GEA tenants of one RC number
+   * move together) -> absolute http(s) URL of the target adapter's /pontonxp/message. Keys compared
+   * upper case. A broken entry stops the start: running without it would process the community in
+   * the wrong zone.
+   */
   def targets(config: TsConfig): Map[String, Uri] =
     if (!config.hasPath("app.forward")) Map.empty
     else {
       val forward = config.getConfig("app.forward")
-      forward.root().keySet().asScala.map(rc => rc.trim.toUpperCase -> Uri(forward.getString(s"\"$rc\""))).toMap
+      val entries = forward.root().keySet().asScala.toSeq.map { key =>
+        val raw = forward.getString(s"\"$key\"")
+        val uri = Try(Uri(raw)).filter(u => u.isAbsolute && Set("http", "https").contains(u.scheme))
+          .getOrElse(throw new IllegalArgumentException(s"app.forward.$key must be an absolute http(s) URL, got '$raw'"))
+        key.trim.toUpperCase -> uri
+      }
+      entries.groupBy(_._1).collectFirst { case (rc, dup) if dup.size > 1 => rc }.foreach { rc =>
+        throw new IllegalArgumentException(s"app.forward lists $rc more than once (keys differ only in case)")
+      }
+      entries.toMap
     }
 
   def decide(targets: Map[String, Uri], receiver: Option[String], alreadyForwarded: Boolean): Decision =
