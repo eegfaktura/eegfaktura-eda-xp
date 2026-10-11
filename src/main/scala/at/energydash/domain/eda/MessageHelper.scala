@@ -32,7 +32,14 @@ object MessageHelper {
   /**
    * Extract Message Type for Sending to Marktteilnehmer.
    */
-  def getEdaMessageByType(message: EbMsMessage): Option[EdaXMLMessage[_]] = {
+  // .toOption on purpose (not the implicit toOptionSE): the reason is already logged where it arises
+  def getEdaMessageByType(message: EbMsMessage): Option[EdaXMLMessage[_]] = getEdaMessageByTypeTry(message).toOption
+
+  /**
+   * Like [[getEdaMessageByType]], but keeps the reason when no document can be built (e.g. the
+   * unknown version label), so the sender gets it instead of "No XML mapping".
+   */
+  def getEdaMessageByTypeTry(message: EbMsMessage): Try[EdaXMLMessage[_]] = {
     (message.messageCode match {
       case ONLINE_REG_INIT => CMRequestRegistrationOnline(message).getVersion()
       case OFFLINE_REG_INIT => CMRequestOfflineRegistration(message).getVersion()
@@ -41,7 +48,7 @@ object MessageHelper {
       case ENERGY_SYNC_REQ => CPRequestMeteringValue(message).getVersion()
       case EDA_MSG_AUFHEBUNG_CCMS => CMRevokeRequest(message).getVersion()
       case CHANGE_METER_PARTITION => ECPartitionChangeMessage(message).getVersion()
-      case _ => None
+      case _ => Failure(new IllegalArgumentException(s"No XML mapping for message type ${message.messageCode}"))
     })
 //    matcn {
 //      case Success(obj) => Some(obj)
@@ -91,7 +98,7 @@ object MessageHelper {
     msCode match {
       case ENERGY_FILE_RESPONSE => EbMsProcessType.PROCESS_ENERGY_RESPONSE
       case ZP_LIST | ZP_LIST_RESPONSE | ZP_LIST_REJECTION => EbMsProcessType.PROCESS_LIST_METERINGPOINTS
-      case EEG_BASE_DATA | EEG_BASE_RESPONSRE | EEG_BASE_REJECTION => EbMsProcessType.PROCESS_MASTER_DATA
+      case EEG_BASE_DATA | EEG_BASE_RESPONSE | EEG_BASE_REJECTION => EbMsProcessType.PROCESS_MASTER_DATA
       case ONLINE_REG_INIT | ONLINE_REG_ANSWER | ONLINE_REG_ABORT | ONLINE_REG_REJECTION | ONLINE_REG_APPROVAL | ONLINE_REG_COMPLETION => EbMsProcessType.PROCESS_REGISTER_ONLINE
       case OFFLINE_REG_INIT | OFFLINE_REG_ANSWER | OFFLINE_REG_ABORT | OFFLINE_REG_REJECTION | OFFLINE_REG_APPROVAL | OFFLINE_REG_COMPLETION => EbMsProcessType.PROCESS_REGISTER_OFFLINE
       case ENERGY_SYNC_REQ | ENERGY_SYNC_RES | ENERGY_SYNC_REJECTION => EbMsProcessType.PROCESS_METERINGPOINTS_VALUE

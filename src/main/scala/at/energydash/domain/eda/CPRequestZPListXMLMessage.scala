@@ -14,7 +14,7 @@ case class CPRequestZPList(message: EbMsMessage) extends EdaMessage {
     // EC_PODLIST 02.10 (ab 05.10.2026): Prozessversion und Schemaset sind beide 02.10, gleiches XML
     // (cprequest 01p12); nur die Version im Ponton-Header und im schemaLocation-Pfad aendert sich.
     case Some(v @ ("02.00" | "02.10")) => Try(CPRequestZPListXMLMessageV0200(message, v))
-    case _ => fallbackVersion(CPRequestZPListXMLMessageV0200(message))
+    case _ => fallbackVersion()
   }
 }
 

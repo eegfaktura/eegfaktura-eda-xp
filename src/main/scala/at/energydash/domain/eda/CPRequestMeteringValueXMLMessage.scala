@@ -12,7 +12,7 @@ import scala.xml.{NamespaceBinding, Node, TopScope}
 case class CPRequestMeteringValue(message: EbMsMessage) extends EdaMessage {
   override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
     case Some("03.00") => Try(CPRequestMeteringValueXMLMessage(message))
-    case _ => fallbackVersion(CPRequestMeteringValueXMLMessage(message))
+    case _ => fallbackVersion()
   }
 }
 

@@ -54,11 +54,12 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
         val msg = transformerActorProbe.expectMessageType[PrepareMessage]
         msg.replyTo ! Prepared(msg.message)
 
-        val edaCommand = edaActorProbe.expectMessageType[PassEdaCommand]
-        edaCommand.replyTo ! SendEdaResponse(edaCommand.message)
-
+        // the conversation is stored before the message is sent (ca6)
         val s = storeActorProbe.expectMessageType[InitConversation]
         s.replyTo ! InitDone(s.message)
+
+        val edaCommand = edaActorProbe.expectMessageType[PassEdaCommand]
+        edaCommand.replyTo ! SendEdaResponse(edaCommand.message)
         println("finish")
 
         probe.requestNext().topic shouldBe "eda/response/myeeg-kep/protocol/ec_req_onl"
@@ -97,11 +98,12 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
         val msg = transformerActorProbe.expectMessageType[PrepareMessage]
         msg.replyTo ! Prepared(msg.message)
 
-        val edaCommand = edaActorProbe.expectMessageType[PassEdaCommand]
-        edaCommand.replyTo ! SendEdaResponse(edaCommand.message)
-
+        // the conversation is stored before the message is sent (ca6)
         val s = storeActorProbe.expectMessageType[InitConversation]
         s.replyTo ! InitDone(s.message)
+
+        val edaCommand = edaActorProbe.expectMessageType[PassEdaCommand]
+        edaCommand.replyTo ! SendEdaResponse(edaCommand.message)
         println("finish")
 
         probe.requestNext().topic shouldBe "eda/response/myeeg/protocol/ec_req_onl"
@@ -139,6 +141,9 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
         probe.request(1)
         val msg = transformerActorProbe.expectMessageType[PrepareMessage]
         msg.replyTo ! Prepared(msg.message)
+
+        val s = storeActorProbe.expectMessageType[InitConversation]
+        s.replyTo ! InitDone(s.message)
 
         val edaCommand = edaActorProbe.expectMessageType[PassEdaCommand]
         edaCommand.replyTo ! SendResponseError("myeeg", "netz linz", "Local address contains control or whitespace", "Send Mail")
@@ -187,6 +192,9 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
         probe.request(1)
         val msg = transformerActorProbe.expectMessageType[PrepareMessage]
         msg.replyTo ! Prepared(msg.message)
+
+        val s = storeActorProbe.expectMessageType[InitConversation]
+        s.replyTo ! InitDone(s.message)
 
         val edaCommand = edaActorProbe.expectMessageType[PassEdaCommand]
         edaCommand.replyTo ! SendResponseError("myeeg", "netz linz", "Local address contains control or whitespace", "Send Mail")

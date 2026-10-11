@@ -14,7 +14,7 @@ case class ECPartitionChangeMessage(message: EbMsMessage) extends EdaMessage {
     // Schema Set EC_PRTFACT_CHANGE_01.10 (ab 05.10.2026): Payload ECMPList 01p20.
     case Some("01.10") => Try(ECPartitionChangeXMLMessageV0110(message))
     case Some("01.00") => Try(ECPartitionChangeXMLMessage(message))
-    case _ => fallbackVersion(ECPartitionChangeXMLMessage(message))
+    case _ => fallbackVersion()
   }
 }
 

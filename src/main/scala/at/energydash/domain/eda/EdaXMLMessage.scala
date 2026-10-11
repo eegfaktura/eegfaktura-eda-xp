@@ -22,9 +22,9 @@ trait EdaMessage {
   /**
    * getVersion for a missing version label or one without its own case: the request is NOT
    * built. Until 1.0.7 an outdated schema was sent instead (the messenger then rejects it, or
-   * header and body disagree). `fallback` is kept as documentation of what used to be sent.
+   * header and body disagree).
    */
-  protected def fallbackVersion(fallback: => EdaXMLMessage[_]): Try[EdaXMLMessage[_]] = {
+  protected def fallbackVersion(): Try[EdaXMLMessage[_]] = {
     val msg = s"Unknown version label ${message.messageCodeVersion.getOrElse("<none>")} for ${message.messageCode} " +
       s"(conversationId=${message.conversationId}): request not sent. " +
       "Check eda-process-versions in the backend config (schema set version, e.g. ANFORDERUNG_ECON 02.40)."

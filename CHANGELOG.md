@@ -8,6 +8,30 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Fixed
+- **Unknown inbound messages no longer block Ponton (261005-ca11, eegfaktura-platform#111).** A
+  message type eda-xp cannot map to a process (e.g. not registered, `ERROR_MESSAGE`) made
+  `/pontonxp/message` answer 500, so Ponton redelivered or parked it forever, and no one was
+  notified. It is now acknowledged (204), logged as ERROR with conversation and receiver, and
+  published to the receiver's `protocol/error` topic, where the backend logs it. A known document
+  that cannot be processed (does not parse, or cannot be mapped, e.g. a new MessageCode) still
+  answers 500 on purpose, now logged with the exception: Ponton keeps it and redelivers it once
+  eda-xp is fixed, instead of losing it.
+- **The conversation is stored before a request is sent (261005-ca6).** It used to be stored only
+  after the send succeeded. When the backend's 30 s wait ran out but Ponton still accepted the
+  message, later answers found no conversation and lost ecId, metering point and consent end.
+  The store does not wait for the database, so a slow or failing insert never delays the send.
+- **The sender gets the real reason when a request cannot be built** (1.0.8 follow-up), e.g. the
+  unknown version label, instead of "No XML mapping for message type …". Ponton path only; the
+  e-mail path still reports "No XML mapping" and logs the reason.
+- **ANFORDERUNG_GN needs the version label of its body, `03.12`** (MD_REQ_GN), like every other
+  request; without one it went out with header version 01.00 (1.0.8 follow-up).
+
+### Changed
+- The unreachable ECON 01p10 builder and its document class are removed (1.0.8 follow-up).
+- GN enum names match their wire strings (261005-ca15): `EEG_BASE_REJECTION` = `ABLEHNUNG_GN`,
+  `EEG_BASE_RESPONSE` = `ANTWORT_GN`. Wire format unchanged.
+
 ## [1.0.8] – 2026-10-08
 
 Fixes from the EDA-XP buglist (eegfaktura-platform#111).
