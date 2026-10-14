@@ -123,8 +123,8 @@ lazy val testSettings = Seq(
     "cpnotification", "cprequest", "commontypes", "cpdocument", "xmlschema", "at\\.energydash\\.admin")
     .map(p => s"$p\\..*").mkString(";"),
   coverageFailOnMinimum := true,
-  coverageMinimumStmtTotal := 77,   // floors: the clean run rounded down, raised per milestone, never lowered;
-  coverageMinimumBranchTotal := 60, // per-package floors in scripts/dev/coverage-floors.txt
+  coverageMinimumStmtTotal := 78,   // floors: the clean run rounded down, raised per milestone, never lowered;
+  coverageMinimumBranchTotal := 61, // per-package floors in scripts/dev/coverage-floors.txt
 )
 
 lazy val root = (project in file("."))
