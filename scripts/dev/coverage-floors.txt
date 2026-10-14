@@ -1,0 +1,20 @@
+# Statement-coverage floors per package (percent, the clean run rounded down). Raised at the end of every
+# milestone, never lowered. Checked by scripts/dev/coverage-check.py after `scripts/dev/test.sh --coverage`.
+# M0 2026-10-08: total 42.26 % statements, 30.59 % branches (floors in build.sbt).
+at.energydash                 50
+at.energydash.actors          39
+at.energydash.actors.http      9
+at.energydash.actors.soap     92
+at.energydash.config          26
+at.energydash.domain          37
+at.energydash.domain.dao      57
+at.energydash.domain.eda      50
+at.energydash.domain.enums    93
+at.energydash.domain.xml      51
+at.energydash.mailer          50
+at.energydash.mqtt             8
+at.energydash.mqtt.path       55
+at.energydash.service          0
+at.energydash.stream          61
+at.energydash.utils            0
+at.energydash.utils.zip        0
