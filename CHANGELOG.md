@@ -8,6 +8,19 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Tests
+- **Coverage floors gate the image:** `test.yml` (run by `rolling-release.yml` before the image job since
+  1.1.0) also checks the coverage floors per package; falling below one stops the image like a red test.
+- One command for the suite, `scripts/dev/test.sh` (local sbt or the pinned sbt image); the tests use
+  loopback stand-ins only — the test configuration pointed the Ponton client at a network address before
+  and one spec sent to it.
+- Embedded PostgreSQL once per run, migrated with the **production** migrations (the hand-written test
+  schema is gone); embedded broker without persistence; fixed zone `Europe/Vienna`; nothing written outside `target/`.
+- Defect tests for known errors (`knownError`), coverage with sbt-scoverage and floors, the protocol
+  catalog with golden files (first row: `ANFORDERUNG_ECON` 02.40).
+- Removed the unused test dependencies `slick-testkit` and `h2` and the remaining empty specs.
+- `EXTERNAL_SOURCES.md` added.
+
 ## [1.1.0] – 2026-10-21
 
 ### Changed

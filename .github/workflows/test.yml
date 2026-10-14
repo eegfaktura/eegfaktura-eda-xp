@@ -1,7 +1,8 @@
-# Full test suite, called by pr-checks.yml on every pull request. The suite needs no service
-# containers: PostgreSQL (embedded), the MQTT broker and the mail transport are in-process stand-ins.
-# Actions pinned by commit SHA; checked 2026-10-08, each release older than 7 days.
-# Also called by rolling-release.yml: an image is only built and pushed after green tests.
+# Tests and coverage gate, called by pr-checks.yml (the full suite of every pull request) and by
+# rolling-release.yml (pushes), so a red run blocks the image and the deploy dispatch. The suite
+# needs no service containers: PostgreSQL, the MQTT broker and the Ponton messenger are embedded
+# loopback stand-ins (scripts/dev/test.sh). New actions are pinned by commit SHA; checked
+# 2026-10-08, each release older than 7 days.
 name: Tests
 
 on:
@@ -30,8 +31,20 @@ jobs:
       - name: Setup sbt
         uses: sbt/setup-sbt@6158cb0903b8ceeae04f830055f3155e1b6a5ad7 # v1.5.11
 
-      - name: Tests
-        run: sbt -batch clean test
+      - name: Tests with coverage
+        run: sbt -batch clean coverage test coverageReport
+
+      - name: Coverage floors per package
+        run: python3 scripts/dev/coverage-check.py
+
+      - name: Coverage report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: scoverage-report
+          path: target/scala-2.13/scoverage-report/
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Test reports
         if: ${{ !cancelled() }}
