@@ -16,7 +16,7 @@ import scala.xml.{Elem, XML}
  * SOAP request is captured exactly as it would go to Ponton — nothing leaves the JVM.
  */
 object SoapCapture {
-  final case class Captured(uri: Uri, headers: Map[String, String], body: String) {
+  final case class Captured(uri: Uri, headers: Map[String, String], contentType: String, body: String) {
     /** The request as XML; a request that is not well-formed fails with the raw body in the message. */
     lazy val envelope: Elem =
       try XML.loadString(body)
@@ -33,7 +33,7 @@ object SoapCapture {
           case s: HttpEntity.Strict => s.data.utf8String
           case other => sys.error(s"unexpected entity $other")
         }
-        seen.set(Captured(r.uri, r.headers.map(h => h.name -> h.value).toMap, body))
+        seen.set(Captured(r.uri, r.headers.map(h => h.name -> h.value).toMap, r.entity.contentType.toString, body))
         Future.successful(HttpResponse(StatusCodes.OK))
       }
     }
