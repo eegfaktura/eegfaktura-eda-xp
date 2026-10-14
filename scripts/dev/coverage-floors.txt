@@ -3,11 +3,12 @@
 # M0 2026-10-08: total 42.26 % statements, 30.59 % branches (floors in build.sbt).
 # M1 2026-10-08: total 57.98 % statements, 44.47 % branches.
 # M2 2026-10-08: total 74.26 % statements, 57.84 % branches.
+# M3 2026-10-08: total 77.52 % statements, 60.15 % branches.
 at.energydash                  50
-at.energydash.actors           54
+at.energydash.actors           70
 at.energydash.actors.http      85
 at.energydash.actors.soap      92
-at.energydash.config           50
+at.energydash.config           64
 at.energydash.domain           98
 at.energydash.domain.dao       71
 at.energydash.domain.eda       79
@@ -17,6 +18,6 @@ at.energydash.mailer           60
 at.energydash.mqtt             72
 at.energydash.mqtt.path       100
 at.energydash.service          83
-at.energydash.stream           61
+at.energydash.stream           76
 at.energydash.utils            94
 at.energydash.utils.zip        93
