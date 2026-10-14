@@ -9,3 +9,5 @@ test per row.
 run `bash scripts/dev/test.sh --only '*Protocol*' --update-golden`, review `git diff src/test/resources/protocol/golden`,
 run again without the flag. A row for a known defect carries `known-error` and its correct outcome in
 `expect`; its golden files are never written from today's output.
+
+The checks themselves are tested: `ProtocolSelfTestSpec` runs every guard and the row check (`testsupport/ProtocolChecks`) on a broken copy of this catalog and requires each to name the problem.

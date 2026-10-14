@@ -22,10 +22,16 @@ object Golden extends Assertions {
       file.getParentFile.mkdirs()
       Files.write(file.toPath, candidates.head.getBytes(UTF_8))
     } else {
-      if (!file.isFile) fail(s"golden file $file missing — create it with scripts/dev/test.sh --update-golden and review it")
-      val expected = new String(Files.readAllBytes(file.toPath), UTF_8)
-      if (!candidates.contains(expected)) fail(s"$file differs from the output:\n${firstDiff(expected, candidates.head)}")
+      val expected = if (file.isFile) Some(new String(Files.readAllBytes(file.toPath), UTF_8)) else None
+      compare(file.toString, expected, candidates).foreach(fail(_))
     }
+  }
+
+  /** The problem with the output against a golden file's content (`None` = missing file), if any. */
+  def compare(name: String, expected: Option[String], candidates: Seq[String]): Option[String] = expected match {
+    case None => Some(s"golden file $name missing — create it with scripts/dev/test.sh --update-golden and review it")
+    case Some(e) if candidates.contains(e) => None
+    case Some(e) => Some(s"$name differs from the output:\n${firstDiff(e, candidates.head)}")
   }
 
   /** Every golden file, as relative paths (guard: no orphans). */
