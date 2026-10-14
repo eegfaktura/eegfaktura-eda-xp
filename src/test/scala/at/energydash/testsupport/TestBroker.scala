@@ -12,6 +12,7 @@ object TestBroker {
   val Url = s"tcp://127.0.0.1:$Port"
 
   def start(): Server = {
+    java.nio.file.Files.createDirectories(java.nio.file.Paths.get("target/test-storage/moquette"))
     val server = new Server()
     server.startServer(new ResourceLoaderConfig(new ClasspathResourceLoader("moquette.conf")))
     server
