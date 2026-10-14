@@ -48,12 +48,16 @@ class CatalogScenarioSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
             row.xsd.foreach(x => Xsd.validate(SoapEnvelope.document(env), x))
           }
         }
+        def notSent(): Unit = {
+          request(row.message.asJson)
+          val error = await("eda/response/rc100401/protocol/error")
+          error.hcursor.downField("errorMessage").as[String].toOption.get should include (row.code)
+          awaitPonton(1, 2.seconds) shouldBe empty
+        }
+        val outcome = () => if (row.sends) run() else notSent()
         row.knownError match {
-          case None => run()
-          case Some(id) => knownError(id) {
-            if (row.expectFailure) { request(row.message.asJson); awaitPonton(1, 2.seconds) shouldBe empty }
-            else run()
-          }
+          case None => outcome()
+          case Some(id) => knownError(id)(outcome())
         }
       }
     }

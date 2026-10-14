@@ -48,10 +48,10 @@ class ProtocolCatalogGuardSpec extends AnyWordSpec with Matchers {
       withClue("codes with a builder but no catalog row: ")(buildable.diff(withRows) shouldBe empty)
       withClue("catalog rows for codes without a builder: ")(withRows.diff(buildable) shouldBe empty)
     }
-    "pin the fallback (no label and an unknown label) of every code with version cases" in {
+    "pin the refusal (no label and an unknown label) of every code with version cases" in {
       outbound.map(_.code).distinct.filterNot(_ == "ANFORDERUNG_GN").foreach { code =>
-        withClue(s"$code without label: ")(outbound.exists(r => r.code == code && r.label.isEmpty) shouldBe true)
-        withClue(s"$code with an unknown label: ")(outbound.exists(r => r.code == code && r.fallback && r.label.nonEmpty) shouldBe true)
+        withClue(s"$code without label: ")(outbound.exists(r => r.code == code && r.refused && r.label.isEmpty) shouldBe true)
+        withClue(s"$code with an unknown label: ")(outbound.exists(r => r.code == code && r.refused && r.label.nonEmpty) shouldBe true)
       }
     }
   }
@@ -67,7 +67,7 @@ class ProtocolCatalogGuardSpec extends AnyWordSpec with Matchers {
 
   "Guard 4 — parser" should {
     "parse every outbound document whose namespace has inbound rows, and only those" in {
-      outbound.filter(r => r.knownError.isEmpty && r.xsd.isDefined).foreach { row =>
+      outbound.filter(r => r.sends && r.knownError.isEmpty && r.xsd.isDefined).foreach { row =>
         val built = MessageHelper.getEdaMessageByType(row.message).get
         val doc = XML.loadString(built.toXML.toString)
         val parsed = XmlParseHandler.mapXmlToEbms(ParseHeader("S", "R", Some("C"), Some(row.code)), doc)
@@ -80,7 +80,7 @@ class ProtocolCatalogGuardSpec extends AnyWordSpec with Matchers {
 
   "Guard 5 — golden files" should {
     "belong to a row" in {
-      val expected = outbound.filter(_.knownError.isEmpty).flatMap(r => Seq(r.goldenBase + ".xml", r.goldenBase + ".header")).toSet ++
+      val expected = outbound.filter(r => r.sends && r.knownError.isEmpty).flatMap(r => Seq(r.goldenBase + ".xml", r.goldenBase + ".header")).toSet ++
         inbound.map(_.golden)
       withClue("orphan golden files: ")((Golden.all -- expected) shouldBe empty)
     }
@@ -129,7 +129,7 @@ class ProtocolCatalogGuardSpec extends AnyWordSpec with Matchers {
 
     "have a specific outbound row for every official request eda-xp sends (schema set and schema as published)" in {
       val missing = current.filter(o => o.sentByEdaXp && !unsupported.contains(o.code)).filterNot { o =>
-        outbound.exists(r => r.code == o.code && !r.fallback && r.knownError.isEmpty &&
+        outbound.exists(r => r.code == o.code && r.sends && r.knownError.isEmpty &&
           r.headerVersion.contains(o.schemaSetVersion) && r.xsd.contains(o.schema + ".xsd"))
       }.map(o => s"${o.code} ${o.schemaSet} ${o.schema}")
       withClue(s"official requests (${config.getString("official.release")}) without a matching row: ")(missing shouldBe empty)
@@ -143,6 +143,29 @@ class ProtocolCatalogGuardSpec extends AnyWordSpec with Matchers {
     }
     "list only codes of the official processes as unsupported" in {
       unsupported.keySet.diff(official.map(_.code).toSet) shouldBe empty
+    }
+  }
+
+  "Guard 9 — Ponton header rule" should {
+    "send the schema set's message type and version, or the process code only where pinned" in {
+      outbound.filter(_.sends).foreach { r =>
+        val process = codes.find(_.code == r.code).get.process
+        val labelKey = r.label.getOrElse("none")
+        val expectedType = headerProcessCode.get(r.code) match {
+          case Some(labels) if labels(labelKey) => process
+          case Some(_) => r.code   // a new label of a pinned code must switch to the message type
+          case None => r.code
+        }
+        withClue(s"${r.name} MessageType: ")(r.headerType shouldBe Some(expectedType))
+        r.label.foreach(l => withClue(s"${r.name} MessageVersion: ")(r.headerVersion shouldBe Some(l)))
+      }
+    }
+    "agree with the header type of the codes table and pin only codes with requests" in {
+      headerProcessCode.keySet.diff(outbound.map(_.code).toSet) shouldBe empty
+      codes.filter(_.headerType.isDefined).foreach { c =>
+        val expected = if (headerProcessCode.contains(c.code)) c.process else c.code
+        withClue(c.code)(c.headerType shouldBe Some(expected))
+      }
     }
   }
 }
