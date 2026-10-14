@@ -27,6 +27,10 @@ this changelog highlights the changes relevant for overview and operations.
   `ProtocolSelfTestSpec` feeds each a broken catalog or a wrong row and requires it to name the problem
   (guard 1 could not report rows for a code without a builder before). `--fast` skips the Slow-tagged tests.
 
+### CI
+- `pr-checks.yml`: unit tests and the full test suite on every pull request (unit = the suite without the `Slow` tag; full = `test.yml` (coverage and floors)).
+- `security-scan.yml`: leaked secrets in the new commits (Gitleaks, Trivy), vulnerable dependencies (Trivy, OSV-Scanner) and misconfigurations (Trivy). A pull request fails on what it adds; pushes to the default branch and a weekly run fail on every HIGH/CRITICAL finding. Scanners are fixed versions checked by SHA-256, each release at least 7 days old; actions pinned by commit SHA.
+
 ## [1.0.9] – 2026-10-11
 
 ### Added

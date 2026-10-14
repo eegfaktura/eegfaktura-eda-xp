@@ -1,0 +1,48 @@
+# Tests on every pull request: the unit tests (the suite without the tests tagged Slow — the
+# robustness timeouts, scripts/dev/test.sh --fast) and the full suite (test.yml: every test with
+# coverage and the per-package floors — the same job rolling-release.yml runs before an image).
+# The suite needs no service containers: PostgreSQL, the MQTT broker and the Ponton messenger are
+# embedded loopback stand-ins.
+# Versions fixed, each release older than 7 days (checked 2026-10-09): Temurin 17.0.19+10, sbt from
+# project/build.properties. Actions pinned by commit SHA.
+
+name: PR Checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17.0.19+10'
+          cache: sbt
+
+      - name: Set up sbt
+        uses: sbt/setup-sbt@6158cb0903b8ceeae04f830055f3155e1b6a5ad7 # v1.5.11
+
+      - name: Unit tests (without the Slow tag)
+        run: sbt -batch "testOnly * -- -l at.energydash.Slow"
+
+  full:
+    name: Full test suite
+    uses: ./.github/workflows/test.yml
