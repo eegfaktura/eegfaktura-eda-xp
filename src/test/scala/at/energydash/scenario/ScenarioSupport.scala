@@ -27,7 +27,11 @@ trait ScenarioSupport extends BeforeAndAfterEach with BeforeAndAfterAll { this: 
   lazy val ponton = new FakePonton()(system)
   lazy val mqtt: MqttRecorder = { broker; new MqttRecorder("eda/response/#") }
 
-  override def afterAll(): Unit = { mqtt.close(); ponton.stop(); super.afterAll(); broker.stopServer() }
+  // each step on its own: a recorder cut off by a broker restart must not keep the fake Ponton's port bound
+  override def afterAll(): Unit = {
+    scala.util.Try(mqtt.close()); scala.util.Try(ponton.stop())
+    try super.afterAll() finally scala.util.Try(broker.stopServer())
+  }
 
   /** Fresh database with the scenario tenants, fresh fake Ponton, nothing left on the recorder. */
   override def beforeEach(): Unit = {

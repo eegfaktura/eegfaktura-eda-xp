@@ -13,7 +13,12 @@ object KnownError extends Assertions {
   def knownError(id: String)(body: => Any): Unit = {
     val fixed =
       try { body; true }
-      catch { case _: Exception | _: AssertionError => false }
+      catch {
+        case e @ (_: Exception | _: AssertionError) =>
+          // one line per defect test in the run log: the reason it is still red, for review
+          System.out.println(s"known error $id still red: ${String.valueOf(e.getMessage).linesIterator.take(1).mkString.take(240)}")
+          false
+      }
     if (fixed) fail(s"known error $id seems fixed — remove the knownError marker")
     else throw new TestPendingException
   }

@@ -31,7 +31,8 @@ import scala.concurrent.duration._
  */
 final class ScenarioGraph(name: String, journal: String) {
   // The native LevelDB journal does not create missing parent directories.
-  Seq("journal", "snapshots").foreach(d => java.nio.file.Files.createDirectories(java.nio.file.Paths.get(journal, d)))
+  // (a test that wants an unusable journal puts a file where the directory would be: creation then fails here)
+  Seq("journal", "snapshots").foreach(d => scala.util.Try(java.nio.file.Files.createDirectories(java.nio.file.Paths.get(journal, d))))
   val kit: ActorTestKit = ActorTestKit(name, ConfigFactory.parseString(
     s"""pekko.persistence.journal.leveldb.dir = "$journal/journal"
        |pekko.persistence.snapshot-store.local.dir = "$journal/snapshots"""".stripMargin)
