@@ -46,6 +46,7 @@ sbt test
 ```bash
 bash scripts/dev/test.sh                  # whole suite (local sbt, or the pinned sbt image via docker)
 bash scripts/dev/test.sh --only '*TenantProviderSpec'
+bash scripts/dev/test.sh --fast           # without the Slow-tagged robustness tests (~1.5 min instead of ~3.5)
 bash scripts/dev/test.sh --coverage       # + scoverage report and the coverage floors
 bash scripts/dev/test.sh --update-golden  # rewrite the protocol golden files, then review `git diff`
 ```

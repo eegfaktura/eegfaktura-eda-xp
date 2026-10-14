@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 /** M5 R3 on its own: it stops and replaces the test broker. */
 class RobustnessBrokerSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with ScenarioSupport with Eventually {
   "R3: the broker restarts while the service runs" should {
-    "deliver notifications again after the restart (MqttSystem restarts with backoff, pinned)" in {
+    "deliver notifications again after the restart (MqttSystem restarts with backoff, pinned)" taggedAs Slow in {
       val g = graph("r3")
       try {
         val answer = EbMsMessage(conversationId = "C", sender = "AT003000", receiver = Tenant, messageCode = EbMsMessageType.ONLINE_REG_ANSWER)
