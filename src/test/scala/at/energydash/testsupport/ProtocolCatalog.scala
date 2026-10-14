@@ -19,8 +19,8 @@ object ProtocolCatalog {
   import at.energydash.domain.JsonImplicit._
 
   final case class Outbound(code: String, label: Option[String], builder: Option[String], xsd: Option[String],
-                            headerType: Option[String], headerVersion: Option[String], knownError: Option[String],
-                            expectFailure: Boolean, patch: Option[Json]) {
+                            headerType: Option[String], headerVersion: Option[String], fallback: Boolean,
+                            knownError: Option[String], expectFailure: Boolean, patch: Option[Json]) {
     def name: String = s"$code ${label.getOrElse("<no label>")}" + knownError.fold("")(id => s" [$id]")
     def goldenBase: String = s"out/${code}_${label.getOrElse("none")}"
 
@@ -32,6 +32,46 @@ object ProtocolCatalog {
       decode[EbMsMessage](merged.deepDropNullValues.noSpaces).fold(throw _, identity)
     }
   }
+
+  final case class Inbound(fixture: String, code: String, via: String) {
+    def fileName: String = fixture.split('/').last
+    def name: String = s"$fileName → $code ($via)"
+    def golden: String = s"in/${fileName.stripSuffix(".xml")}.json"
+  }
+
+  lazy val inbound: List[Inbound] =
+    config.getConfigList("inbound").asScala.toList.map(c => Inbound(c.getString("fixture"), c.getString("code"), c.getString("via")))
+
+  final case class Code(code: String, process: String, headerType: Option[String])
+
+  lazy val codes: List[Code] =
+    config.getConfigList("codes").asScala.toList.map(c => Code(c.getString("code"), c.getString("process"), opt(c, "header-type")))
+
+  lazy val notParsed: Set[String] = config.getConfigList("not-parsed").asScala.map(_.getString("ns")).toSet
+  lazy val typeLibraries: Set[String] = config.getStringList("type-libraries").asScala.toSet
+  lazy val referenceDate: java.time.LocalDate = java.time.LocalDate.parse(config.getString("official.reference-date"))
+  lazy val unsupported: Map[String, String] =
+    config.getConfigList("official.unsupported").asScala.map(c => c.getString("code") -> c.getString("reason")).toMap
+
+  val EdaXpRoles: Set[String] = Set("AB", "LA", "SP")
+
+  /** One row of marktprozesse.csv (the official interface list). */
+  final case class Official(process: String, processVersion: String, code: String, sender: String, receiver: String,
+                            validFrom: java.time.LocalDate, validTo: Option[java.time.LocalDate], schema: String,
+                            namespace: String, schemaSet: String) {
+    def schemaSetVersion: String = schemaSet.split('_').last
+    def validOn(d: java.time.LocalDate): Boolean = !validFrom.isAfter(d) && validTo.forall(!_.isBefore(d))
+    /** eda-xp acts as the community (AB), the data receiver (LA) or the service provider (SP). */
+    def sentByEdaXp: Boolean = sender.split('/').exists(EdaXpRoles)
+    def receivedByEdaXp: Boolean = receiver.split('/').exists(EdaXpRoles)
+  }
+
+  lazy val official: List[Official] = resource("protocol/marktprozesse.csv").linesIterator
+    .filterNot(l => l.startsWith("#") || l.startsWith("process,") || l.trim.isEmpty).toList.map { l =>
+      val f = l.split(",", -1)
+      Official(f(0), f(1), f(2), f(3), f(4), java.time.LocalDate.parse(f(5)),
+        Option(f(6)).filter(_.nonEmpty).map(java.time.LocalDate.parse), f(7), f(9), f(10))
+    }
 
   private def resource(path: String): String = Using.resource(Source.fromResource(path))(_.mkString)
 
@@ -46,7 +86,7 @@ object ProtocolCatalog {
   lazy val outbound: List[Outbound] =
     config.getConfigList("outbound").asScala.toList.map { c =>
       Outbound(c.getString("code"), opt(c, "label"), opt(c, "builder"), opt(c, "xsd"), opt(c, "header.type"),
-        opt(c, "header.version"), opt(c, "known-error"),
+        opt(c, "header.version"), c.hasPath("fallback") && c.getBoolean("fallback"), opt(c, "known-error"),
         c.hasPath("expect.failure") && c.getBoolean("expect.failure"), json(c, "patch"))
     }
 }

@@ -1,0 +1,31 @@
+{
+  "messageId": "RC100401209901010000000000000001",
+  "conversationId": "RC100401209901010000000000000002",
+  "requestId": "TESTREQ1",
+  "sender": "RC100401",
+  "receiver": "AT003000",
+  "messageCode": "ANFORDERUNG_CPF",
+  "meterList": [
+    {
+      "meteringPoint": "AT0030000000000000000000000401001",
+      "direction": "CONSUMPTION",
+      "partFact": 50,
+      "from": 4070905200000,
+      "to": 4102354800000,
+      "consentId": "AT003000209901010000000000000401",
+      "activation": 4070905200000
+    },
+    {
+      "meteringPoint": "AT0030000000000000000000000401002",
+      "direction": "GENERATION",
+      "partFact": 75,
+      "from": 4070905200000,
+      "to": 4102354800000,
+      "consentId": "AT003000209901010000000000000401",
+      "activation": 4070905200000
+    }
+  ],
+  "ecId": "AT00300000000RC100401000000000001",
+  "ecType": "LOCAL",
+  "ecDisModel": "DYNAMIC"
+}

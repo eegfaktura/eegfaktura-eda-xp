@@ -1,0 +1,20 @@
+{
+  "conversationId" : "RC900001202607141781008000000000002",
+  "ecId" : "AT00300000000RC900001000000000000",
+  "messageCode" : "ANTWORT_CPF",
+  "messageCodeVersion" : "02.00",
+  "messageId" : "AT009999202607141781008000000000101",
+  "meterList" : [
+    {
+      "activation" : 1784066400000,
+      "consentId" : "AT009999000000001",
+      "direction" : "CONSUMPTION",
+      "from" : 1784066400000,
+      "meteringPoint" : "AT0090001000000000000000000000001",
+      "partFact" : 50,
+      "to" : 4102354800000
+    }
+  ],
+  "receiver" : "RC900001",
+  "sender" : "AT009999"
+}

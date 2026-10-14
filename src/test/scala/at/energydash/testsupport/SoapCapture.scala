@@ -17,7 +17,10 @@ import scala.xml.{Elem, XML}
  */
 object SoapCapture {
   final case class Captured(uri: Uri, headers: Map[String, String], body: String) {
-    lazy val envelope: Elem = XML.loadString(body)
+    /** The request as XML; a request that is not well-formed fails with the raw body in the message. */
+    lazy val envelope: Elem =
+      try XML.loadString(body)
+      catch { case e: org.xml.sax.SAXParseException => throw new AssertionError(s"SOAP request is not well-formed XML (${e.getMessage}):\n$body", e) }
     def pontonHeader: Map[String, String] = SoapEnvelope.header(envelope)
     def document: Elem = SoapEnvelope.document(envelope)
   }
