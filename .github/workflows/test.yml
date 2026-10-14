@@ -1,7 +1,8 @@
-# Tests and coverage gate, called by rolling-release.yml (which runs on pull requests and pushes), so a red
-# run blocks the image and the deploy dispatch. The suite needs no service containers: PostgreSQL, the MQTT
-# broker and the Ponton messenger are embedded loopback stand-ins (scripts/dev/test.sh). New actions are
-# pinned by commit SHA; checked 2026-10-08, each release older than 7 days.
+# Tests and coverage gate, called by pr-checks.yml (the full suite of every pull request) and by
+# rolling-release.yml (pull requests and pushes), so a red run blocks the image and the deploy
+# dispatch. The suite needs no service containers: PostgreSQL, the MQTT broker and the Ponton
+# messenger are embedded loopback stand-ins (scripts/dev/test.sh). New actions are pinned by commit
+# SHA; checked 2026-10-08, each release older than 7 days.
 name: Tests
 
 on:
