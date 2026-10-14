@@ -19,10 +19,13 @@ object ProtocolCatalog {
   import at.energydash.domain.JsonImplicit._
 
   final case class Outbound(code: String, label: Option[String], builder: Option[String], xsd: Option[String],
-                            headerType: Option[String], headerVersion: Option[String], fallback: Boolean,
-                            knownError: Option[String], expectFailure: Boolean, patch: Option[Json]) {
-    def name: String = s"$code ${label.getOrElse("<no label>")}" + knownError.fold("")(id => s" [$id]")
+                            headerType: Option[String], headerVersion: Option[String], refused: Boolean,
+                            knownError: Option[String], expectFailure: Boolean, patch: Option[Json],
+                            variant: Option[String] = None) {
+    def name: String = s"$code ${label.getOrElse("<no label>")}" + variant.fold("")(v => s" ($v)") + knownError.fold("")(id => s" [$id]")
     def goldenBase: String = s"out/${code}_${label.getOrElse("none")}"
+    /** The request is built and sent: the row has golden files (a known error states its outcome instead). */
+    def sends: Boolean = !refused && !expectFailure
 
     /** The sample request of the code with this row's label and patch applied. */
     def message: EbMsMessage = {
@@ -77,6 +80,10 @@ object ProtocolCatalog {
 
   lazy val config: Config = ConfigFactory.parseResources("protocol/catalog.conf").resolve()
 
+  /** Codes whose Ponton header still carries the process code, with the labels this is accepted for. */
+  lazy val headerProcessCode: Map[String, Set[String]] =
+    config.getConfigList("header-process-code").asScala.map(c => c.getString("code") -> c.getStringList("labels").asScala.toSet).toMap
+
   private def opt(c: Config, path: String): Option[String] = if (c.hasPath(path)) Some(c.getString(path)) else None
 
   private def json(c: Config, path: String): Option[Json] =
@@ -86,7 +93,7 @@ object ProtocolCatalog {
   lazy val outbound: List[Outbound] =
     config.getConfigList("outbound").asScala.toList.map { c =>
       Outbound(c.getString("code"), opt(c, "label"), opt(c, "builder"), opt(c, "xsd"), opt(c, "header.type"),
-        opt(c, "header.version"), c.hasPath("fallback") && c.getBoolean("fallback"), opt(c, "known-error"),
-        c.hasPath("expect.failure") && c.getBoolean("expect.failure"), json(c, "patch"))
+        opt(c, "header.version"), c.hasPath("refused") && c.getBoolean("refused"), opt(c, "known-error"),
+        c.hasPath("expect.failure") && c.getBoolean("expect.failure"), json(c, "patch"), opt(c, "variant"))
     }
 }
