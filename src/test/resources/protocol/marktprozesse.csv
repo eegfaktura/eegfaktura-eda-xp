@@ -1,0 +1,36 @@
+# Extract of ebUtilities Marktprozesse (Marktprozesse_Version_04p10_2026_Oktober.xlsx), sheet Schnittstellenliste.
+# Written by scripts/dev/eda/marktprozesse-extract.py of the eegfaktura-dev workspace; do not edit.
+process,process_version,message_code,sender,receiver,valid_from,valid_to,schema,schema_version,namespace,schema_set
+CM_REV_CUS,01.30,AUFHEBUNG_CCMC,NB,SP,2026-10-05,,CMRevoke_01p10,01p10,http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p10,CM_REV_CUS_01.20
+CM_REV_IMP,01.40,AUFHEBUNG_CCMI,NB,SP,2026-10-05,,CMRevoke_01p10,01p10,http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p10,CM_REV_IMP_01.30
+CM_REV_SP,01.40,ABLEHNUNG_CCMS,NB,SP,2026-10-05,,CMNotification_01p20,01p20,http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p20,CM_REV_SP_01.30
+CM_REV_SP,01.40,ANTWORT_CCMS,NB,SP,2026-10-05,,CMNotification_01p20,01p20,http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p20,CM_REV_SP_01.30
+CM_REV_SP,01.40,AUFHEBUNG_CCMS,SP,NB,2026-10-05,,CMRevoke_01p10,01p10,http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p10,CM_REV_SP_01.30
+CR_MSG,03.30,ABLEHNUNG_CRMSG,LA/AB/EP/SOGL,NB,2026-10-05,,CPNotification_01p13,01p13,http://www.ebutilities.at/schemata/customerprocesses/cpnotification/01p13,CR_MSG_03.20
+CR_MSG,03.30,DATEN_CRMSG,NB,LA/AB/EP/SOGL,2026-10-05,,ConsumptionRecord_01p41,01p41,http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p41,CR_MSG_03.20
+CR_REQ_PT,04.30,ABLEHNUNG_PT,NB,LA,2026-10-05,,CPNotification_01p13,01p13,http://www.ebutilities.at/schemata/customerprocesses/cpnotification/01p13,CR_REQ_PT_03.00
+CR_REQ_PT,04.30,ANFORDERUNG_PT,LA,NB,2026-10-05,,CPRequest_01p12,01p12,http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12,CR_REQ_PT_03.00
+CR_REQ_PT,04.30,ANTWORT_PT,NB,LA,2026-10-05,,CPNotification_01p13,01p13,http://www.ebutilities.at/schemata/customerprocesses/cpnotification/01p13,CR_REQ_PT_03.00
+EC_PODLIST,02.10,ABLEHNUNG_ECP,NB,AB,2026-10-05,,CPNotification_01p13,01p13,http://www.ebutilities.at/schemata/customerprocesses/cpnotification/01p13,EC_PODLIST_02.10
+EC_PODLIST,02.10,ANFORDERUNG_ECP,AB,NB,2026-10-05,,CPRequest_01p12,01p12,http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12,EC_PODLIST_02.10
+EC_PODLIST,02.10,SENDEN_ECP,NB,AB,2026-10-05,,ECMPList_01p20,01p20,http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p20,EC_PODLIST_02.10
+EC_PRTFACT_CHANGE,01.10,ABLEHNUNG_CPF,NB,AB,2026-10-05,,CPNotification_01p13,01p13,http://www.ebutilities.at/schemata/customerprocesses/cpnotification/01p13,EC_PRTFACT_CHANGE_01.10
+EC_PRTFACT_CHANGE,01.10,ANFORDERUNG_CPF,AB,NB,2026-10-05,,ECMPList_01p20,01p20,http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p20,EC_PRTFACT_CHANGE_01.10
+EC_PRTFACT_CHANGE,01.10,ANTWORT_CPF,NB,AB,2026-10-05,,CPNotification_01p13,01p13,http://www.ebutilities.at/schemata/customerprocesses/cpnotification/01p13,EC_PRTFACT_CHANGE_01.10
+EC_PRT_CHANGE,02.10,ABLEHNUNG_ECC,NB,AB,2026-10-05,,CPNotification_01p13,01p13,http://www.ebutilities.at/schemata/customerprocesses/cpnotification/01p13,EC_PRT_CHANGE_02.10
+EC_PRT_CHANGE,02.10,ANFORDERUNG_ECC,AB,NB,2026-10-05,,ECMPList_01p20,01p20,http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p20,EC_PRT_CHANGE_02.10
+EC_PRT_CHANGE,02.10,ANTWORT_ECC,NB,AB,2026-10-05,,ECMPList_01p20,01p20,http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p20,EC_PRT_CHANGE_02.10
+EC_REQ_OFF,03.00,ABBRUCH_ECOF,NB,AB,2026-10-05,,CMNotification_01p20,01p20,http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p20,EC_REQ_OFF_02.30
+EC_REQ_OFF,03.00,ABLEHNUNG_ECOF,NB,AB,2026-10-05,,CMNotification_01p20,01p20,http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p20,EC_REQ_OFF_02.30
+EC_REQ_OFF,03.00,ABSCHLUSS_ECOF,NB,AB,2026-10-05,,ECMPList_01p20,01p20,http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p20,EC_REQ_OFF_02.30
+EC_REQ_OFF,03.00,ANFORDERUNG_ECOF,AB,NB,2026-10-05,,CMRequest_01p30,01p30,http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p30,EC_REQ_OFF_02.30
+EC_REQ_OFF,03.00,ZUSTIMMUNG_ECOF,NB,AB,2026-10-05,,CMNotification_01p20,01p20,http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p20,EC_REQ_OFF_02.30
+EC_REQ_ONL,03.00,ABBRUCH_ECON,NB,AB,2026-10-05,,CMNotification_01p20,01p20,http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p20,EC_REQ_ONL_02.40
+EC_REQ_ONL,03.00,ABLEHNUNG_ECON,NB,AB,2026-10-05,,CMNotification_01p20,01p20,http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p20,EC_REQ_ONL_02.40
+EC_REQ_ONL,03.00,ABSCHLUSS_ECON,NB,AB,2026-10-05,,ECMPList_01p20,01p20,http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p20,EC_REQ_ONL_02.40
+EC_REQ_ONL,03.00,ANFORDERUNG_ECON,AB,NB,2026-10-05,,CMRequest_01p30,01p30,http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p30,EC_REQ_ONL_02.40
+EC_REQ_ONL,03.00,ANTWORT_ECON,NB,AB,2026-10-05,,CMNotification_01p20,01p20,http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p20,EC_REQ_ONL_02.40
+EC_REQ_ONL,03.00,ZUSTIMMUNG_ECON,NB,AB,2026-10-05,,CMNotification_01p20,01p20,http://www.ebutilities.at/schemata/customerconsent/cmnotification/01p20,EC_REQ_ONL_02.40
+MD_REQ_GN,03.40,ABLEHNUNG_GN,LA/NB,NB/LA,2026-10-05,,CPNotification_01p13,01p13,http://www.ebutilities.at/schemata/customerprocesses/cpnotification/01p13,MD_REQ_GN_03.40
+MD_REQ_GN,03.40,ANFORDERUNG_GN,NB/LA,LA/NB,2026-10-05,,CPRequest_01p12,01p12,http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12,MD_REQ_GN_03.40
+MD_REQ_GN,03.40,ANTWORT_GN,LA/NB,NB/LA,2026-10-05,,MasterData_01p35,01p35,http://www.ebutilities.at/schemata/customerprocesses/masterdata/01p35,MD_REQ_GN_03.40
