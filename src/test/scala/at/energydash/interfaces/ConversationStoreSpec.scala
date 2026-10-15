@@ -9,10 +9,13 @@ import at.energydash.domain.{EbMsMessage, Meter}
 import at.energydash.testsupport.TestDb
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.Eventually
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import scala.concurrent.duration._
+
 /** The conversation store (requests kept for the answers) and the aggregator that enriches answers. */
-class ConversationStoreSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with EmbeddedDb with BeforeAndAfterEach {
+class ConversationStoreSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with EmbeddedDb with BeforeAndAfterEach with Eventually {
   override def beforeEach(): Unit = TestDb.reset()
 
   private val request = EbMsMessage(messageId = Some("M1"), conversationId = "RC100401209901010000000000000002",
@@ -21,13 +24,19 @@ class ConversationStoreSpec extends ScalaTestWithActorTestKit with AnyWordSpecLi
   private val answer = EbMsMessage(conversationId = request.conversationId, sender = "AT003000", receiver = "RC100401",
     messageCode = EbMsMessageType.ENERGY_SYNC_RES)
 
+  // Since 1.0.8 #35 (platform#111 ca6) InitDone comes before the insert completes, so the request can be
+  // sent at once; the row follows asynchronously.
+  private def awaitStored(): Unit = eventually(timeout(5.seconds), interval(50.millis)) {
+    TestDb.count(s"SELECT count(*) FROM eda.conversation WHERE id = '${request.conversationId}'") shouldBe 1
+  }
+
   "ConversationEntity" should {
     "store a request and merge it into the answer" in {
       val entity = spawn(ConversationEntity())
       val probe = createTestProbe[EdaCommand]()
       entity ! InitConversation(request, probe.ref)
       probe.expectMessage(InitDone(request))
-      TestDb.count(s"SELECT count(*) FROM eda.conversation WHERE id = '${request.conversationId}'") shouldBe 1
+      awaitStored()
       entity ! MergeNotification(EdaNotification("CR_REQ_PT", answer), probe.ref)
       val merged = probe.expectMessageType[NotificationMerged].notification.message
       (merged.meter, merged.ecId) shouldBe ((request.meter, Some("EC-REQUEST")))
@@ -37,6 +46,7 @@ class ConversationStoreSpec extends ScalaTestWithActorTestKit with AnyWordSpecLi
       val probe = createTestProbe[EdaCommand]()
       entity ! InitConversation(request, probe.ref)
       probe.expectMessage(InitDone(request))
+      awaitStored()
       entity ! MergeConversation(answer, probe.ref)
       probe.expectMessageType[ConversationMerged].message.ecId shouldBe Some("EC-REQUEST")
       val unknown = answer.copy(conversationId = "RC100401209901010000000000000099")

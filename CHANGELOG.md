@@ -29,6 +29,9 @@ this changelog highlights the changes relevant for overview and operations.
 - Tests of the protocol checks: the guards and the row check are functions (`ProtocolChecks`);
   `ProtocolSelfTestSpec` feeds each a broken catalog or a wrong row and requires it to name the problem
   (guard 1 could not report rows for a code without a builder before). `--fast` skips the Slow-tagged tests.
+- Adapted to 1.0.8 #35: `ANFORDERUNG_GN` without a label (and with an unknown one) is a `refused` row; the
+  conversation store is asynchronous and keeps the row of a request that is then not sent (unknown tenant,
+  Ponton error) — the tests wait for the row and pin it.
 
 ## [1.1.0] – 2026-10-21
 

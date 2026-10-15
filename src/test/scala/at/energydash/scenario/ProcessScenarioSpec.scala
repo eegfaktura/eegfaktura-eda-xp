@@ -4,12 +4,13 @@ import at.energydash.testsupport.FakePonton.Status
 import at.energydash.testsupport.{Fixtures, ProtocolCatalog, TestDb}
 import io.circe.Json
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.scalatest.concurrent.Eventually
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.duration._
 
 /** S1 – S10: one EDA process each, end to end through the actor graph; the grid operator is the fake Ponton. */
-class ProcessScenarioSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with ScenarioSupport {
+class ProcessScenarioSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with ScenarioSupport with Eventually {
   import at.energydash.domain.JsonImplicit._
   import io.circe.generic.auto._
   import io.circe.syntax._
@@ -37,6 +38,26 @@ class ProcessScenarioSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
 
   private def field(j: Json, path: String*): Option[Json] = path.foldLeft(Option(j))((c, p) => c.flatMap(_.hcursor.downField(p).focus))
   private def str(j: Json, path: String*): Option[String] = field(j, path: _*).flatMap(_.asString)
+
+  /** The stored conversations: (row id, conversation id, sender, message code of the stored request). */
+  private def conversations(): List[(String, Option[String], Option[String], Option[String])] = TestDb.withConnection { c =>
+    val rs = c.createStatement().executeQuery("SELECT id, conversation::text FROM eda.conversation ORDER BY id")
+    Iterator.continually(rs).takeWhile(_.next()).map { r =>
+      val j = io.circe.parser.parse(r.getString(2)).toOption.get
+      (r.getString(1), str(j, "conversationId"), str(j, "sender"), str(j, "messageCode"))
+    }.toList
+  }
+
+  // Since 1.0.8 #35 (platform#111 ca6) the request is stored before the send and asynchronously: a request that is
+  // then not sent leaves its row behind. No answer matches it — eda-xp gives every request a new conversation id.
+  private def awaitUnsent(sender: String): String = eventually(timeout(5.seconds), interval(100.millis)) {
+    val rows = conversations()
+    rows should have size 1
+    val (id, conv, from, code) = rows.head
+    (conv, from, code) shouldBe ((Some(id), Some(sender), Some("ANFORDERUNG_ECP")))
+    id should startWith(sender)
+    id
+  }
 
   "S1: ECON online registration" should {
     "send the request, store the conversation and merge the stored ecId into every answer" in {
@@ -121,27 +142,30 @@ class ProcessScenarioSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
   }
 
   "S9: request of an unknown tenant" should {
-    "answer an error on the tenant's error topic and send nothing" in {
+    "answer an error on the tenant's error topic, send nothing and keep the unsent request's conversation" in {
       g
       request(row("ANFORDERUNG_ECP", "02.10").message.copy(sender = "RC999999").asJson)
       val j = await("eda/response/rc999999/protocol/error")
       str(j, "errorMessage") shouldBe Some("Tenant not registered")
       awaitPonton(1, 1.second) shouldBe empty
-      TestDb.count("SELECT count(*) FROM eda.conversation") shouldBe 0
+      awaitUnsent("RC999999")
     }
   }
 
   "S10: Ponton refuses the request" should {
-    "answer an error with step Send KEP, store nothing, and process the next request" in {
+    "answer an error with step Send KEP, keep the unsent request's conversation, and process the next request" in {
       g
       ponton.script(Status(500))
       request(row("ANFORDERUNG_ECP", "02.10").message.asJson)
       val j = await("eda/response/rc100401/protocol/error")
       str(j, "reason") shouldBe Some("Send KEP")
-      TestDb.count("SELECT count(*) FROM eda.conversation") shouldBe 0
+      val unsent = awaitUnsent(Tenant)
       ponton.reset()
-      send("ANFORDERUNG_ECP", "02.10", "ec_podlist")
-      TestDb.count("SELECT count(*) FROM eda.conversation") shouldBe 1
+      val conv = send("ANFORDERUNG_ECP", "02.10", "ec_podlist")
+      conv should not be unsent
+      eventually(timeout(5.seconds), interval(100.millis)) {
+        conversations().map(r => (r._1, r._2)) shouldBe List(unsent, conv).sorted.map(id => (id, Some(id)))
+      }
     }
   }
 }
