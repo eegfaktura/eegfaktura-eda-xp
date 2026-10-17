@@ -73,7 +73,7 @@ docker run -p 6090:6090 -p 9093:9093 \
   other adapter's answer decides what Ponton gets (2xx → 204, anything else or no answer within 10 s →
   500 (`app.forward-timeout`), so Ponton redelivers — at least once, like Ponton itself: a target that finishes after the
   timeout processes the message, and Ponton's redelivery a second time). Empty by default: the route is then exactly the previous one. With entries, every message
-  (forwarded or not) is read completely, without size cap, and must arrive within 8 s
+  (forwarded or not) is read completely (up to `app.max-body-size`) and must arrive within 8 s
   (`app.forward-read-timeout`).
   An entry that is not an absolute http(s) URL with a host, or the same RC number twice, stops the start.
   `/status` and `/notification` are not forwarded (only logged). A forwarded request carries
@@ -85,11 +85,14 @@ docker run -p 6090:6090 -p 9093:9093 \
 - `app.forward-read-timeout` (8 s, env `FORWARD_READ_TIMEOUT`, always with unit, e.g. `15s`), `app.forward-timeout` (10 s, env
   `FORWARD_TIMEOUT`, with unit) — the two deadlines above, adjustable without a release. Together they should stay below
   `pekko.http.server.request-timeout` (20 s); the adapter warns at start when they reach it.
+- `app.max-body-size` (128 MiB, env `MAX_BODY_SIZE`, with unit, e.g. `256m`) — largest request body on `/pontonxp/*`
+  and `/admin/upload`; larger requests get 413 and a WARN line `body larger than the limit` with the declared size.
+  Inbound Ponton messages above 16 MiB are logged at INFO with their size (search key `ponton-message-size`).
 - `epmsmail.*` — IMAP/SMTP accounts for EDA-over-email
 - `slick.pgsql.local.db.*` / `flyway.*` — PostgreSQL connection + migrations
 
 Environment variables (names only): `SMTP_ADMIN_SERVER_HOST`, `SMTP_ADMIN_SERVER_PORT`,
-`EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `TZ`, `JAVA_OPTS`.
+`EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `MAX_BODY_SIZE`, `TZ`, `JAVA_OPTS`.
 
 Exposed ports: **6090** (HTTP), **9093** (gRPC). Volumes: `/conf`, `/storage/prod`.
 

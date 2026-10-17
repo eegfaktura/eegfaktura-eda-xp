@@ -9,6 +9,7 @@ import at.energydash.domain.EbMsMessage
 import at.energydash.service.FileService
 import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
@@ -17,7 +18,7 @@ case class EcIdUpdateHttpMessage(conversationId: String, ecId: String)
 case class ConversationMessage(conversationId: String, message: EbMsMessage)
 case class ConversationMessages(conversations: Seq[ConversationMessage])
 
-class ServiceRoute(fileService: FileService)(implicit val system: ActorSystem[_]) {
+class ServiceRoute(fileService: FileService, maxBodyBytes: Long = BodySizeLimit.DefaultMaxBytes)(implicit val system: ActorSystem[_]) {
 
   import at.energydash.domain.JsonImplicit._
 
@@ -25,12 +26,14 @@ class ServiceRoute(fileService: FileService)(implicit val system: ActorSystem[_]
   implicit val scheduler: Scheduler = system.scheduler
   implicit val ec: ExecutionContextExecutor = system.executionContext
 
+  private val logger: Logger = LoggerFactory.getLogger(this.getClass)
+
   val adminRoutes: Route =
     pathPrefix("admin") {
       concat (
         path("upload") {
           post {
-            withoutSizeLimit {
+            BodySizeLimit(maxBodyBytes, logger, "Admin upload") {
               optionalHeaderValueByName("ecId") { ecId =>
                 entity(as[Multipart.FormData]) { formData =>
                   onSuccess(fileService.handleUpload(formData, ecId)) { results =>
