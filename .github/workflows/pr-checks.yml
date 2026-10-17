@@ -3,6 +3,8 @@
 # PostgreSQL (embedded), the MQTT broker and the mail transport are in-process stand-ins.
 # Versions fixed, each release older than 7 days (checked 2026-10-09): Temurin 17.0.19+10, sbt from
 # project/build.properties. Actions pinned by commit SHA.
+# Every job keeps its output as an artifact for 30 days (test-results-<job>, known-errors-<job>),
+# for the CI report collector (vfeeg-development/eegfaktura-dev).
 
 name: PR Checks
 
@@ -46,8 +48,22 @@ jobs:
         id: known
         # report-only: TenantProviderSpec fails on master; the next step turns that into a warning
         continue-on-error: true
-        run: sbt -batch "testOnly at.energydash.actors.TenantProviderSpec"
+        run: |
+          set -o pipefail
+          mkdir -p target
+          sbt -batch "testOnly at.energydash.actors.TenantProviderSpec" 2>&1 | tee target/known-errors.log
 
       - name: Report known errors
         if: steps.known.outcome == 'failure'
         run: echo "::warning title=Known errors::TenantProviderSpec failed (known on master, report-only)"
+
+      - name: Keep the test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: known-errors-known
+          path: |
+            target/known-errors.log
+            target/test-reports/
+          if-no-files-found: ignore
+          retention-days: 30
