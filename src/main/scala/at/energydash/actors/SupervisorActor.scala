@@ -8,7 +8,7 @@ import org.apache.pekko.http.scaladsl.{ConnectionContext, Http, HttpsConnectionC
 import org.apache.pekko.pki.pem.{DERPrivateKeyLoader, PEMDecoder}
 import org.apache.pekko.util.Timeout
 import at.energydash.actors.TenantProvider.TenantStart
-import at.energydash.actors.http.{InboundForwarding, PontonRoute, ServiceRoute}
+import at.energydash.actors.http.{BodySizeLimit, InboundForwarding, PontonRoute, ServiceRoute}
 import at.energydash.config.Config
 import at.energydash.mqtt.MqttSystem
 import at.energydash.service.FileService
@@ -100,15 +100,16 @@ object SupervisorActor {
       val mqttRequestStream = MqttRequestStream(tenantProvider, messageTransformer, conversationEntity)
 
       val targets = InboundForwarding.targets(Config.config)
+      val maxBodyBytes = BodySizeLimit.maxBytes(Config.config)
       // deadlines only matter (and are only checked) when something is forwarded
       val routes =
-        if (targets.isEmpty) new PontonRoute(mqttPublisher)
+        if (targets.isEmpty) new PontonRoute(mqttPublisher, maxBodyBytes = maxBodyBytes)
         else {
           val deadlines = InboundForwarding.timeouts(Config.config)
-          new PontonRoute(mqttPublisher, targets, forwardTimeout = deadlines.forward, readTimeout = deadlines.read)
+          new PontonRoute(mqttPublisher, targets, forwardTimeout = deadlines.forward, readTimeout = deadlines.read, maxBodyBytes = maxBodyBytes)
         }
       val fileService = FileService(system, mqttPublisher)
-      val adminRoutes = new ServiceRoute(fileService)
+      val adminRoutes = new ServiceRoute(fileService, maxBodyBytes)
       //      val pontonPublisher = ctx.spawn(PontonService(), name = "ponton-service")
 
       def process(): Behavior[Command] =

@@ -8,6 +8,20 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Changed
+- **Request bodies on `/pontonxp/*` and `/admin/upload` are capped at 128 MiB** (eda-xp #3). Until now
+  these routes read bodies of any size completely into memory and parsed them as one XML document.
+  New config `app.max-body-size` (env `MAX_BODY_SIZE`, with unit, e.g. `256m`; default `128m`, about
+  3 years of 15-minute energy data for one metering point with 3 measured quantities, even
+  base64-wrapped). A larger request gets 413 and a WARN line `body larger than the limit` with its
+  declared size; nothing of it is parsed or published. This also applies while `app.forward` has
+  entries (the strict read was uncapped before). Inbound messages above 16 MiB are logged at INFO with
+  their size, message code and conversation id (search key `ponton-message-size`, no content); when
+  nothing is forwarded, a request without Content-Length is only capped, its size not logged.
+  An admin upload is now read completely before its parts are handled (within 60 s), so an upload
+  above the limit publishes none of them. A target zone that answers a forwarded message with 413
+  (its `app.max-body-size` is lower) is logged as ERROR `refused as too large`; Ponton still gets 500.
+
 ## [1.0.9] – 2026-10-11
 
 ### Added

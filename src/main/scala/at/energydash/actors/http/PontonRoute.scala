@@ -26,7 +26,8 @@ import scala.xml.NodeSeq
 class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                   forwardTargets: Map[String, Uri] = Map.empty,
                   forwardTimeout: FiniteDuration = InboundForwarding.DefaultForwardTimeout,
-                  readTimeout: FiniteDuration = InboundForwarding.DefaultReadTimeout)(implicit val system: ActorSystem[_]) {
+                  readTimeout: FiniteDuration = InboundForwarding.DefaultReadTimeout,
+                  maxBodyBytes: Long)(implicit val system: ActorSystem[_]) {
 
   implicit val timeout: Timeout = 3.seconds
   implicit val scheduler: Scheduler = system.scheduler
@@ -70,18 +71,26 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
     Future.firstCompletedOf(Seq(sent, timedOut))
   }
 
-  private def processLocally(response: NodeSeq): Route =
+  /** Makes real message sizes visible (search key ponton-message-size); no content is logged. */
+  private val bodyLimit = new BodySizeLimit(maxBodyBytes, logger, "Ponton request")
+
+  private def logSize(size: Option[Long], details: => String): Unit =
+    size.filter(_ > PontonRoute.LogSizeAboveBytes).foreach(b => logger.info(s"ponton-message-size: $b bytes, $details"))
+
+  private def processLocally(response: NodeSeq, size: Option[Long]): Route =
     onComplete(Future {
       logger.debug(s"Receive message from edaAdapter. Length ${response.head.length}")
       scalaxb.fromXML[Envelope](response.head)
     }.flatMap(e => XmlParseHandler.reponseEbMsMessage(e))) {
       case Success(x) =>
+        logSize(size, s"message code ${x.messageCode}, conversation ${x.conversationId}")
         val notification = PontonRoute.notificationFor(x)
         if (notification.protocol == PontonRoute.ErrorProtocol)
           logger.error(s"Inbound message from edaAdapter not processed (conversation ${x.conversationId}, receiver ${x.receiver}): ${notification.message.errorMessage.getOrElse("")}")
         mqttPublisher ! MqttPublish(notification :: Nil)
         complete(HttpResponse(StatusCodes.NoContent))
       case Failure(ex) =>
+        logSize(size, "not parsed")
         // The message does not parse, or a known document cannot be mapped (e.g. a new
         // MessageCode): keep the 500 so Ponton holds it and redelivers it after a fix
         // (team decision, platform#111 ca11). Only unknown document types are
@@ -91,8 +100,9 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
         complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
     }
 
-  val pontonRoutes: Route = withoutSizeLimit {
-    pathPrefix("pontonxp") {
+  val pontonRoutes: Route = pathPrefix("pontonxp") {
+    // inside the prefix: the routes are bound together with adminRoutes, which has its own limit
+    bodyLimit.directive {
       concat(
         path("notification") {
           post {
@@ -133,47 +143,53 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
         } ~
         path("message") {
           post {
-            withoutSizeLimit {
-              if (forwardTargets.isEmpty)
-                // no community forwarded: exactly the previous route (no read deadline, no size cap)
-                entity(as[NodeSeq])(processLocally)
-              else
-                // strict, so the unchanged body can be forwarded after reading the receiver; no size
-                // cap (the default max-to-strict-bytes of 8 MiB would reject large energy data), but
-                // every message, forwarded or not, must arrive within readTimeout
-                toStrictEntity(readTimeout, Long.MaxValue) {
-                  extractRequest { request =>
-                    entity(as[NodeSeq]) { response =>
-                      val receiver = InboundForwarding.receiverOf(response)
-                      val alreadyForwarded = request.headers.exists(_.is(InboundForwarding.ForwardedHeader.toLowerCase))
-                      InboundForwarding.decide(forwardTargets, receiver, alreadyForwarded) match {
-                        case InboundForwarding.Local => processLocally(response)
-                        case InboundForwarding.Loop(rc, target) =>
-                          logger.error(s"Inbound message for $rc arrived already forwarded, but $rc is forwarded again to $target here; refusing it to avoid a loop")
-                          complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
-                        case InboundForwarding.Forward(rc, target) =>
-                          // No MqttPublishError on failure: this zone's backend does not own the
-                          // community any more; the error stays in this log and Ponton redelivers.
-                          val started = System.nanoTime()
-                          onComplete(forward(target, request)) { result =>
-                            val ms = (System.nanoTime() - started) / 1000000
-                            result match {
-                              case Success(status) if status.isSuccess() =>
-                                logger.info(s"Inbound message for $rc forwarded to $target: $status in $ms ms")
-                                complete(HttpResponse(StatusCodes.NoContent))
-                              case Success(status) =>
-                                logger.error(s"Inbound message for $rc not accepted by $target: $status in $ms ms; Ponton will redeliver")
-                                complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
-                              case Failure(ex) =>
-                                logger.error(s"Inbound message for $rc could not be forwarded to $target after $ms ms: ${ex.getMessage}; Ponton will redeliver")
-                                complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
-                            }
+            if (forwardTargets.isEmpty)
+              // no community forwarded: no read deadline, the body is parsed while it streams in
+              // (capped by bodyLimit); its size is known when the request declares a Content-Length
+              extractRequest { request =>
+                entity(as[NodeSeq])(processLocally(_, request.entity.contentLengthOption))
+              }
+            else
+              // strict, so the unchanged body can be forwarded after reading the receiver; capped at
+              // maxBodyBytes (the default max-to-strict-bytes of 8 MiB would reject large energy
+              // data), and every message, forwarded or not, must arrive within readTimeout
+              toStrictEntity(readTimeout, maxBodyBytes) {
+                extractRequest { request =>
+                  entity(as[NodeSeq]) { response =>
+                    val size = request.entity.contentLengthOption
+                    val receiver = InboundForwarding.receiverOf(response)
+                    val alreadyForwarded = request.headers.exists(_.is(InboundForwarding.ForwardedHeader.toLowerCase))
+                    InboundForwarding.decide(forwardTargets, receiver, alreadyForwarded) match {
+                      case InboundForwarding.Local => processLocally(response, size)
+                      case InboundForwarding.Loop(rc, target) =>
+                        logger.error(s"Inbound message for $rc arrived already forwarded, but $rc is forwarded again to $target here; refusing it to avoid a loop")
+                        complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
+                      case InboundForwarding.Forward(rc, target) =>
+                        logSize(size, s"forwarded for $rc")
+                        // No MqttPublishError on failure: this zone's backend does not own the
+                        // community any more; the error stays in this log and Ponton redelivers.
+                        val started = System.nanoTime()
+                        onComplete(forward(target, request)) { result =>
+                          val ms = (System.nanoTime() - started) / 1000000
+                          result match {
+                            case Success(status) if status.isSuccess() =>
+                              logger.info(s"Inbound message for $rc forwarded to $target: $status in $ms ms")
+                              complete(HttpResponse(StatusCodes.NoContent))
+                            case Success(StatusCodes.ContentTooLarge) =>
+                              logger.error(s"Inbound message for $rc (${size.fold("size unknown")(b => s"$b bytes")}) refused as too large by $target: its app.max-body-size is below this zone's ($maxBodyBytes bytes); raise it there. Ponton will redeliver")
+                              complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
+                            case Success(status) =>
+                              logger.error(s"Inbound message for $rc not accepted by $target: $status in $ms ms; Ponton will redeliver")
+                              complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
+                            case Failure(ex) =>
+                              logger.error(s"Inbound message for $rc could not be forwarded to $target after $ms ms: ${ex.getMessage}; Ponton will redeliver")
+                              complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                           }
-                      }
+                        }
                     }
                   }
                 }
-            }
+              }
           }
         }
       )
@@ -183,6 +199,9 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
 
 object PontonRoute {
   val ErrorProtocol = "ERROR"
+
+  /** Inbound messages above this size are logged at INFO with their size (ponton-message-size). */
+  val LogSizeAboveBytes: Long = 16L * 1024 * 1024
 
   /*
    * Deadlines: app.forward-read-timeout / app.forward-timeout (InboundForwarding.timeouts). Reading the
