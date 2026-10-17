@@ -27,7 +27,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                   forwardTargets: Map[String, Uri] = Map.empty,
                   forwardTimeout: FiniteDuration = InboundForwarding.DefaultForwardTimeout,
                   readTimeout: FiniteDuration = InboundForwarding.DefaultReadTimeout,
-                  maxBodyBytes: Long = BodySizeLimit.DefaultMaxBytes)(implicit val system: ActorSystem[_]) {
+                  maxBodyBytes: Long)(implicit val system: ActorSystem[_]) {
 
   implicit val timeout: Timeout = 3.seconds
   implicit val scheduler: Scheduler = system.scheduler
@@ -72,6 +72,8 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
   }
 
   /** Makes real message sizes visible (search key ponton-message-size); no content is logged. */
+  private val bodyLimit = new BodySizeLimit(maxBodyBytes, logger, "Ponton request")
+
   private def logSize(size: Option[Long], details: => String): Unit =
     size.filter(_ > PontonRoute.LogSizeAboveBytes).foreach(b => logger.info(s"ponton-message-size: $b bytes, $details"))
 
@@ -98,8 +100,9 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
         complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
     }
 
-  val pontonRoutes: Route = BodySizeLimit(maxBodyBytes, logger, "Ponton request") {
-    pathPrefix("pontonxp") {
+  val pontonRoutes: Route = pathPrefix("pontonxp") {
+    // inside the prefix: the routes are bound together with adminRoutes, which has its own limit
+    bodyLimit.directive {
       concat(
         path("notification") {
           post {
@@ -140,10 +143,9 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
         } ~
         path("message") {
           post {
-            // size cap: BodySizeLimit around all routes (app.max-body-size)
             if (forwardTargets.isEmpty)
-              // no community forwarded: exactly the previous route (no read deadline); the size is
-              // known when the request declares a Content-Length
+              // no community forwarded: no read deadline, the body is parsed while it streams in
+              // (capped by bodyLimit); its size is known when the request declares a Content-Length
               extractRequest { request =>
                 entity(as[NodeSeq])(processLocally(_, request.entity.contentLengthOption))
               }
@@ -173,6 +175,9 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                             case Success(status) if status.isSuccess() =>
                               logger.info(s"Inbound message for $rc forwarded to $target: $status in $ms ms")
                               complete(HttpResponse(StatusCodes.NoContent))
+                            case Success(StatusCodes.ContentTooLarge) =>
+                              logger.error(s"Inbound message for $rc (${size.fold("size unknown")(b => s"$b bytes")}) refused as too large by $target: its app.max-body-size is below this zone's ($maxBodyBytes bytes); raise it there. Ponton will redeliver")
+                              complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                             case Success(status) =>
                               logger.error(s"Inbound message for $rc not accepted by $target: $status in $ms ms; Ponton will redeliver")
                               complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))

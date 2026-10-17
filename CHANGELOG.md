@@ -18,6 +18,9 @@ this changelog highlights the changes relevant for overview and operations.
   entries (the strict read was uncapped before). Inbound messages above 16 MiB are logged at INFO with
   their size, message code and conversation id (search key `ponton-message-size`, no content); when
   nothing is forwarded, a request without Content-Length is only capped, its size not logged.
+  An admin upload is now read completely before its parts are handled (within 60 s), so an upload
+  above the limit publishes none of them. A target zone that answers a forwarded message with 413
+  (its `app.max-body-size` is lower) is logged as ERROR `refused as too large`; Ponton still gets 500.
 
 ## [1.0.9] – 2026-10-11
 

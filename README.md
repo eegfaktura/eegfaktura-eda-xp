@@ -87,6 +87,8 @@ docker run -p 6090:6090 -p 9093:9093 \
   `pekko.http.server.request-timeout` (20 s); the adapter warns at start when they reach it.
 - `app.max-body-size` (128 MiB, env `MAX_BODY_SIZE`, with unit, e.g. `256m`) — largest request body on `/pontonxp/*`
   and `/admin/upload`; larger requests get 413 and a WARN line `body larger than the limit` with the declared size.
+  Keep it the same in both zones when `app.forward` is used: a target with a lower limit answers 413, logged here
+  as ERROR `refused as too large`, and Ponton redelivers.
   Inbound Ponton messages above 16 MiB are logged at INFO with their size (search key `ponton-message-size`).
 - `epmsmail.*` — IMAP/SMTP accounts for EDA-over-email
 - `slick.pgsql.local.db.*` / `flyway.*` — PostgreSQL connection + migrations
