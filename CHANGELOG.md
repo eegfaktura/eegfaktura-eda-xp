@@ -8,6 +8,8 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.0.10] – 2026-10-17
+
 ### Changed
 - **Request bodies on `/pontonxp/*` and `/admin/upload` are capped at 128 MiB** (eda-xp #3). Until now
   these routes read bodies of any size completely into memory and parsed them as one XML document.
