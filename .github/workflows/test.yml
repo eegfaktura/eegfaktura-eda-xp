@@ -1,0 +1,43 @@
+# Full test suite, called by pr-checks.yml on every pull request. The suite needs no service
+# containers: PostgreSQL (embedded), the MQTT broker and the mail transport are in-process stand-ins.
+# TenantProviderSpec is left out here and runs in the "Known errors" job of pr-checks.yml.
+# Actions pinned by commit SHA; checked 2026-10-08, each release older than 7 days.
+name: Tests
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup JDK 17 (Temurin)
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: 'temurin'
+          java-version: '17.0.19+10'
+          cache: 'sbt'
+
+      - name: Setup sbt
+        uses: sbt/setup-sbt@6158cb0903b8ceeae04f830055f3155e1b6a5ad7 # v1.5.11
+
+      - name: Tests (without TenantProviderSpec)
+        run: sbt -batch clean "testOnly * -at.energydash.actors.TenantProviderSpec"
+
+      - name: Test reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-reports
+          path: target/test-reports/
+          if-no-files-found: ignore
+          retention-days: 30
