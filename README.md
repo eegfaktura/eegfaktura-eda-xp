@@ -66,11 +66,35 @@ docker run -p 6090:6090 -p 9093:9093 \
 - `app.interface.mode` — `SIMU` (simulation) or `PROD`
 - `app.kepserver.url` — Ponton X/P outbound endpoint
 - `app.server.port` (HTTP, 6090), `app.grpc.port` (gRPC, 9093)
+- `app.forward` — communities that moved to another zone (e.g. the pilot): `RC number = "URL of the
+  other adapter's /pontonxp/message"`. The key is the RC number in the Ponton header ReceiverId, not the
+  tenant: all GEA tenants of one RC number move together. Inbound Ponton messages whose ReceiverId is
+  listed are forwarded unchanged (body, content type, SOAPAction) instead of being processed here; the
+  other adapter's answer decides what Ponton gets (2xx → 204, anything else or no answer within 10 s →
+  500 (`app.forward-timeout`), so Ponton redelivers — at least once, like Ponton itself: a target that finishes after the
+  timeout processes the message, and Ponton's redelivery a second time). Empty by default: the route is then exactly the previous one. With entries, every message
+  (forwarded or not) is read completely (up to `app.max-body-size`) and must arrive within 8 s
+  (`app.forward-read-timeout`).
+  An entry that is not an absolute http(s) URL with a host, or the same RC number twice, stops the start.
+  `/status` and `/notification` are not forwarded (only logged). A forwarded request carries
+  `X-Eegfaktura-Forwarded`; an adapter that would forward it again refuses it (500) to avoid a loop.
+  **Finding a loop:** it shows only as ERROR lines `arrived already forwarded` in the log and Ponton
+  redelivering the same message; check `app.forward` in both zones (the target must not list the RC number).
+  A forwarded duplicate (target answered after the timeout, Ponton redelivered) is processed twice by the
+  target: an extra history/notification row in the backend, energy slots overwritten with the same values.
+- `app.forward-read-timeout` (8 s, env `FORWARD_READ_TIMEOUT`, always with unit, e.g. `15s`), `app.forward-timeout` (10 s, env
+  `FORWARD_TIMEOUT`, with unit) — the two deadlines above, adjustable without a release. Together they should stay below
+  `pekko.http.server.request-timeout` (20 s); the adapter warns at start when they reach it.
+- `app.max-body-size` (128 MiB, env `MAX_BODY_SIZE`, with unit, e.g. `256m`) — largest request body on `/pontonxp/*`
+  and `/admin/upload`; larger requests get 413 and a WARN line `body larger than the limit` with the declared size.
+  Keep it the same in both zones when `app.forward` is used: a target with a lower limit answers 413, logged here
+  as ERROR `refused as too large`, and Ponton redelivers.
+  Inbound Ponton messages above 16 MiB are logged at INFO with their size (search key `ponton-message-size`).
 - `epmsmail.*` — IMAP/SMTP accounts for EDA-over-email
 - `slick.pgsql.local.db.*` / `flyway.*` — PostgreSQL connection + migrations
 
 Environment variables (names only): `SMTP_ADMIN_SERVER_HOST`, `SMTP_ADMIN_SERVER_PORT`,
-`EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `TZ`, `JAVA_OPTS`.
+`EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `MAX_BODY_SIZE`, `TZ`, `JAVA_OPTS`.
 
 Exposed ports: **6090** (HTTP), **9093** (gRPC). Volumes: `/conf`, `/storage/prod`.
 

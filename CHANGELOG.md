@@ -8,7 +8,78 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.0.10] – 2026-10-17
+
+### Changed
+- **Request bodies on `/pontonxp/*` and `/admin/upload` are capped at 128 MiB** (eda-xp #3). Until now
+  these routes read bodies of any size completely into memory and parsed them as one XML document.
+  New config `app.max-body-size` (env `MAX_BODY_SIZE`, with unit, e.g. `256m`; default `128m`, about
+  3 years of 15-minute energy data for one metering point with 3 measured quantities, even
+  base64-wrapped). A larger request gets 413 and a WARN line `body larger than the limit` with its
+  declared size; nothing of it is parsed or published. This also applies while `app.forward` has
+  entries (the strict read was uncapped before). Inbound messages above 16 MiB are logged at INFO with
+  their size, message code and conversation id (search key `ponton-message-size`, no content); when
+  nothing is forwarded, a request without Content-Length is only capped, its size not logged.
+  An admin upload is now read completely before its parts are handled (within 60 s), so an upload
+  above the limit publishes none of them. A target zone that answers a forwarded message with 413
+  (its `app.max-body-size` is lower) is logged as ERROR `refused as too large`; Ponton still gets 500.
+
+## [1.0.9] – 2026-10-11
+
+### Added
+- **Forward inbound messages of a community that moved to another zone** (e.g. the pilot zone:
+  the community's Ponton agreements stay on the prod adapter, which hands its messages on). Ponton's EDA
+  add-on delivers every inbound message to one backend
+  URL and cannot run a second instance (tried on 2026-10-11), so the split happens here: new config
+  `app.forward` (RC number → URL of the other adapter's `/pontonxp/message`; the RC number, not the
+  tenant, so all GEA tenants of one RC number move together). A message whose Ponton header
+  ReceiverId is listed is handed on unchanged and not processed or published here; the other adapter
+  processes it with its own database. Ponton gets 204 only when the other adapter answered 2xx; an
+  error, an unreachable target or no answer within 10 s (`app.forward-timeout`; normally below the server's
+  20 s request timeout; Ponton waits 30 s) gives 500, so Ponton keeps the message and redelivers it — at least once, as
+  Ponton's own redelivery: a target that finishes after the timeout processes the message, and Ponton's redelivery a second time. `/status`
+  and `/notification` are not forwarded (they are only logged); a failed forward publishes no MQTT
+  error, because this zone's backend no longer owns the community. Loop guard: forwarded requests
+  carry `X-Eegfaktura-Forwarded` and are refused (500) by an adapter that would forward them again.
+  An entry that is not an absolute http(s) URL with a host, or the same RC number twice, stops the start.
+  **Empty by default — the message route is then exactly the previous one (no read deadline, no size
+  cap); with entries, every message is read completely (no size cap) and must arrive within 8 s
+  (`app.forward-read-timeout`).** Both deadlines can be raised without a release
+  (`FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, with unit, e.g. `15s`; below 1 s stops the start); a loop shows up as ERROR lines
+  `arrived already forwarded` (README).
+
+## [1.0.8] – 2026-10-11
+
+Fixes from the EDA-XP buglist (eegfaktura-platform#111). First released 2026-10-11 together with the
+follow-ups below; 1.0.8 was never deployed on its own.
+
+### Changed
+- **No silent fallback to an old schema any more (261005-ca5).** A request with a missing version
+  label, or a label without its own case, is no longer built with an outdated schema. It is
+  refused with an ERROR log naming the label, and the sender gets an error. Prod sends a label
+  with a case for every routed request (ECON 02.40, ECOF 02.30, ECP 02.10, CPF 01.10, PT 03.00,
+  CCMS 01.30).
+- **ECON/ECOF label `03.00` removed (261008-ca1).** 03.00 is the process version, not a schema set
+  version; it now fails like any unknown label (see README, "Ponton header").
+- **`app.interface.mode` must be PROD or SIMU (261005-ca8).** Any other value (e.g. a typo) used
+  to fall through to PROD in every document builder; it is now an error. Case is ignored.
+- ANFORDERUNG_CPF 01p20 refuses a request without ECID or participation factor instead of sending
+  it without them (261008-ca3).
+- The unreachable ECON 01p10 builder and its document class are removed (1.0.8 follow-up).
+- GN enum names match their wire strings (261005-ca15): `EEG_BASE_REJECTION` = `ABLEHNUNG_GN`,
+  `EEG_BASE_RESPONSE` = `ANTWORT_GN`. Wire format unchanged.
+
 ### Fixed
+- **Message ids around new year (261005-ca9).** The year in MessageId/ConversationId came from
+  the week-based year (`YYYY`): from 28 to 31 December the ids carried the next year. Now the
+  calendar year.
+- **`DocumentCreationDateTime` was one hour off in summer (261008-ca12).** The offset was the raw
+  standard-time offset (+01:00) with the summer wall-clock time; it now includes daylight saving
+  time (+02:00 in summer).
+- `DateTo` of the open end of ECON/ECOF requests is 2099-12-31 again, not 2100-01-31 (0-based
+  month, 261008-ca16).
+- The ECON 01p10 builder declared the root element with an unbound `ns2:` prefix (261008-ca17).
+- Outdated comment on the Ponton header message type (261008-ca4).
 - **Unknown inbound messages no longer block Ponton (261005-ca11, eegfaktura-platform#111).** A
   message type eda-xp cannot map to a process (e.g. not registered, `ERROR_MESSAGE`) made
   `/pontonxp/message` answer 500, so Ponton redelivered or parked it forever, and no one was
@@ -26,40 +97,6 @@ this changelog highlights the changes relevant for overview and operations.
   e-mail path still reports "No XML mapping" and logs the reason.
 - **ANFORDERUNG_GN needs the version label of its body, `03.12`** (MD_REQ_GN), like every other
   request; without one it went out with header version 01.00 (1.0.8 follow-up).
-
-### Changed
-- The unreachable ECON 01p10 builder and its document class are removed (1.0.8 follow-up).
-- GN enum names match their wire strings (261005-ca15): `EEG_BASE_REJECTION` = `ABLEHNUNG_GN`,
-  `EEG_BASE_RESPONSE` = `ANTWORT_GN`. Wire format unchanged.
-
-## [1.0.8] – 2026-10-08
-
-Fixes from the EDA-XP buglist (eegfaktura-platform#111).
-
-### Changed
-- **No silent fallback to an old schema any more (261005-ca5).** A request with a missing version
-  label, or a label without its own case, is no longer built with an outdated schema. It is
-  refused with an ERROR log naming the label, and the sender gets an error. Prod sends a label
-  with a case for every routed request (ECON 02.40, ECOF 02.30, ECP 02.10, CPF 01.10, PT 03.00,
-  CCMS 01.30).
-- **ECON/ECOF label `03.00` removed (261008-ca1).** 03.00 is the process version, not a schema set
-  version; it now fails like any unknown label (see README, "Ponton header").
-- **`app.interface.mode` must be PROD or SIMU (261005-ca8).** Any other value (e.g. a typo) used
-  to fall through to PROD in every document builder; it is now an error. Case is ignored.
-- ANFORDERUNG_CPF 01p20 refuses a request without ECID or participation factor instead of sending
-  it without them (261008-ca3).
-
-### Fixed
-- **Message ids around new year (261005-ca9).** The year in MessageId/ConversationId came from
-  the week-based year (`YYYY`): from 28 to 31 December the ids carried the next year. Now the
-  calendar year.
-- **`DocumentCreationDateTime` was one hour off in summer (261008-ca12).** The offset was the raw
-  standard-time offset (+01:00) with the summer wall-clock time; it now includes daylight saving
-  time (+02:00 in summer).
-- `DateTo` of the open end of ECON/ECOF requests is 2099-12-31 again, not 2100-01-31 (0-based
-  month, 261008-ca16).
-- The ECON 01p10 builder declared the root element with an unbound `ns2:` prefix (261008-ca17).
-- Outdated comment on the Ponton header message type (261008-ca4).
 
 ### Documentation
 - README: Ponton header rule (message type + schema set version from the schema set
