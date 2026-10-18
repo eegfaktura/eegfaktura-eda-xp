@@ -9,6 +9,13 @@ this changelog highlights the changes relevant for overview and operations.
 ## [Unreleased]
 
 ### Added
+- **Floor for the outgoing message counter** (`app.message-seq-floor`, env `MESSAGE_SEQ_FLOOR`, default 0
+  = unchanged). The Ponton header id `MSG<counter>@<RC>` has no time stamp and the counter is per adapter,
+  starting at 0; the adapter of the pilot zone would repeat ids that prod already sent for a community that
+  moved there. With a floor (pilot: `5000000000`) the counter continues from at least that value, a
+  higher counter is kept, and the EDA message, conversation and request ids keep their length (at most
+  `9000000000`, 10 digits; other values stop the start). The start log shows the counter, the floor and
+  the next header id (`Message counter at â€¦`). Prod is unchanged.
 - CI: PR checks and security scan. Every pull request runs the full suite (`pr-checks.yml`;
   `TenantProviderSpec`, which fails on master, runs in a separate job that only reports);
   `security-scan.yml` looks for leaked secrets in new commits, vulnerable dependencies and
