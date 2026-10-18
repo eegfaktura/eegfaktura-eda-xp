@@ -8,6 +8,8 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.0.11] – 2026-10-18
+
 ### Added
 - **Floor for the outgoing message counter** (`app.message-seq-floor`, env `MESSAGE_SEQ_FLOOR`, default 0
   = unchanged). The Ponton header id `MSG<counter>@<RC>` has no time stamp and the counter is per adapter,
