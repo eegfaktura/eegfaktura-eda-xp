@@ -9,6 +9,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.nio.file.Files
+import scala.reflect.io.Directory
 
 class PrepareMessageActorSpec extends AnyWordSpec with Matchers {
 
@@ -17,12 +18,16 @@ class PrepareMessageActorSpec extends AnyWordSpec with Matchers {
 
   // own actor system per case: in-memory journal, so every case starts with an empty counter
   private def withTestKit(body: ActorTestKit => Unit): Unit = {
+    val snapshots = Files.createTempDirectory("snapshots")
     val testKit = ActorTestKit(ConfigFactory.parseString(
       s"""pekko.persistence.journal.plugin = "pekko.persistence.journal.inmem"
          |pekko.persistence.snapshot-store.plugin = "pekko.persistence.snapshot-store.local"
-         |pekko.persistence.snapshot-store.local.dir = "${Files.createTempDirectory("snapshots").toString.replace('\\', '/')}"
+         |pekko.persistence.snapshot-store.local.dir = "${snapshots.toString.replace('\\', '/')}"
          |""".stripMargin).withFallback(ConfigFactory.load()))
-    try body(testKit) finally testKit.shutdownTestKit()
+    try body(testKit) finally {
+      testKit.shutdownTestKit()
+      new Directory(snapshots.toFile).deleteRecursively()
+    }
   }
 
   private def prepare(testKit: ActorTestKit, actor: org.apache.pekko.actor.typed.ActorRef[PrepareMessageActor.Command[_]]): EbMsMessage = {
@@ -71,7 +76,8 @@ class PrepareMessageActorSpec extends AnyWordSpec with Matchers {
     def floor(v: String) = PrepareMessageActor.seqFloor(ConfigFactory.parseString(s"app.message-seq-floor = $v"))
 
     "be 0 by default" in {
-      PrepareMessageActor.seqFloor(ConfigFactory.load()) shouldBe 0
+      // reference.conf only: MESSAGE_SEQ_FLOOR of the machine running the tests must not count
+      PrepareMessageActor.seqFloor(ConfigFactory.defaultReference()) shouldBe 0
     }
 
     "accept 0 to 9000000000" in {

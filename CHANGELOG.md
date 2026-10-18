@@ -15,7 +15,7 @@ this changelog highlights the changes relevant for overview and operations.
   moved there. With a floor (pilot: `5000000000`) the counter continues from at least that value, a
   higher counter is kept, and the EDA message, conversation and request ids keep their length (at most
   `9000000000`, 10 digits; other values stop the start). The start log shows the counter, the floor and
-  the next header id (`Message counter at â€¦`). Prod is unchanged.
+  the next header id (`Message counter at ...`). Prod is unchanged.
 - CI: PR checks and security scan. Every pull request runs the full suite (`pr-checks.yml`;
   `TenantProviderSpec`, which fails on master, runs in a separate job that only reports);
   `security-scan.yml` looks for leaked secrets in new commits, vulnerable dependencies and
