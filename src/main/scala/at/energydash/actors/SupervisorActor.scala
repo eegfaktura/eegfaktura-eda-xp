@@ -94,7 +94,7 @@ object SupervisorActor {
       val mqttSystem = ctx.spawn(MqttSystem(Config.getMqttConfig()), name = "mqtt-system")
       val mqttPublisher = ctx.spawn(MqttPublisher(mqttSystem, ebMsAggregator), name = "mqtt-publisher")
 
-      val messageTransformer = ctx.spawn(PrepareMessageActor(), "message-transformer")
+      val messageTransformer = ctx.spawn(PrepareMessageActor(PrepareMessageActor.seqFloor(Config.config)), "message-transformer")
       val tenantProvider = ctx.spawn(TenantProvider(mqttPublisher), name = "tenant-provider")
 
       val mqttRequestStream = MqttRequestStream(tenantProvider, messageTransformer, conversationEntity)
