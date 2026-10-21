@@ -8,6 +8,8 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.1.0] – 2026-10-21
+
 ### Changed
 - Mail deliverability: member mails (activation / notifications sent via the gRPC `SendMail`
   paths) now go out as **multipart/alternative** with a plain-text part derived from the HTML —
