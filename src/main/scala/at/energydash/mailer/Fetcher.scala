@@ -19,7 +19,6 @@ import scala.util.{Failure, Success, Try}
 class Fetcher {
 
   import Fetcher._
-  import ponton.`package`.fromAnySchemaType
 
   val logger = LoggerFactory.getLogger(classOf[Fetcher])
 

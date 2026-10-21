@@ -1,24 +1,16 @@
 package at.energydash.domain.xml
 
 import at.energydash.config.Config
-import at.energydash.domain.eda.MessageHelper.{buildCalendar, buildCalendarDate, getNow, getProcessDate}
+import at.energydash.domain.eda.MessageHelper.{buildCalendarDate, getNow, getProcessDate}
 import at.energydash.domain.enums.{EbMsMessageType, EcDisModelEnum, EcTypeEnum, MeterDirectionType}
 import at.energydash.domain.{EbMsMessage, Meter}
 import ecmplist.v01p10.ECMPList
 import ponton.`package`.{Commontypesv01p20_AddressTypeFormat, Commontypesv01p20_DocumentModeFormat, Ecmplistv01p10_SchemaVersionFormat, __BooleanXMLFormat}
 import scalaxb.Helper
 
-import java.util.{Calendar, Date, GregorianCalendar, Locale}
+import java.util.Date
 
 case class ECMPListV0110Document(doc: ecmplist.v01p10.ECMPList) {
-  private def calcRestrictedDate(dt: Option[Date]): Option[Date] = dt.map(buildCalendar).map(d => {
-      val now = new GregorianCalendar(new Locale("de", "AT"))
-      if (now.get(Calendar.HOUR_OF_DAY) > 16 || now.get(Calendar.HOUR_OF_DAY) < 9) {
-        d.add(Calendar.DAY_OF_MONTH, 1)
-      }
-      d
-    }).map(_.getTime)
-
   def toDoc: ECMPList = doc
 
   def withRestrictedProcessDate(): ECMPListV0110Document = {

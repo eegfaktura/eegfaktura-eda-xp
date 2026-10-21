@@ -6,6 +6,8 @@
 # gemaess ADR-0005 (Two-Tier-Image-Registry) im Platform-Repo.
 #
 # Build-Flow:
+#   0. Push-Event: Test-Suite (test.yml, wie die PR-Checks); Build+Push nur wenn gruen.
+#      PRs testet pr-checks.yml, hier wird dort nur gebaut.
 #   1. setup-java (Temurin 17, matched dockerBaseImage in build.sbt)
 #   2. setup-sbt
 #   3. GHCR-Login mit VFEEG_DEV_PUSH_PAT (nur push-events, PRs pushen nicht)
@@ -46,7 +48,16 @@ on:
       - main
 
 jobs:
+  test:
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/test.yml
+
   build-and-push-image:
+    needs: test
+    # push: only after green tests; pull_request: test is skipped, build check runs
+    if: ${{ !cancelled() && (needs.test.result == 'success' || needs.test.result == 'skipped') }}
     runs-on: ubuntu-latest
 
     permissions:

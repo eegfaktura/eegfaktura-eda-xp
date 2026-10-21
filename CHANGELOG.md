@@ -8,6 +8,34 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Changed
+- Mail deliverability: member mails (activation / notifications sent via the gRPC `SendMail`
+  paths) now go out as **multipart/alternative** with a plain-text part derived from the HTML —
+  for the inline-logo path nested as `alternative { text, related { html, images } }` — carry an
+  `Auto-Submitted: auto-generated` header, and use a **Message-ID with the `eegfaktura.at` domain**
+  instead of the pod hostname (session `mail.from`).
+
+### Changed
+- Build: removed duplicate settings in `build.sbt` — the unused `Compile / scalaxbJaxbPackage` (the
+  effective one is `Compile / scalaxb / scalaxbJaxbPackage`), the test dependency `flyway-core 7.2.0`
+  (evicted by 10.20.0 anyway) and the second `slick-testkit` (platform#182).
+- Removed the unused key/certificate files under `src/main/resources/certs/` (public grpc-java test
+  certificates, never loaded) and the dead HTTPS setup in `SupervisorActor` that read the never shipped
+  `certs/xpadapter-prod.*`; both servers keep listening on plain HTTP as before (platform#182).
+- Build: the compiler now reports deprecations and unused imports/privates/locals (`scalacOptions`,
+  warnings stay non-fatal; the generated scalaxb/gRPC code under `src_managed` is silenced). The 29
+  warnings in `src/main` are fixed: unused imports, unused private methods (`fakeFlow`,
+  `edaErrorMessage`, `defineNamespaceBinding`, `calcRestrictedDate`, `AggregatorException`) and an
+  implicit Array copy made explicit — no behaviour change (platform#182).
+- Tests: removed commented-out test code (`MessageStorageSpec` completely, three cases in
+  `FetchMailActorSpec`, the old `MyPostgresTest` variant, leftovers in `PontonRequestSpec`); it stays in
+  the git history (platform#182).
+- CI: `rolling-release.yml` runs the test suite (`test.yml`, as in the PR checks) on every push before
+  the image is built and pushed; a red suite stops build, push and deploy dispatch. Pull requests only
+  get the build check there, they are tested by `pr-checks.yml` (platform#182).
+
+## [1.0.11] – 2026-10-18
+
 ### Added
 - **Floor for the outgoing message counter** (`app.message-seq-floor`, env `MESSAGE_SEQ_FLOOR`, default 0
   = unchanged). The Ponton header id `MSG<counter>@<RC>` has no time stamp and the counter is per adapter,
@@ -213,13 +241,6 @@ follow-ups below; 1.0.8 was never deployed on its own.
   in-order convention to update eda-xp XSD/`getVersion` **and** all backend-config copies
   (Prod CM + repo default + dev/env overlays). New-version discovery is handled by the
   monthly EDA-Prozessversionen-Watcher routine.
-
-### Changed
-- Mail deliverability: member mails (activation / notifications sent via the gRPC `SendMail`
-  paths) now go out as **multipart/alternative** with a plain-text part derived from the HTML —
-  for the inline-logo path nested as `alternative { text, related { html, images } }` — carry an
-  `Auto-Submitted: auto-generated` header, and use a **Message-ID with the `eegfaktura.at` domain**
-  instead of the pod hostname (session `mail.from`).
 
 ### Fixed
 - Test module no longer compiles-broken: `CMRequestOnline/OfflineRegistrationSpec` and

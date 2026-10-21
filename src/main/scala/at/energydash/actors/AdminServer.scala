@@ -44,7 +44,6 @@ class AdminServer(tenantProvider: ActorRef[EdaCommand], system: ActorSystem[_]) 
 
     val bound: Future[Http.ServerBinding] = Http(system)
       .newServerAt(interface = grpcHost, port = grpcPort)
-//      .enableHttps(serverHttpContext)
       .bind(services)
       .map(_.addToCoordinatedShutdown(hardTerminationDeadline = 20.seconds))
 

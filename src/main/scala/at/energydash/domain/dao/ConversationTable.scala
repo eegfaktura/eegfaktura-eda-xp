@@ -2,7 +2,6 @@ package at.energydash.domain.dao
 
 
 import io.circe.Json
-import slick.jdbc.PostgresProfile.api._
 import slick.lifted.ProvenShape
 
 trait ConversationTable {

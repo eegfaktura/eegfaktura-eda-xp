@@ -2,7 +2,7 @@ package at.energydash.domain.dao
 
 import at.energydash.domain.EbMsMessage
 import io.circe.generic.auto._
-import io.circe.syntax.{EncoderOps, _}
+import io.circe.syntax.EncoderOps
 import slick.basic.DatabaseConfig
 import slick.jdbc.PostgresProfile
 
