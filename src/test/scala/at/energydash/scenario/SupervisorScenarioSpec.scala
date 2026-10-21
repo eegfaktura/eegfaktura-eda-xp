@@ -89,7 +89,7 @@ class SupervisorScenarioSpec extends ScalaTestWithActorTestKit with AnyWordSpecL
       awaitBound()
       val client = RegisterPontonServiceClient(GrpcClientSettings.connectToServiceAt("127.0.0.1", 19093)(system).withTls(false))(system)
       try {
-        // the provider initialises asynchronously; a register during the initialisation is dropped (261005-ca4)
+        // the provider initialises asynchronously; the gRPC server may not be bound yet
         eventually(timeout(15.seconds), interval(300.millis)) {
           Await.result(client.register(RegisterPontonRequest("RC100403", "u", "p", "email.com", "KEP")), 10.seconds).status shouldBe 200
         }

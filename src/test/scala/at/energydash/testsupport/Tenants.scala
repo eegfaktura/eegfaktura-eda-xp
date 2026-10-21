@@ -11,8 +11,7 @@ import scala.concurrent.duration._
 import scala.util.Try
 
 object Tenants extends Assertions {
-  /** Waits until a `TenantProvider` left its initialisation: a command for an unknown tenant is answered
-   *  (commands sent during the initialisation are dropped, 261005-ca4). */
+  /** Waits until a `TenantProvider` left its initialisation: a command for an unknown tenant is answered. */
   def awaitReady(provider: ActorRef[EdaCommand], kit: ActorTestKit): Unit = {
     val probe = kit.createTestProbe[EdaCommand]()
     val msg = EbMsMessage(conversationId = "C", sender = "not-a-tenant", receiver = "AT003000",

@@ -39,7 +39,7 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
     requestId = Some("R1"))
 
   "R1: a KEP request during the tenant initialisation" should {
-    "be sent once the initialisation is done [261005-ca4]" in knownError("261005-ca4") {
+    "be sent once the initialisation is done" in {
       val provider = spawn(TenantProvider(createTestProbe[MqttCommand]().ref))
       val reply = createTestProbe[EdaCommand]()
       provider ! TenantStart
@@ -49,7 +49,7 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   }
 
   "R10: a request after a re-initialisation (TenantStart while running)" should {
-    "be sent [261005-ca4]" in knownError("261005-ca4") {
+    "be sent" in {
       val provider = spawn(TenantProvider(createTestProbe[MqttCommand]().ref))
       provider ! TenantStart
       Tenants.awaitReady(provider, testKit)
