@@ -9,6 +9,11 @@ this changelog highlights the changes relevant for overview and operations.
 ## [Unreleased]
 
 ### Changed
+- Mail deliverability: member mails (activation / notifications sent via the gRPC `SendMail`
+  paths) now go out as **multipart/alternative** with a plain-text part derived from the HTML —
+  for the inline-logo path nested as `alternative { text, related { html, images } }` — carry an
+  `Auto-Submitted: auto-generated` header, and use a **Message-ID with the `eegfaktura.at` domain**
+  instead of the pod hostname (session `mail.from`).
 - Build: removed duplicate settings in `build.sbt` — the unused `Compile / scalaxbJaxbPackage` (the
   effective one is `Compile / scalaxb / scalaxbJaxbPackage`), the test dependency `flyway-core 7.2.0`
   (evicted by 10.20.0 anyway) and the second `slick-testkit` (platform#182).
