@@ -15,7 +15,7 @@ import scala.xml.{Elem, XML}
 /**
  * Stand-in for the Ponton X/P messenger on the loopback address of `app.kepserver.url` in
  * `application-test.conf` (127.0.0.1:16060). Records every request and answers by a script.
- * Tests never reach a real KEP endpoint (AGENTS.md §15).
+ * Tests never reach a real KEP endpoint.
  */
 final class FakePonton(implicit system: ActorSystem[_]) {
   import FakePonton._

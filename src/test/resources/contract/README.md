@@ -19,4 +19,4 @@ Backend subscriptions the topic contract uses (`eegfaktura-backend` `mqtt/messag
 `eda/response/+/protocol/cr_msg`.
 
 **Refresh:** copy the files again, update the commits here, run `bash scripts/dev/test.sh --only '*Contract*'`,
-and review every difference — a red contract test is a cross-project change (workspace AGENTS.md §6).
+and review every difference — a red contract test is a cross-project change, agreed with the other project.
