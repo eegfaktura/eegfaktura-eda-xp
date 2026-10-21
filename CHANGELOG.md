@@ -20,6 +20,9 @@ this changelog highlights the changes relevant for overview and operations.
   warnings in `src/main` are fixed: unused imports, unused private methods (`fakeFlow`,
   `edaErrorMessage`, `defineNamespaceBinding`, `calcRestrictedDate`, `AggregatorException`) and an
   implicit Array copy made explicit — no behaviour change (platform#182).
+- Tests: removed commented-out test code (`MessageStorageSpec` completely, three cases in
+  `FetchMailActorSpec`, the old `MyPostgresTest` variant, leftovers in `PontonRequestSpec`); it stays in
+  the git history (platform#182).
 
 ## [1.0.11] – 2026-10-18
 
