@@ -1,7 +1,7 @@
 package at.energydash.interfaces
 
 import at.energydash.actors.MqttPublisher.{MqttCommand, MqttPublish, MqttPublishError}
-import at.energydash.actors.http.PontonRoute
+import at.energydash.actors.http.{BodySizeLimit, PontonRoute}
 import at.energydash.testsupport.KnownError.knownError
 import at.energydash.testsupport.{Fixtures, ProtocolCatalog}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
@@ -17,7 +17,7 @@ import scala.concurrent.duration._
 class PontonRouteSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
   private val publisher: TestProbe[MqttCommand] = createTestProbe[MqttCommand]()
   private val binding = Await.result(Http()(system).newServerAt("127.0.0.1", 0)
-    .bind(new PontonRoute(publisher.ref)(system).pontonRoutes), 10.seconds)
+    .bind(new PontonRoute(publisher.ref, maxBodyBytes = BodySizeLimit.maxBytes(system.settings.config))(system).pontonRoutes), 10.seconds)
   private val base = s"http://127.0.0.1:${binding.localAddress.getPort}/pontonxp"
 
   override def afterAll(): Unit = { Await.ready(binding.unbind(), 10.seconds); super.afterAll() }

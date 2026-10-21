@@ -1,7 +1,7 @@
 package at.energydash.interfaces
 
 import at.energydash.actors.MqttPublisher.{MqttCommand, MqttPublish}
-import at.energydash.actors.http.ServiceRoute
+import at.energydash.actors.http.{BodySizeLimit, ServiceRoute}
 import at.energydash.service.FileService
 import at.energydash.testsupport.Fixtures
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
@@ -18,7 +18,7 @@ import scala.concurrent.duration._
 /** `POST /admin/upload`: EDA files posted by hand are parsed and published like inbound messages. */
 class AdminUploadSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
   private val publisher = createTestProbe[MqttCommand]()
-  private val route = new ServiceRoute(FileService(system, publisher.ref)(Materializer(system)))(system).adminRoutes
+  private val route = new ServiceRoute(FileService(system, publisher.ref)(Materializer(system)), BodySizeLimit.maxBytes(system.settings.config))(system).adminRoutes
   private val binding = Await.result(Http()(system).newServerAt("127.0.0.1", 0).bind(route), 10.seconds)
   private val url = s"http://127.0.0.1:${binding.localAddress.getPort}/admin/upload"
 

@@ -2,7 +2,7 @@ package at.energydash.scenario
 
 import at.energydash.actors.TenantProvider.TenantStart
 import at.energydash.actors._
-import at.energydash.actors.http.{PontonRoute, ServiceRoute}
+import at.energydash.actors.http.{BodySizeLimit, PontonRoute, ServiceRoute}
 import at.energydash.config.Config
 import at.energydash.mqtt.MqttSystem
 import at.energydash.service.FileService
@@ -50,8 +50,8 @@ final class ScenarioGraph(name: String, journal: String) {
   private val settings = MqttConnectionSettings(TestBroker.Url, client, new MemoryPersistence)
     .withAutomaticReconnect(true).withCleanSession(false)
 
-  private val routes = new PontonRoute(publisher).pontonRoutes ~
-    new ServiceRoute(FileService(system, publisher)(Materializer(system))).adminRoutes
+  private val routes = new PontonRoute(publisher, maxBodyBytes = BodySizeLimit.maxBytes(system.settings.config)).pontonRoutes ~
+    new ServiceRoute(FileService(system, publisher)(Materializer(system)), BodySizeLimit.maxBytes(system.settings.config)).adminRoutes
   private val binding = Await.result(Http().newServerAt("127.0.0.1", 0).bind(routes), 10.seconds)
   val baseUrl: String = s"http://127.0.0.1:${binding.localAddress.getPort}"
 
