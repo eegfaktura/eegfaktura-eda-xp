@@ -19,6 +19,9 @@ final class MqttRecorder(filter: String = "#") {
 
   def next(timeout: FiniteDuration = 5.seconds): Option[Received] = Option(queue.poll(timeout.toMillis, MILLISECONDS))
 
+  /** Discards what arrives until nothing has come for `quiet`: a later "nothing arrives" check sees no late delivery. */
+  def drain(quiet: FiniteDuration = 1.second): Unit = while (next(quiet).isDefined) {}
+
   def publish(topic: String, payload: String): Unit = client.publish(topic, payload.getBytes("UTF-8"), 1, false)
 
   def close(): Unit = { client.disconnect(); client.close() }

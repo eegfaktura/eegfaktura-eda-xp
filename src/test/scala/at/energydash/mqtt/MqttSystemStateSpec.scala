@@ -100,6 +100,8 @@ class MqttSystemStateSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
       try {
         val ref = spawn(MqttSystem(Config.getMqttConfig()))
         delivers(ref, recorder, 10.seconds)
+        // delivers may have published more than one event; one that arrives late must not count below
+        recorder.drain()
         ref ! Terminate
         ref ! event
         recorder.next(500.millis) shouldBe None
