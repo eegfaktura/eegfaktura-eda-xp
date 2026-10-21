@@ -23,6 +23,9 @@ this changelog highlights the changes relevant for overview and operations.
 - Tests: removed commented-out test code (`MessageStorageSpec` completely, three cases in
   `FetchMailActorSpec`, the old `MyPostgresTest` variant, leftovers in `PontonRequestSpec`); it stays in
   the git history (platform#182).
+- CI: `rolling-release.yml` runs the test suite (`test.yml`, as in the PR checks) on every push before
+  the image is built and pushed; a red suite stops build, push and deploy dispatch. Pull requests only
+  get the build check there, they are tested by `pr-checks.yml` (platform#182).
 
 ## [1.0.11] – 2026-10-18
 
