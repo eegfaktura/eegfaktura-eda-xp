@@ -12,6 +12,9 @@ this changelog highlights the changes relevant for overview and operations.
 - Build: removed duplicate settings in `build.sbt` — the unused `Compile / scalaxbJaxbPackage` (the
   effective one is `Compile / scalaxb / scalaxbJaxbPackage`), the test dependency `flyway-core 7.2.0`
   (evicted by 10.20.0 anyway) and the second `slick-testkit` (platform#182).
+- Removed the unused key/certificate files under `src/main/resources/certs/` (public grpc-java test
+  certificates, never loaded) and the dead HTTPS setup in `SupervisorActor` that read the never shipped
+  `certs/xpadapter-prod.*`; both servers keep listening on plain HTTP as before (platform#182).
 
 ## [1.0.11] – 2026-10-18
 

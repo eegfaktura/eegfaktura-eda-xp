@@ -4,8 +4,7 @@ import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior}
 import org.apache.pekko.http.scaladsl.server.Directives._
 import org.apache.pekko.http.scaladsl.server.Route
-import org.apache.pekko.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
-import org.apache.pekko.pki.pem.{DERPrivateKeyLoader, PEMDecoder}
+import org.apache.pekko.http.scaladsl.Http
 import org.apache.pekko.util.Timeout
 import at.energydash.actors.TenantProvider.TenantStart
 import at.energydash.actors.http.{BodySizeLimit, InboundForwarding, PontonRoute, ServiceRoute}
@@ -15,12 +14,8 @@ import at.energydash.service.FileService
 import at.energydash.stream.MqttRequestStream
 import org.slf4j.{Logger, LoggerFactory}
 
-import java.security.cert.{Certificate, CertificateFactory}
-import java.security.{KeyStore, SecureRandom}
-import javax.net.ssl.{KeyManagerFactory, SSLContext}
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
-import scala.io.Source
 import scala.util.{Failure, Success}
 
 object SupervisorActor {
@@ -37,7 +32,7 @@ object SupervisorActor {
     // pekko.http.server.preview.enable-http2 = on in reference.conf aktiviert
     // h2c fuer .bind(); hier ueberschreiben wir per-Binding auf off, damit
     // der Admin-REST-Server reines HTTP/1.1 spricht.
-    val futureBinding = Http().newServerAt(serverConfig.host, serverConfig.port)/*.enableHttps(serverHttpContext)*/
+    val futureBinding = Http().newServerAt(serverConfig.host, serverConfig.port)
       .adaptSettings(_.mapPreviewServerSettings(_.withEnableHttp2(false)))
       .bind(routes)
     futureBinding.onComplete {
@@ -53,31 +48,6 @@ object SupervisorActor {
   private def startGRPCServer(tenantProvider: ActorRef[EdaCommand])(implicit system: ActorSystem[_]) = {
     AdminServer.apply(tenantProvider, system)
   }
-
-    private def serverHttpContext: HttpsConnectionContext = {
-      val privateKey =
-        DERPrivateKeyLoader.load(PEMDecoder.decode(readPrivateKeyPem()))
-      val fact = CertificateFactory.getInstance("X.509")
-      val cer = fact.generateCertificate(
-        classOf[AdminServer].getResourceAsStream("/certs/xpadapter-prod.pem")
-      )
-      val ks = KeyStore.getInstance("PKCS12")
-      ks.load(null)
-      ks.setKeyEntry(
-        "private",
-        privateKey,
-        new Array[Char](0),
-        Array[Certificate](cer)
-      )
-      val keyManagerFactory = KeyManagerFactory.getInstance("SunX509")
-      keyManagerFactory.init(ks, null)
-      val context = SSLContext.getInstance("TLS")
-      context.init(keyManagerFactory.getKeyManagers, null, new SecureRandom)
-      ConnectionContext.httpsServer(context)
-    }
-
-    private def readPrivateKeyPem(): String =
-      Source.fromResource("certs/xpadapter-prod.key").mkString
 
   def apply(): Behavior[Command] =
     Behaviors.setup { implicit ctx =>
