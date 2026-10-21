@@ -143,6 +143,19 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
           // Keep queuing messages
           Behaviors.same
 
+        // The retry scheduled above: load again, keep queuing (was discarded below, the provider never left this state)
+        case TenantStart =>
+          logger.info("Retrying tenant initialization")
+          context.pipeToSelf(initializeTenants()) {
+            case Success(Success(configs)) =>
+              InitializationSuccess(configs)
+            case Success(Failure(e)) =>
+              InitializationFailure(e)
+            case Failure(e) =>
+              InitializationFailure(e)
+          }
+          Behaviors.same
+
         case msg: PassEdaCommand =>
           logger.debug(s"Queuing message for tenant ${msg.tenant} (initialization in progress)")
           queue(msg)
