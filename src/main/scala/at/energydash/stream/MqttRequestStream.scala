@@ -73,12 +73,6 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
         ByteString(m.asJson.toString()))
     }
 
-  private def fakeFlow: Flow[EbMsMessage, MqttMessage, NotUsed] =
-    Flow[EbMsMessage].map( m =>
-      MqttMessage(
-        edaReqResPath(m.sender, EDAMessageCodeToProcessCode(m.messageCode).toString),
-        ByteString(m.asJson.toString())))
-
   private def commandFlow(input: String): Future[MqttMessage] = {
     Source.single[String](input)
       .via(decodingFlow)
@@ -96,7 +90,6 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
         }
       )
       .via(responseFlow)
-//      .via(fakeFlow)
       .recover {
         case me: MqttException =>
           logger.error(s"Error Stream handling - ${me.getMessage} (${input})")

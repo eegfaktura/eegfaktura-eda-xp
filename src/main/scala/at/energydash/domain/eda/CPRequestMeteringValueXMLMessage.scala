@@ -7,7 +7,7 @@ import scalaxb.{CanWriteXML, Helper}
 
 import java.util.{Calendar, TimeZone}
 import scala.util.Try
-import scala.xml.{NamespaceBinding, Node, TopScope}
+import scala.xml.{NamespaceBinding, Node}
 
 case class CPRequestMeteringValue(message: EbMsMessage) extends EdaMessage {
   override def getVersion(version: Option[String] = None): Try[EdaXMLMessage[_]] = message.messageCodeVersion match {
@@ -47,14 +47,6 @@ case class CPRequestMeteringValueXMLMessage(message: EbMsMessage) extends EdaXML
     scalaxb.toXML[cprequest.v01p12.CPRequest](toDoc, schemaLocation, rootNodeLabel,
       toScope,
       true).head
-  }
-
-  private def defineNamespaceBinding(): NamespaceBinding = {
-    val nsb2 = NamespaceBinding("schemaLocation", "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12/CPRequest_01p12.xsd", TopScope)
-    val nsb3 = NamespaceBinding("xsi", "http://www.w3.org/2001/XMLSchema-instance", nsb2)
-    val nsb4 = NamespaceBinding("cp", "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12", TopScope)
-    //    val p = PrefixedAttribute("xsi", )
-    NamespaceBinding(null, "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20", nsb2)
   }
 }
 

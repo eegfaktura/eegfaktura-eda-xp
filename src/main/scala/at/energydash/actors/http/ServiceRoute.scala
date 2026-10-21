@@ -7,8 +7,6 @@ import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.util.Timeout
 import at.energydash.domain.EbMsMessage
 import at.energydash.service.FileService
-import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport._
-import io.circe.generic.auto._
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.ExecutionContextExecutor
@@ -20,7 +18,6 @@ case class ConversationMessages(conversations: Seq[ConversationMessage])
 
 class ServiceRoute(fileService: FileService, maxBodyBytes: Long)(implicit val system: ActorSystem[_]) {
 
-  import at.energydash.domain.JsonImplicit._
 
   implicit val timeout: Timeout = 3.seconds
   implicit val scheduler: Scheduler = system.scheduler

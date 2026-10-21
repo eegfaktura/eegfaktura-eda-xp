@@ -1,6 +1,5 @@
 package at.energydash.actors
 
-import org.apache.pekko.actor.typed.scaladsl.AskPattern._
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.util.Timeout
@@ -31,7 +30,7 @@ class TenantMailActor(tenantConfig: TenantConfig, mailRepo: SlickEmailOutboxRepo
   implicit val mailContext: FetcherContext = FetcherContext(tenant, mailSession, mailRepo)
 
   def start: Behavior[EmailCommand] = Behaviors.setup[EmailCommand] { context => {
-    import context.{executionContext, system}
+    import context.executionContext
 
     context.setLoggerName(TenantMailActor.getClass)
 
