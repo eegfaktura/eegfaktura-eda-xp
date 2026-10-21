@@ -32,6 +32,21 @@ this changelog highlights the changes relevant for overview and operations.
   the image is built and pushed; a red suite stops build, push and deploy dispatch. Pull requests only
   get the build check there, they are tested by `pr-checks.yml` (platform#182).
 
+### Fixed
+- **Messages that arrive while the tenants are loaded at startup are processed** (platform#182). Until
+  now the tenant provider queued `PassEdaCommand`, `AddTenant` and `UpdateTenant` during its startup
+  but never replayed them: an EDA request from MQTT got no answer (ask timeout after 30 s, the backend
+  gets an error on `eda/response/error`) and a tenant registration/update over gRPC timed out after 10 s
+  without being stored. Now they are processed after the tenants are loaded, in arrival order; at most
+  1000 are queued, more are discarded with a WARN line as before (the backend discards the error on
+  `eda/response/error`). In prod loading takes about 0.5 s (pilot ~2 s); no startup loss was seen in the logs
+  of the last 35 days.
+- **Retry after a failed tenant load** (platform#182). After „Initialization failed … Retrying in 5 seconds“
+  the scheduled retry was discarded, so the provider stayed in its startup state until the pod restarted
+  (every EDA request timed out). It now loads again every 5 s. If that takes longer than a caller waits, a
+  queued message is still processed later although its caller already got a timeout. CI: `TenantProviderSpec` runs in the full suite
+  again, the report-only "Known errors" job is gone.
+
 ## [1.0.11] – 2026-10-18
 
 ### Added

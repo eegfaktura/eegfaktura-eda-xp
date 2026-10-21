@@ -19,7 +19,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
   import TenantProvider._
   var logger: Logger = LoggerFactory.getLogger(classOf[TenantProvider])
 
-  def start: Behavior[EdaCommand] = Behaviors.setup[EdaCommand] { context => {
+  def start: Behavior[EdaCommand] = Behaviors.withStash[EdaCommand](StashCapacity) { buffer => Behaviors.setup[EdaCommand] { context => {
 
     import context.executionContext
 
@@ -86,7 +86,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
           }
 
           // Return waiting behavior that queues incoming messages
-          waitingForInitialization(messageQueue = Vector.empty)
+          waitingForInitialization()
 
         case other =>
           logger.warn(s"Received message ${other.getClass.getSimpleName} before initialization started")
@@ -94,8 +94,18 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
       }
     }
 
+    // Queue a message until initialization is complete; replayed in arrival order by unstashAll
+    def queue(msg: EdaCommand): Behavior[EdaCommand] = {
+      if (buffer.isFull) {
+        logger.warn(s"Discarding message ${msg.getClass.getSimpleName} during initialization, queue full (${buffer.capacity})")
+      } else {
+        buffer.stash(msg)
+      }
+      Behaviors.same
+    }
+
     // Behavior while waiting for initialization to complete
-    def waitingForInitialization(messageQueue: Vector[EdaCommand]): Behavior[EdaCommand] = {
+    def waitingForInitialization(): Behavior[EdaCommand] = {
       Behaviors.receiveMessage {
         case InitializationSuccess(tenantConfigs) =>
           val tenantActors = tenantConfigs.flatMap { t =>
@@ -119,15 +129,10 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
             }
           }.toMap
 
-          logger.info(s"Initialization completed with ${tenantActors.size} tenants")
+          logger.info(s"Initialization completed with ${tenantActors.size} tenants, ${buffer.size} queued messages")
 
-          // Process queued messages and transition to provide state
-          val provideBehavior = provide(tenantActors)
-          messageQueue.foldLeft(provideBehavior) { (behavior, msg) =>
-            // Reprocess queued messages
-            behavior
-          }
-          provideBehavior
+          // Process queued messages in arrival order and transition to provide state
+          buffer.unstashAll(provide(tenantActors))
 
         case InitializationFailure(exception) =>
           logger.error(
@@ -138,17 +143,30 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
           // Keep queuing messages
           Behaviors.same
 
+        // The retry scheduled above: load again, keep queuing (was discarded below, the provider never left this state)
+        case TenantStart =>
+          logger.info("Retrying tenant initialization")
+          context.pipeToSelf(initializeTenants()) {
+            case Success(Success(configs)) =>
+              InitializationSuccess(configs)
+            case Success(Failure(e)) =>
+              InitializationFailure(e)
+            case Failure(e) =>
+              InitializationFailure(e)
+          }
+          Behaviors.same
+
         case msg: PassEdaCommand =>
           logger.debug(s"Queuing message for tenant ${msg.tenant} (initialization in progress)")
-          waitingForInitialization(messageQueue :+ msg)
+          queue(msg)
 
         case msg: AddTenant =>
           logger.debug("Queuing AddTenant message (initialization in progress)")
-          waitingForInitialization(messageQueue :+ msg)
+          queue(msg)
 
         case msg: UpdateTenant =>
           logger.debug("Queuing UpdateTenant message (initialization in progress)")
-          waitingForInitialization(messageQueue :+ msg)
+          queue(msg)
 
         case msg =>
           logger.warn(s"Discarding message ${msg.getClass.getSimpleName} during initialization")
@@ -252,7 +270,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
             case Failure(e) =>
               InitializationFailure(e)
           }
-          waitingForInitialization(messageQueue = Vector.empty)
+          waitingForInitialization()
 
         case msg: InitializationSuccess =>
           logger.warn(s"Received InitializationSuccess during normal operation, ignoring")
@@ -265,10 +283,13 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
     }
 
     initializing()
-  }}
+  }}}
 }
 
 object TenantProvider {
+
+  // messages queued while the tenants are loaded; more are discarded with a warning
+  private val StashCapacity = 1000
 
   // ===== Public Messages =====
   case object TenantStart extends EdaCommand
