@@ -22,24 +22,6 @@ class PontonRequestSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike w
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  //  implicit val as = ActorSystem()
-  //  implicit val mat = ActorMaterializer()
-  //  implicit val ec = as.dispatcher
-  //
-  //  override def afterAll(): Unit = as.terminate()
-
-  //  def runWithContext[T](f: ActorContext[T] => Assertion): Assertion = {
-  //    def extractor(replyTo: ActorRef[Assertion]): Behavior[T] =
-  //      Behaviors.setup { context =>
-  //        replyTo ! f(context)
-  //
-  //        Behaviors.ignore
-  //      }
-  //    val probe = testKit.createTestProbe[Assertion]()
-  //    testKit.spawn(extractor(probe.ref))
-  //    probe.receiveMessage(1.minute)
-  //  }
-
   trait MockClientHandler extends AkkaHttpHandler with AkkaHttpClients {
     val mock = mockFunction[HttpRequest, Future[HttpResponse]]
 
@@ -48,31 +30,19 @@ class PontonRequestSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike w
   }
 
   "Send Soap Request" should {
-    "handle Online Request message" in /*runWithContext[NotUsed] { context => */ {
-      //      import context._
-      //      val mockHttp: HttpExt = mock[HttpExt]
-      //
-      //      class TestPontonRequest(ctx: ActorContext[_]) extends PontonRequest(testKit.system) {
-      //        override val http: HttpExt = mockHttp
-      //      }
-
+    "handle Online Request message" in {
       val json = """{"id": 1}"""
       val response = FastFuture.successful {
         HttpResponse(
           status = StatusCodes.OK,
           entity = HttpEntity(ContentTypes.`application/json`, json))
       }
-      //      Mockito.when(mockHttp.singleRequest(any[HttpRequest], any[HttpsConnectionContext], any[ConnectionPoolSettings], any[LoggingAdapter]))
-      //        .thenReturn(response)
-      //      val testService = new TestPontonRequest(context).service
 
       val testService = (new PontonRequest(testKit.system) with MockClientHandler)
       testService.mock
-        //        .expects(HttpRequest(uri = "http://dummy.restapiexample.com/api/v1/employees"))
         .expects ( where {
           (request: HttpRequest) => request.uri == Uri("http://10.10.10.51:6060/ponton/eda/webservice/outbound")
         })
-//        .returning(Future.successful(HttpResponse(entity = HttpEntity(ByteString("stripString")))))
         .returning(Future.successful(HttpResponse(status=StatusCodes.OK, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, NodeSeq.Empty.toString()))))
       val edaMessage = EbMsMessage(
         conversationId = "AT003000202303041506076450000003761",

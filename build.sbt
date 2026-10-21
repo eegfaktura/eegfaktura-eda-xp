@@ -15,7 +15,6 @@ lazy val slickVersion             = "3.5.1"
 lazy val scalaXmlVersion          = "2.3.0"
 
 lazy val scalaxbSettings = Seq(
-  Compile / scalaxbJaxbPackage := JaxbPackage.Jakarta,
   Compile / scalaxb / scalaxbPackageName := "generated",
   Compile / scalaxb / scalaxbPackageNames := Map(
     uri("http://xp.ponton.de/eda/v320") -> "ponton",
@@ -111,6 +110,9 @@ lazy val root = (project in file("."))
   .settings(
     name := "XPAdapter",
 
+    // warnings stay non-fatal; the generated scalaxb/gRPC sources under src_managed are silenced
+    scalacOptions ++= Seq("-deprecation", "-Wunused:imports,privates,locals", "-Wconf:src=src_managed/.*:s"),
+
     resolvers += "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/",
     resolvers += "repo.jenkins-ci.org" at "https://repo.jenkins-ci.org/releases",
     // Pekko ist auf Maven Central, kein Lightbend-Resolver mehr noetig
@@ -153,10 +155,8 @@ lazy val root = (project in file("."))
       "com.typesafe.slick" %% "slick-testkit" % slickVersion,
       "com.h2database" % "h2" % "2.2.224",
       "com.opentable.components" % "otj-pg-embedded" % "0.13.3",
-      "org.flywaydb" % "flyway-core" % "7.2.0",
       "org.mockito" %% "mockito-scala" % "1.17.31",
       "org.scalamock" %% "scalamock" % "6.0.0",
-      "com.typesafe.slick" %% "slick-testkit" % slickVersion,
       "io.moquette"      % "moquette-broker"  % "0.17",
     ).map(_ % Test),
 

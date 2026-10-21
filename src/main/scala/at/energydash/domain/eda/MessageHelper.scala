@@ -132,7 +132,7 @@ object MessageHelper {
     crc8.update(BigInt(crc32Val).toByteArray)
 
     val compose = BigInt((crc32Val << 8) + crc8.getValue).toByteArray
-    Base58.encode(compose.takeRight(5))
+    Base58.encode(compose.takeRight(5).toIndexedSeq)
   }
 
   def buildMessageId(participant: String, seqNumber: Long, dateTime: Date = new Date): String = {

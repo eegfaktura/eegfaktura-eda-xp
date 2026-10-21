@@ -23,7 +23,6 @@ class MockedSMTPProvider
   extends Provider(Provider.Type.TRANSPORT, "mocked", classOf[MockTransport].getName, "Mock", null)
 
 class TenantProviderSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with BeforeAndAfter with EmbeddedDb with EmailMock {
-  import scala.concurrent.ExecutionContext.Implicits.global
 
   private val testEdaMessage = EbMsMessage(messageId = Some("1234"), conversationId = "con",
     sender = "sender",
@@ -35,7 +34,7 @@ class TenantProviderSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   "Tenant Provider Actor" should {
     "Handle Eda Message OFFLINE Reg" in {
       val mqttPublisherProbe = createTestProbe[MqttCommand]()
-      val edaResponse = createTestProbe[EdaCommand]
+      val edaResponse = createTestProbe[EdaCommand]()
       val tenantActor = spawn(TenantProvider(mqttPublisherProbe.ref))
       val testMessage = EbMsMessage(messageId = Some("1234"), conversationId = "con",
         sender = "myeeg",
@@ -55,7 +54,7 @@ class TenantProviderSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 
     "Handle Eda Message with unregistered participant" in {
       val mqttPublisherProbe = createTestProbe[MqttCommand]()
-      val edaResponse = createTestProbe[EdaCommand]
+      val edaResponse = createTestProbe[EdaCommand]()
       val tenantActor = spawn(TenantProvider(mqttPublisherProbe.ref))
       val testMessage = EbMsMessage(messageId = Some("1234"), conversationId = "con",
         sender = "sender",
@@ -72,7 +71,7 @@ class TenantProviderSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 
     "Handle reconfigure Tenant Settings" in {
       val mqttPublisherProbe = createTestProbe[MqttCommand]()
-      val configResponse = createTestProbe[EdaCommand]
+      val configResponse = createTestProbe[EdaCommand]()
       val tenantActor = spawn(TenantProvider(mqttPublisherProbe.ref))
       val testMessage = TenantConfig(
         tenant = "mymaileeg", cType = "KEP", active = true, domain = None, host = None, imapPort = None, smtpHost = None, smtpPort = None, user = None, passwd = None, imapSecurity = None, smtpSecurity = None)

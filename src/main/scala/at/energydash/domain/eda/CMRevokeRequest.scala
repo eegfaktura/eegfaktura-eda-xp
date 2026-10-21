@@ -2,7 +2,6 @@ package at.energydash.domain.eda
 
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.xml.{CMRevokeV0100Document, CMRevokeV0110Document}
-import cmnotification.v01p11._
 import ponton.`package`.{Cmrevokev01p00_CMRevokeFormat, Cmrevokev01p10_CMRevokeFormat}
 import scalaxb.CanWriteXML
 

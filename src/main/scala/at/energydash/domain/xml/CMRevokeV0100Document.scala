@@ -1,7 +1,7 @@
 package at.energydash.domain.xml
 
 import at.energydash.config.Config
-import at.energydash.domain.eda.MessageHelper.{buildCalendar, buildCalendarDate}
+import at.energydash.domain.eda.MessageHelper.buildCalendarDate
 import at.energydash.domain.enums.EbMsMessageType
 import at.energydash.domain.{EbMsMessage, ResponseData}
 import cmrevoke._

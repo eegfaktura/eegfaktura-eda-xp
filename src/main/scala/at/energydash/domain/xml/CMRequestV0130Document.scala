@@ -2,7 +2,7 @@ package at.energydash.domain.xml
 
 import at.energydash.config.Config
 import at.energydash.domain.EbMsMessage
-import at.energydash.domain.eda.MessageHelper.{buildCalendar, buildCalendarDate, getProcessDate, getNow}
+import at.energydash.domain.eda.MessageHelper.{buildCalendarDate, getProcessDate, getNow}
 import at.energydash.domain.enums.MeterDirectionType
 import cmrequest.v01p30
 import commontypes.v01p20._

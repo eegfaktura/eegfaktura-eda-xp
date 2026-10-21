@@ -1,6 +1,7 @@
 # Full test suite, called by pr-checks.yml on every pull request. The suite needs no service
 # containers: PostgreSQL (embedded), the MQTT broker and the mail transport are in-process stand-ins.
 # Actions pinned by commit SHA; checked 2026-10-08, each release older than 7 days.
+# Also called by rolling-release.yml: an image is only built and pushed after green tests.
 name: Tests
 
 on:
