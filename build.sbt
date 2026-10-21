@@ -110,6 +110,9 @@ lazy val root = (project in file("."))
   .settings(
     name := "XPAdapter",
 
+    // warnings stay non-fatal; the generated scalaxb/gRPC sources under src_managed are silenced
+    scalacOptions ++= Seq("-deprecation", "-Wunused:imports,privates,locals", "-Wconf:src=src_managed/.*:s"),
+
     resolvers += "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/",
     resolvers += "repo.jenkins-ci.org" at "https://repo.jenkins-ci.org/releases",
     // Pekko ist auf Maven Central, kein Lightbend-Resolver mehr noetig

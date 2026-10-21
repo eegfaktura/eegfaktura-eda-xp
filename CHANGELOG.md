@@ -15,6 +15,11 @@ this changelog highlights the changes relevant for overview and operations.
 - Removed the unused key/certificate files under `src/main/resources/certs/` (public grpc-java test
   certificates, never loaded) and the dead HTTPS setup in `SupervisorActor` that read the never shipped
   `certs/xpadapter-prod.*`; both servers keep listening on plain HTTP as before (platform#182).
+- Build: the compiler now reports deprecations and unused imports/privates/locals (`scalacOptions`,
+  warnings stay non-fatal; the generated scalaxb/gRPC code under `src_managed` is silenced). The 29
+  warnings in `src/main` are fixed: unused imports, unused private methods (`fakeFlow`,
+  `edaErrorMessage`, `defineNamespaceBinding`, `calcRestrictedDate`, `AggregatorException`) and an
+  implicit Array copy made explicit — no behaviour change (platform#182).
 
 ## [1.0.11] – 2026-10-18
 

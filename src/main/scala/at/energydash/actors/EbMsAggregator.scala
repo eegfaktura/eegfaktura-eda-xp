@@ -20,10 +20,6 @@ import scala.util.{Failure, Success}
 
 object EbMsAggregator {
 
-  private case class AggregatorException(reason: String, cause: Option[Throwable] = None) extends RuntimeException(reason) {
-    cause.foreach(initCause)
-  }
-
   private def checkEcIdIsNecessary(t: EbMsMessageType) = t match {
     case EbMsMessageType.CHANGE_METER_PARTITION_ANSWER | EbMsMessageType.CHANGE_METER_PARTITION_REJECTION => true
     case EbMsMessageType.ENERGY_FILE_RESPONSE => true

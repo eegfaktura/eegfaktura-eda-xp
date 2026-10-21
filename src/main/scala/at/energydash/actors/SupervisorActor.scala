@@ -5,7 +5,6 @@ import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior}
 import org.apache.pekko.http.scaladsl.server.Directives._
 import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.http.scaladsl.Http
-import org.apache.pekko.util.Timeout
 import at.energydash.actors.TenantProvider.TenantStart
 import at.energydash.actors.http.{BodySizeLimit, InboundForwarding, PontonRoute, ServiceRoute}
 import at.energydash.config.Config
@@ -14,8 +13,6 @@ import at.energydash.service.FileService
 import at.energydash.stream.MqttRequestStream
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.concurrent.ExecutionContextExecutor
-import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 
 object SupervisorActor {
@@ -52,8 +49,6 @@ object SupervisorActor {
   def apply(): Behavior[Command] =
     Behaviors.setup { implicit ctx =>
       implicit val system: ActorSystem[Nothing] = ctx.system
-      implicit val timeout: Timeout = Timeout(5.seconds)
-      implicit val ex: ExecutionContextExecutor = system.executionContext
 
       ctx.setLoggerName("Supervisor")
 //      val messageStore = ctx.spawn(MessageStorage(), name = "message-storage")
