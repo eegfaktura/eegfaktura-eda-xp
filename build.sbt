@@ -15,7 +15,6 @@ lazy val slickVersion             = "3.5.1"
 lazy val scalaXmlVersion          = "2.3.0"
 
 lazy val scalaxbSettings = Seq(
-  Compile / scalaxbJaxbPackage := JaxbPackage.Jakarta,
   Compile / scalaxb / scalaxbPackageName := "generated",
   Compile / scalaxb / scalaxbPackageNames := Map(
     uri("http://xp.ponton.de/eda/v320") -> "ponton",
@@ -153,10 +152,8 @@ lazy val root = (project in file("."))
       "com.typesafe.slick" %% "slick-testkit" % slickVersion,
       "com.h2database" % "h2" % "2.2.224",
       "com.opentable.components" % "otj-pg-embedded" % "0.13.3",
-      "org.flywaydb" % "flyway-core" % "7.2.0",
       "org.mockito" %% "mockito-scala" % "1.17.31",
       "org.scalamock" %% "scalamock" % "6.0.0",
-      "com.typesafe.slick" %% "slick-testkit" % slickVersion,
       "io.moquette"      % "moquette-broker"  % "0.17",
     ).map(_ % Test),
 
