@@ -1,6 +1,5 @@
 # Full test suite, called by pr-checks.yml on every pull request. The suite needs no service
 # containers: PostgreSQL (embedded), the MQTT broker and the mail transport are in-process stand-ins.
-# TenantProviderSpec is left out here and runs in the "Known errors" job of pr-checks.yml.
 # Actions pinned by commit SHA; checked 2026-10-08, each release older than 7 days.
 name: Tests
 
@@ -30,8 +29,8 @@ jobs:
       - name: Setup sbt
         uses: sbt/setup-sbt@6158cb0903b8ceeae04f830055f3155e1b6a5ad7 # v1.5.11
 
-      - name: Tests (without TenantProviderSpec)
-        run: sbt -batch clean "testOnly * -at.energydash.actors.TenantProviderSpec"
+      - name: Tests
+        run: sbt -batch clean test
 
       - name: Test reports
         if: ${{ !cancelled() }}

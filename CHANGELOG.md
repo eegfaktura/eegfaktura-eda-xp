@@ -8,6 +8,17 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Fixed
+- **Messages that arrive while the tenants are loaded at startup are processed** (platform#182). Until
+  now the tenant provider queued `PassEdaCommand`, `AddTenant` and `UpdateTenant` during its startup
+  but never replayed them: an EDA request from MQTT got no answer (ask timeout after 30 s, the backend
+  gets an error on `eda/response/error`) and a tenant registration/update over gRPC timed out after 10 s
+  without being stored. Now they are processed after the tenants are loaded, in arrival order; at most
+  1000 are queued, more are discarded with a WARN line as before. If loading the tenants takes longer
+  than the caller waits (database not reachable, retry every 5 s), a queued message is still processed
+  later although its caller already got a timeout. CI: `TenantProviderSpec` runs in the full suite
+  again, the report-only "Known errors" job is gone.
+
 ## [1.0.11] – 2026-10-18
 
 ### Added
