@@ -8,6 +8,15 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Fixed
+- Dependencies with HIGH findings in the security scan (Trivy) raised to fixed patch/minor versions:
+  `postgresql` 42.7.3 → 42.7.14, gRPC (`grpc-netty-shaded` and the other `io.grpc` modules, via
+  pekko-grpc-runtime) 1.67.1 → 1.75.0, `protobuf-java` declared at 3.25.8 (the pom asked for 3.19.6
+  through scalapb-runtime), Jackson (via pekko-serialization-jackson) 2.19.2 → 2.21.7, circe
+  0.14.3 → 0.14.16 (`jawn-parser` 1.7.0), and `org.lz4:lz4-java` 1.8.0 replaced by its maintained fork
+  `at.yawk.lz4:lz4-java` 1.11.4. Transitive ones are declared directly, because the scan reads the pom
+  exported by `sbt makePom`, which does not carry `dependencyOverrides` (platform#182).
+
 ## [1.1.0] – 2026-10-21
 
 ### Changed
