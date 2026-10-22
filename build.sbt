@@ -16,6 +16,10 @@ lazy val scalaXmlVersion          = "2.3.0"
 // gRPC comes in through pekko-grpc-runtime (1.67.1); raised for the security scan (platform#182).
 // All io.grpc modules share one version.
 lazy val grpcVersion              = "1.75.0"
+// Jackson comes in through pekko-serialization-jackson (2.19.2); raised for the security scan
+// (platform#182). Since 2.20 jackson-annotations is versioned without a patch number.
+lazy val jacksonVersion           = "2.21.7"
+lazy val jacksonAnnotationsVersion = "2.21"
 
 lazy val scalaxbSettings = Seq(
   Compile / scalaxb / scalaxbPackageName := "generated",
@@ -153,12 +157,26 @@ lazy val root = (project in file("."))
       "io.grpc" % "grpc-netty-shaded" % grpcVersion,
       // scalapb-runtime asks for 3.19.6; sbt already resolves the version grpc-protobuf brings
       "com.google.protobuf" % "protobuf-java" % "3.25.8",
+      "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
     ),
 
     dependencyOverrides ++= Seq(
       "grpc-api", "grpc-context", "grpc-core", "grpc-netty-shaded", "grpc-protobuf",
       "grpc-protobuf-lite", "grpc-stub", "grpc-util",
     ).map("io.grpc" % _ % grpcVersion),
+
+    // jackson-module-scala refuses a databind of another minor version: all modules move together
+    dependencyOverrides ++= Seq(
+      "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
+      "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonAnnotationsVersion,
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
+      "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % jacksonVersion,
+      "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % jacksonVersion,
+      "com.fasterxml.jackson.module" % "jackson-module-parameter-names" % jacksonVersion,
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion,
+    ),
 
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % "3.2.19",
