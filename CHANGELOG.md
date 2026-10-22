@@ -9,10 +9,10 @@ this changelog highlights the changes relevant for overview and operations.
 ## [Unreleased]
 
 ### Changed
-- **HTTP: request size limit set explicitly to 16 MB** (`pekko.http.server.parsing.max-content-length`). The gRPC
+- **gRPC port: request size limit 16 MB** (`app.grpc-max-content-length`, env `GRPC_MAX_CONTENT_LENGTH`). The gRPC
   `SendMail` call from the backend will carry inline images and a PDF of mails that communities can edit themselves
-  (up to 6 MB of files, konzept-mail-texte-editierbar). Before, the pekko-http default of 8 MB applied implicitly.
-  Routes with their own limit (`max-body-size`, Ponton upload) are unchanged.
+  (up to 6 MB of files, konzept-mail-texte-editierbar). The limit applies only to the gRPC binding; all other routes
+  keep the pekko-http default of 8 MB (security review 22.10.2026), routes with their own `max-body-size` unchanged.
 
 ### Fixed
 - Dependencies with HIGH findings in the security scan (Trivy) raised to fixed patch/minor versions:
