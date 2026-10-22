@@ -151,7 +151,7 @@ lazy val root = (project in file("."))
       "org.scala-lang.modules" %% "scala-xml" % scalaXmlVersion,
 //      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2",
 
-      "com.google.guava" % "guava" % "33.2.1-jre",
+      "com.google.guava" % "guava" % "33.3.1-jre", // grpc 1.75 brings 33.3.1-android; keep the -jre build
 
       // transitive, declared directly so that the exported pom (security scan) carries the fixed version
       "io.grpc" % "grpc-netty-shaded" % grpcVersion,
