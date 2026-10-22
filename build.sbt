@@ -159,6 +159,8 @@ lazy val root = (project in file("."))
       "com.google.protobuf" % "protobuf-java" % "3.25.8",
       "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
+      // flyway-core asks for 2.15.2; kept with the other Jackson modules
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-toml" % jacksonVersion,
       // org.lz4 is abandoned; at.yawk.lz4 is the maintained fork (same net.jpountz packages)
       "at.yawk.lz4" % "lz4-java" % "1.11.4",
     ),
