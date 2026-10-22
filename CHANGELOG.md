@@ -8,6 +8,12 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Changed
+- **gRPC port: request size limit 16 MB** (`app.grpc-max-content-length`, env `GRPC_MAX_CONTENT_LENGTH`). The gRPC
+  `SendMail` call from the backend will carry inline images and a PDF of mails that communities can edit themselves
+  (up to 6 MB of files, konzept-mail-texte-editierbar). The limit applies only to the gRPC binding; all other routes
+  keep the pekko-http default of 8 MB (security review 22.10.2026), routes with their own `max-body-size` unchanged.
+
 ### Fixed
 - Dependencies with HIGH findings in the security scan (Trivy) raised to fixed patch/minor versions:
   `postgresql` 42.7.3 → 42.7.14, gRPC (`grpc-netty-shaded` and the other `io.grpc` modules, via
