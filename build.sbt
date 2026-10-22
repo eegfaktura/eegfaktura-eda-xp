@@ -151,6 +151,8 @@ lazy val root = (project in file("."))
 
       // transitive, declared directly so that the exported pom (security scan) carries the fixed version
       "io.grpc" % "grpc-netty-shaded" % grpcVersion,
+      // scalapb-runtime asks for 3.19.6; sbt already resolves the version grpc-protobuf brings
+      "com.google.protobuf" % "protobuf-java" % "3.25.8",
     ),
 
     dependencyOverrides ++= Seq(
