@@ -131,7 +131,7 @@ lazy val root = (project in file("."))
       "org.apache.pekko" %% "pekko-actor-typed" % pekkoVersion,
       "org.apache.pekko" %% "pekko-stream" % pekkoVersion,
       "org.apache.pekko" %% "pekko-persistence-typed" % pekkoVersion,
-      "org.apache.pekko" %% "pekko-serialization-jackson"  % pekkoVersion,
+      ("org.apache.pekko" %% "pekko-serialization-jackson"  % pekkoVersion).exclude("org.lz4", "lz4-java"),
       "org.apache.pekko" %% "pekko-discovery" % pekkoVersion,
       "org.apache.pekko" %% "pekko-slf4j" % pekkoVersion,
       "org.apache.pekko" %% "pekko-connectors-mqtt" % pekkoConnectorsVersion,
@@ -159,6 +159,8 @@ lazy val root = (project in file("."))
       "com.google.protobuf" % "protobuf-java" % "3.25.8",
       "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
+      // org.lz4 is abandoned; at.yawk.lz4 is the maintained fork (same net.jpountz packages)
+      "at.yawk.lz4" % "lz4-java" % "1.11.4",
     ),
 
     dependencyOverrides ++= Seq(
