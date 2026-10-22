@@ -10,7 +10,7 @@ lazy val courierVersion  = "3.0.1"
 lazy val pekkoVersion             = "1.2.1"
 lazy val pekkoHttpVersion         = "1.2.0"
 lazy val pekkoConnectorsVersion   = "1.1.0"
-lazy val circeVersion             = "0.14.3"
+lazy val circeVersion             = "0.14.16"
 lazy val slickVersion             = "3.5.1"
 lazy val scalaXmlVersion          = "2.3.0"
 // gRPC comes in through pekko-grpc-runtime (1.67.1); raised for the security scan (platform#182).
