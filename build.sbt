@@ -16,8 +16,12 @@ lazy val scalaXmlVersion          = "2.3.0"
 // gRPC comes in through pekko-grpc-runtime (1.67.1); raised for the security scan (platform#182).
 // All io.grpc modules share one version.
 lazy val grpcVersion              = "1.75.0"
+// the protobuf-java that grpc-protobuf (grpcVersion) depends on; raise both together
+lazy val protobufVersion          = "3.25.8"
 // Jackson comes in through pekko-serialization-jackson (2.19.2); raised for the security scan
 // (platform#182). Since 2.20 jackson-annotations is versioned without a patch number.
+// On the next Pekko / pekko-grpc upgrade: compare with what they bring, and raise or remove the
+// gRPC, protobuf and Jackson pins and dependencyOverrides below.
 lazy val jacksonVersion           = "2.21.7"
 lazy val jacksonAnnotationsVersion = "2.21"
 
@@ -156,7 +160,7 @@ lazy val root = (project in file("."))
       // transitive, declared directly so that the exported pom (security scan) carries the fixed version
       "io.grpc" % "grpc-netty-shaded" % grpcVersion,
       // scalapb-runtime asks for 3.19.6; sbt already resolves the version grpc-protobuf brings
-      "com.google.protobuf" % "protobuf-java" % "3.25.8",
+      "com.google.protobuf" % "protobuf-java" % protobufVersion,
       "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
       // flyway-core asks for 2.15.2; kept with the other Jackson modules
