@@ -8,6 +8,12 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Changed
+- **HTTP: request size limit set explicitly to 16 MB** (`pekko.http.server.parsing.max-content-length`). The gRPC
+  `SendMail` call from the backend will carry inline images and a PDF of mails that communities can edit themselves
+  (up to 6 MB of files, konzept-mail-texte-editierbar). Before, the pekko-http default of 8 MB applied implicitly.
+  Routes with their own limit (`max-body-size`, Ponton upload) are unchanged.
+
 ### Fixed
 - Dependencies with HIGH findings in the security scan (Trivy) raised to fixed patch/minor versions:
   `postgresql` 42.7.3 → 42.7.14, gRPC (`grpc-netty-shaded` and the other `io.grpc` modules, via
