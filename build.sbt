@@ -169,7 +169,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "com.typesafe.slick" %% "slick" % slickVersion,
       "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
-      "org.postgresql" % "postgresql" % "42.7.3",
+      "org.postgresql" % "postgresql" % "42.7.14",
       "com.github.tminglei" %% "slick-pg" % "0.22.2",
       "com.github.tminglei" %% "slick-pg_circe-json" % "0.22.2"
     ),
