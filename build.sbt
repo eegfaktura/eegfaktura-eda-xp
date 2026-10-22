@@ -13,6 +13,9 @@ lazy val pekkoConnectorsVersion   = "1.1.0"
 lazy val circeVersion             = "0.14.3"
 lazy val slickVersion             = "3.5.1"
 lazy val scalaXmlVersion          = "2.3.0"
+// gRPC comes in through pekko-grpc-runtime (1.67.1); raised for the security scan (platform#182).
+// All io.grpc modules share one version.
+lazy val grpcVersion              = "1.75.0"
 
 lazy val scalaxbSettings = Seq(
   Compile / scalaxb / scalaxbPackageName := "generated",
@@ -145,7 +148,15 @@ lazy val root = (project in file("."))
 //      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2",
 
       "com.google.guava" % "guava" % "33.2.1-jre",
+
+      // transitive, declared directly so that the exported pom (security scan) carries the fixed version
+      "io.grpc" % "grpc-netty-shaded" % grpcVersion,
     ),
+
+    dependencyOverrides ++= Seq(
+      "grpc-api", "grpc-context", "grpc-core", "grpc-netty-shaded", "grpc-protobuf",
+      "grpc-protobuf-lite", "grpc-stub", "grpc-util",
+    ).map("io.grpc" % _ % grpcVersion),
 
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % "3.2.19",
