@@ -90,18 +90,20 @@ docker run -p 6090:6090 -p 9093:9093 \
   Keep it the same in both zones when `app.forward` is used: a target with a lower limit answers 413, logged here
   as ERROR `refused as too large`, and Ponton redelivers.
   Inbound Ponton messages above 16 MiB are logged at INFO with their size (search key `ponton-message-size`).
-- `app.inbound-publish-timeout` (10 s, env `INBOUND_PUBLISH_TIMEOUT`, with unit) — an inbound message processed
-  here is answered 204 only after the MQTT broker confirmed its publish (QoS 1). Not confirmed within this time,
-  MQTT not connected, or the message not published (aggregator failure/timeout, merge error) → 500 with an ERROR
-  line `not published to MQTT … Ponton will redeliver`. At least once: a confirmation after the timeout plus
-  Ponton's redelivery gives a duplicate (extra history/notification row in the backend, energy slots overwritten
-  with the same values). After an outage, check the Ponton message monitor for FAILED inbound messages if Ponton
-  does not redeliver them by itself.
+- Inbound messages processed here (`/pontonxp/message`) are answered 204 once they are in the MQTT
+  publishing stream; from there they are published, also after the client reconnects to a restarted broker
+  (buffered, up to 2000). They are answered 500 (ERROR line `not handed to MQTT … Ponton will redeliver`)
+  when they cannot be published: MQTT not connected (start, restart backoff after a client error), the
+  eda-xp database lookup fails or times out (aggregator, merge error), or the buffer is full; after 10 s at
+  most. Such a message is never published later, so Ponton's redelivery is no duplicate. Still lost, as
+  before: messages already in the buffer when the client stream fails (e.g. a publish in flight when the
+  connection drops) and the stream restarts. If Ponton does not redeliver after a 500, the message shows
+  as FAILED in the Ponton message monitor.
 - `epmsmail.*` — IMAP/SMTP accounts for EDA-over-email
 - `slick.pgsql.local.db.*` / `flyway.*` — PostgreSQL connection + migrations
 
 Environment variables (names only): `SMTP_ADMIN_SERVER_HOST`, `SMTP_ADMIN_SERVER_PORT`,
-`EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `INBOUND_PUBLISH_TIMEOUT`, `MAX_BODY_SIZE`, `TZ`, `JAVA_OPTS`.
+`EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `MAX_BODY_SIZE`, `TZ`, `JAVA_OPTS`.
 
 Exposed ports: **6090** (HTTP), **9093** (gRPC). Volumes: `/conf`, `/storage/prod`.
 

@@ -14,12 +14,13 @@ import org.apache.pekko.util.Timeout
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish, MqttPublishError}
 import at.energydash.domain.{EbMsMessage, XmlParseHandler}
 import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
+import at.energydash.mqtt.MqttProtocol.Handover
 import org.slf4j.{Logger, LoggerFactory}
 import soapenvelope11.Envelope
 
 import java.util.concurrent.TimeoutException
 import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 import scala.xml.NodeSeq
@@ -29,7 +30,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                   forwardTimeout: FiniteDuration = InboundForwarding.DefaultForwardTimeout,
                   readTimeout: FiniteDuration = InboundForwarding.DefaultReadTimeout,
                   maxBodyBytes: Long,
-                  publishTimeout: FiniteDuration = PontonRoute.DefaultPublishTimeout)(implicit val system: ActorSystem[_]) {
+                  handoverTimeout: FiniteDuration = PontonRoute.HandoverTimeout)(implicit val system: ActorSystem[_]) {
 
   implicit val timeout: Timeout = 3.seconds
   implicit val scheduler: Scheduler = system.scheduler
@@ -80,19 +81,20 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
     size.filter(_ > PontonRoute.LogSizeAboveBytes).foreach(b => logger.info(s"ponton-message-size: $b bytes, $details"))
 
   /**
-   * Hands the notification to the publisher and completes when the broker confirmed it (QoS 1
-   * PUBACK). Fails when the publisher reports it as not published, or after publishTimeout (also
-   * covers an event dropped by a full MQTT buffer or lost in a client restart). A confirmation after
-   * the timeout is ignored: the message is then at the broker and, after Ponton's redelivery, a
-   * second time (at-least-once, as with forwarding).
+   * Hands the notification to the publisher and completes once it is in the MQTT publishing stream,
+   * from where it is published (also after a reconnect of the client: buffered there, as before).
+   * Fails when it will not be published: aggregator failure or merge error, client not connected
+   * (start, restart backoff), publish buffer full (261005-ca1). After handoverTimeout (e.g. while
+   * MqttSystem waits out its restart backoff) the route gives up; a message it gave up on is never
+   * published, so Ponton's redelivery does not create a duplicate.
    */
-  private def publish(notification: EdaNotification): Future[Done] = {
-    val delivered = Promise[Done]()
-    val timer = system.scheduler.scheduleOnce(publishTimeout, () =>
-      delivered.tryFailure(new TimeoutException(s"no broker confirmation within $publishTimeout")))
-    delivered.future.onComplete(_ => timer.cancel())
-    mqttPublisher ! MqttPublish(notification :: Nil, Some(delivered))
-    delivered.future
+  private def handOver(notification: EdaNotification): Future[Done] = {
+    val handover = new Handover
+    val timer = system.scheduler.scheduleOnce(handoverTimeout, () =>
+      handover.giveUp(new TimeoutException(s"not handed to MQTT within $handoverTimeout")))
+    handover.future.onComplete(_ => timer.cancel())
+    mqttPublisher ! MqttPublish(notification :: Nil, Some(handover))
+    handover.future
   }
 
   private def processLocally(response: NodeSeq, size: Option[Long]): Route =
@@ -105,15 +107,15 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
         val notification = PontonRoute.notificationFor(x)
         if (notification.protocol == PontonRoute.ErrorProtocol)
           logger.error(s"Inbound message from edaAdapter not processed (conversation ${x.conversationId}, receiver ${x.receiver}): ${notification.message.errorMessage.getOrElse("")}")
-        // 204 only once the broker confirmed the publish; anything else is a 500, so Ponton keeps
-        // the message and redelivers it instead of it being lost silently (261005-ca1)
+        // 204 only once the message is in the MQTT publishing stream; otherwise a 500, so Ponton
+        // keeps the message and redelivers it instead of it being lost silently (261005-ca1)
         val started = System.nanoTime()
-        onComplete(publish(notification)) {
+        onComplete(handOver(notification)) {
           case Success(_) =>
             complete(HttpResponse(StatusCodes.NoContent))
           case Failure(ex) =>
             val ms = (System.nanoTime() - started) / 1000000
-            logger.error(s"Inbound message (conversation ${x.conversationId}, message code ${x.messageCode}) not published to MQTT after $ms ms: ${ex.getMessage}; Ponton will redeliver")
+            logger.error(s"Inbound message (conversation ${x.conversationId}, message code ${x.messageCode}) not handed to MQTT after $ms ms: ${ex.getMessage}; Ponton will redeliver")
             complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
         }
       case Failure(ex) =>
@@ -230,19 +232,11 @@ object PontonRoute {
   /** Inbound messages above this size are logged at INFO with their size (ponton-message-size). */
   val LogSizeAboveBytes: Long = 16L * 1024 * 1024
 
-  val DefaultPublishTimeout: FiniteDuration = 10.seconds
-
   /**
-   * `app.inbound-publish-timeout` (env INBOUND_PUBLISH_TIMEOUT, with unit, e.g. `10s`): how long an
-   * inbound message waits for the broker's confirmation before Ponton gets a 500. Below 1 s stops
-   * the start (a number without unit is milliseconds).
+   * Upper bound for the hand-over to MQTT, below pekko.http.server.request-timeout (20 s). Normally the
+   * hand-over takes milliseconds or fails at once; only a MqttSystem in restart backoff holds it longer.
    */
-  def publishTimeout(config: com.typesafe.config.Config): FiniteDuration = {
-    val t = if (config.hasPath("app.inbound-publish-timeout")) config.getDuration("app.inbound-publish-timeout").toMillis.millis else DefaultPublishTimeout
-    if (t < 1.second)
-      throw new IllegalArgumentException(s"app.inbound-publish-timeout must be at least 1s (give a unit, e.g. 10s): $t")
-    t
-  }
+  val HandoverTimeout: FiniteDuration = 10.seconds
 
   /*
    * Deadlines: app.forward-read-timeout / app.forward-timeout (InboundForwarding.timeouts). Reading the

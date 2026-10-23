@@ -1,13 +1,12 @@
 package at.energydash.mqtt
 
 import org.apache.pekko.Done
-import org.apache.pekko.actor.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{Behavior, SupervisorStrategy}
 import org.apache.pekko.stream.connectors.mqtt.scaladsl.{MqttFlow, MqttMessageWithAck}
 import org.apache.pekko.stream.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
 import org.apache.pekko.stream.scaladsl.{Flow, Keep, RunnableGraph, Sink, Source}
-import org.apache.pekko.stream.{ActorAttributes, CompletionStrategy, OverflowStrategy, Supervision}
+import org.apache.pekko.stream.{ActorAttributes, BoundedSourceQueue, QueueOfferResult, Supervision}
 import org.apache.pekko.util.ByteString
 import at.energydash.config.Config.MqttConfig
 import at.energydash.domain.EbMsMessage
@@ -23,9 +22,10 @@ import org.slf4j.Logger
 
 import java.io.ByteArrayOutputStream
 import java.util.Base64
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.GZIPOutputStream
 import javax.net.ssl.SSLContext
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.DurationInt
 
 trait EdaEvent {
@@ -52,11 +52,25 @@ object MqttProtocol {
   case class EdaInboundMessage(protocol: String, message: EbMsMessage) extends EdaEvent
 
   /**
-   * `ack` runs when the broker confirmed the publish (QoS 1 PUBACK). `nack` runs when the event is
-   * not published because the client is not connected (start, restart backoff after a connection
-   * error); the sender then fails instead of losing it silently (261005-ca1).
+   * Hand-over of one inbound message to the publishing stream (261005-ca1). Completes once the
+   * message is in the stream's buffer (published from there, also after a reconnect of the client),
+   * fails when it is not taken: client not connected (start, restart backoff), buffer full, or
+   * refused before (aggregator). Exactly one side decides: the stream claims it before offering, the
+   * sender claims it when giving up, so a message the sender gave up on is never published.
    */
-  case class EdaEventReceived(ev: EdaEvent, ack: Option[() => Future[Done]], nack: Option[Throwable => Unit] = None) extends MqttMessageCmd
+  final class Handover {
+    private val claimed = new AtomicBoolean(false)
+    private val result = Promise[Done]()
+    def future: Future[Done] = result.future
+    /** Taken by the stream; false when the sender already gave up (then it must not be published). */
+    def claim(): Boolean = claimed.compareAndSet(false, true)
+    def accepted(): Unit = result.trySuccess(Done)
+    def refused(reason: Throwable): Unit = result.tryFailure(reason)
+    /** Sender gives up; false when the stream already took the message (its result follows at once). */
+    def giveUp(reason: Throwable): Boolean = claim() && result.tryFailure(reason)
+  }
+
+  case class EdaEventReceived(ev: EdaEvent, ack: Option[() => Future[Done]], handover: Option[Handover] = None) extends MqttMessageCmd
 
   case class EdaMessageCommand(command: CommandMessage, ack: Option[() => Future[Done]]) extends MqttMessageCmd
 
@@ -103,35 +117,47 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
             context.log.info("mqtt client successfully connected")
             connected(mqttStream)
           case ev: EdaEventReceived =>
-            ev.nack.foreach(_(new IllegalStateException("MQTT client not connected")))
+            // dropped here before (261005-ca1): the sender fails instead
+            ev.handover.foreach(_.refused(new IllegalStateException("MQTT client not connected")))
             Behaviors.same
           case TerminatedWithError(err) =>
             context.log.error("mqtt client connection error", err)
             // stream already failed. just force restart through supervisor
             throw err
           case Terminate =>
-            mqttStream ! Terminate
+            mqttStream.complete()
             terminatingOk(context)
         }
       }
     }.onFailure(SupervisorStrategy.restartWithBackoff(minBackoff = 4.seconds, maxBackoff = 1.minute, randomFactor = 0.2))
   }
 
-  private def connected(mqttStream: ActorRef): Behavior[MqttCmd] = {
+  private def connected(mqttStream: BoundedSourceQueue[MqttMessageCmd]): Behavior[MqttCmd] = {
     Behaviors.setup { implicit context =>
+      def offer(cmd: MqttMessageCmd): Either[String, Unit] = mqttStream.offer(cmd) match {
+        case QueueOfferResult.Enqueued => Right(())
+        case QueueOfferResult.Dropped => Left(s"MQTT publish buffer full ($BufferSize)")
+        case QueueOfferResult.Failure(e) => Left(s"MQTT publish stream failed: ${e.getMessage}")
+        case QueueOfferResult.QueueClosed => Left("MQTT publish stream closed")
+      }
       Behaviors.receiveMessagePartial {
         case ev: EdaEventReceived =>
-          mqttStream ! ev
+          ev.handover match {
+            case Some(h) =>
+              if (h.claim()) offer(ev).fold(reason => h.refused(new IllegalStateException(reason)), _ => h.accepted())
+            case None =>
+              offer(ev).left.foreach(reason => context.log.error(s"MQTT event (conversation ${ev.ev.message.conversationId}) not published: $reason"))
+          }
           Behaviors.same
         case cmd: EdaMessageCommand =>
-          mqttStream ! cmd
+          offer(cmd).left.foreach(reason => context.log.error(s"MQTT command ${cmd.command.command} not published: $reason"))
           Behaviors.same
         case TerminatedWithError(err) =>
           context.log.error("mqtt client connection error", err)
           // stream already failed. just force restart through supervisor
           throw err
         case Terminate =>
-          mqttStream ! Terminate
+          mqttStream.complete()
           terminatingOk(context)
         case TerminatedOk =>
           Behaviors.same
@@ -143,6 +169,9 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
     Behaviors.receiveMessagePartial {
       case TerminatedOk =>
         Behaviors.stopped
+      case ev: EdaEventReceived =>
+        ev.handover.foreach(_.refused(new IllegalStateException("MQTT client terminating")))
+        Behaviors.same
       case TerminatedWithError(err) =>
         context.log.error("mqtt client connection error", err)
         Behaviors.stopped
@@ -150,7 +179,10 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
         Behaviors.same
     }
 
-  private def mqttStreamSource(baseTopic: String, settings: MqttConnectionSettings)(implicit logger: Logger): RunnableGraph[((ActorRef, Future[Done]), Future[Done])] = {
+  /** Events waiting for the client, e.g. while it reconnects to the broker; a full buffer refuses new ones. */
+  private val BufferSize = 2000
+
+  private def mqttStreamSource(baseTopic: String, settings: MqttConnectionSettings)(implicit logger: Logger): RunnableGraph[((BoundedSourceQueue[MqttMessageCmd], Future[Done]), Future[Done])] = {
     val mqttFlow: Flow[MqttMessageWithAck, MqttMessageWithAck, Future[Done]] =
       MqttFlow.atLeastOnceWithAck(
         settings,
@@ -163,15 +195,8 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
 
     implicit val baseTopicProv: MqttBaseTopicProvider = MqttBaseTopicProvider(baseTopic)
 
-    val compStage: PartialFunction[Any, CompletionStrategy] = {
-      case Terminate => CompletionStrategy.immediately
-    }
-    val failMatcher: PartialFunction[Any, Throwable] = {
-      case Terminate => new Exception("termination request")
-    }
-
     Source
-      .actorRef[MqttMessageCmd](compStage, failMatcher, 2000, OverflowStrategy.dropTail)
+      .queue[MqttMessageCmd](BufferSize)
       .map { edaEv =>
         event2Mqtt(edaEv) match {
           case Some(e) if edaEv.ack.isDefined =>

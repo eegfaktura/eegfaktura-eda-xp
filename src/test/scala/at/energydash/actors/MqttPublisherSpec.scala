@@ -1,19 +1,18 @@
 package at.energydash.actors
 
-import org.apache.pekko.Done
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import at.energydash.EmbeddedDb
 import at.energydash.actors.ConversationEntity.{MergeError, MergeNotification}
 import at.energydash.actors.MqttPublisher.{AggregateNotification, EdaNotification, MqttCommand, MqttPublish, MqttPublishError}
 import at.energydash.domain.EbMsMessage
-import at.energydash.mqtt.MqttProtocol.{EdaEventReceived, MqttCmd}
+import at.energydash.mqtt.MqttProtocol.{EdaEventReceived, Handover, MqttCmd}
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, Promise}
+import scala.concurrent.Await
 
 class MqttPublisherSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with EmbeddedDb {
   import at.energydash.domain.JsonImplicit._
@@ -75,8 +74,8 @@ class MqttPublisherSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike w
     }
   }
 
-  // 261005-ca1: MqttPublish(…, delivered) completes only after the broker confirmed the publish
-  "MqttPublisher with a delivery promise" should {
+  // 261005-ca1: MqttPublish(…, handover) completes once MqttSystem took the message, fails when it is not published
+  "MqttPublisher with a hand-over" should {
     val notification = EdaNotification("cr_req_pt", EbMsMessage(conversationId = "RC100181202407101720603980000000011",
       sender = "AT003000", receiver = "RC100181", messageCode = at.energydash.domain.enums.EbMsMessageType.ZP_LIST_RESPONSE))
     /** Aggregator that hands the notifications back unchanged. */
@@ -85,26 +84,25 @@ class MqttPublisherSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike w
       case _ => Behaviors.same
     }
 
-    "complete when the broker acknowledges, not before" in {
+    "pass the hand-over on to MqttSystem, which decides" in {
       val mqttSystem = createTestProbe[MqttCmd]()
       val publisher = testKit.spawn(MqttPublisher(mqttSystem.ref, testKit.spawn(echo)))
-      val delivered = Promise[Done]()
-      publisher ! MqttPublish(notification :: Nil, Some(delivered))
+      val handover = new Handover
+      publisher ! MqttPublish(notification :: Nil, Some(handover))
       val ev = mqttSystem.expectMessageType[EdaEventReceived]
       ev.ev.message.conversationId shouldBe notification.message.conversationId
-      ev.ack shouldBe defined
-      delivered.isCompleted shouldBe false
-      Await.result(ev.ack.get(), 1.second)
-      Await.result(delivered.future, 1.second) shouldBe Done
+      ev.ack shouldBe None
+      ev.handover shouldBe Some(handover)
+      handover.future.isCompleted shouldBe false
     }
 
-    "fail when MQTT reports the event as not published" in {
+    "fail when MqttSystem refuses the message" in {
       val mqttSystem = createTestProbe[MqttCmd]()
       val publisher = testKit.spawn(MqttPublisher(mqttSystem.ref, testKit.spawn(echo)))
-      val delivered = Promise[Done]()
-      publisher ! MqttPublish(notification :: Nil, Some(delivered))
-      mqttSystem.expectMessageType[EdaEventReceived].nack.get(new IllegalStateException("MQTT client not connected"))
-      the[IllegalStateException] thrownBy Await.result(delivered.future, 1.second) should have message "MQTT client not connected"
+      val handover = new Handover
+      publisher ! MqttPublish(notification :: Nil, Some(handover))
+      mqttSystem.expectMessageType[EdaEventReceived].handover.get.refused(new IllegalStateException("MQTT client not connected"))
+      the[IllegalStateException] thrownBy Await.result(handover.future, 1.second) should have message "MQTT client not connected"
     }
 
     "fail and publish nothing when the aggregator fails" in {
@@ -114,9 +112,9 @@ class MqttPublisherSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike w
         case _ => Behaviors.same
       }
       val publisher = testKit.spawn(MqttPublisher(mqttSystem.ref, testKit.spawn(failing)))
-      val delivered = Promise[Done]()
-      publisher ! MqttPublish(notification :: Nil, Some(delivered))
-      the[IllegalStateException] thrownBy Await.result(delivered.future, 3.seconds) should have message "aggregator failed: boom"
+      val handover = new Handover
+      publisher ! MqttPublish(notification :: Nil, Some(handover))
+      the[IllegalStateException] thrownBy Await.result(handover.future, 3.seconds) should have message "aggregator failed: boom"
       mqttSystem.expectNoMessage(300.millis)
     }
 
@@ -124,9 +122,9 @@ class MqttPublisherSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike w
       val mqttSystem = createTestProbe[MqttCmd]()
       val silent = testKit.spawn(Behaviors.ignore[MqttCommand])
       val publisher = testKit.spawn(MqttPublisher(mqttSystem.ref, silent))
-      val delivered = Promise[Done]()
-      publisher ! MqttPublish(notification :: Nil, Some(delivered))
-      (the[IllegalStateException] thrownBy Await.result(delivered.future, 8.seconds)).getMessage should startWith("aggregator did not answer")
+      val handover = new Handover
+      publisher ! MqttPublish(notification :: Nil, Some(handover))
+      (the[IllegalStateException] thrownBy Await.result(handover.future, 8.seconds)).getMessage should startWith("aggregator did not answer")
       mqttSystem.expectNoMessage(300.millis)
     }
 
@@ -137,12 +135,12 @@ class MqttPublisherSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike w
         case _ => Behaviors.same
       })
       val publisher = testKit.spawn(MqttPublisher(mqttSystem.ref, testKit.spawn(EbMsAggregator(conversationEntity))))
-      val delivered = Promise[Done]()
-      publisher ! MqttPublish(notification :: Nil, Some(delivered))
-      (the[IllegalStateException] thrownBy Await.result(delivered.future, 3.seconds)).getMessage should include("db down")
+      val handover = new Handover
+      publisher ! MqttPublish(notification :: Nil, Some(handover))
+      (the[IllegalStateException] thrownBy Await.result(handover.future, 3.seconds)).getMessage should include("db down")
       val ev = mqttSystem.expectMessageType[EdaEventReceived]
       ev.ev.protocol shouldBe EbMsAggregator.ReplacedProtocol
-      ev.ack shouldBe None
+      ev.handover shouldBe None
     }
   }
 
