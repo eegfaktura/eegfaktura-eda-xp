@@ -25,7 +25,7 @@ class SupervisorScenarioSpec extends ScalaTestWithActorTestKit with AnyWordSpecL
   private lazy val supervisor: ActorSystem[Any] = {
     broker; mqtt; ponton
     val journal = java.nio.file.Files.createDirectories(java.nio.file.Paths.get(s"target/test-storage/s12-${System.nanoTime()}/journal"))
-    val config = ConfigFactory.parseString(s"""pekko.persistence.journal.leveldb.dir = "$journal"""")
+    val config = ConfigFactory.parseString(s"""pekko.persistence.journal.leveldb.dir = "${journal.toString.replace('\\', '/')}"""")
       .withFallback(ActorTestKit.ApplicationTestConfig)
     val s = ActorSystem(SupervisorActor().asInstanceOf[org.apache.pekko.actor.typed.Behavior[Any]], "supervisor-s12", config)
     s ! Start

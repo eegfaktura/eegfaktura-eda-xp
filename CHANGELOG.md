@@ -47,6 +47,9 @@ this changelog highlights the changes relevant for overview and operations.
 - Adapted to 1.0.8 #35: `ANFORDERUNG_GN` without a label (and with an unknown one) is a `refused` row; the
   conversation store is asynchronous and keeps the row of a request that is then not sent (unknown tenant,
   Ponton error) — the tests wait for the row and pin it.
+- Windows checkouts with `core.autocrlf`: `.gitattributes` keeps the protocol golden files LF (they are
+  compared byte for byte and failed with CRLF); S12 (`SupervisorScenarioSpec`) writes the journal path with
+  `/` into its HOCON config (a Windows `\` broke the parse).
 
 ## [1.1.0] – 2026-10-21
 
