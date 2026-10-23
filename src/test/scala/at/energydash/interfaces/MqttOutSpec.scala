@@ -22,7 +22,7 @@ class MqttOutSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
   private val recorder = new MqttRecorder("eda/response/#")
   private val mqtt: ActorRef[MqttCmd] = spawn(MqttSystem(Config.getMqttConfig()))
 
-  override def afterAll(): Unit = { recorder.close(); super.afterAll(); TestBroker.stop(broker) }
+  override def afterAll(): Unit = { recorder.close(); super.afterAll(); broker.stopServer() }
 
   /** MqttSystem drops events until it is connected — send until the first one arrives. */
   private def sendUntilReceived(cmd: MqttCmd): recorder.Received =

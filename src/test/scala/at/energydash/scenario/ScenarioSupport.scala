@@ -30,7 +30,7 @@ trait ScenarioSupport extends BeforeAndAfterEach with BeforeAndAfterAll { this: 
   // each step on its own: a recorder cut off by a broker restart must not keep the fake Ponton's port bound
   override def afterAll(): Unit = {
     scala.util.Try(mqtt.close()); scala.util.Try(ponton.stop())
-    try super.afterAll() finally scala.util.Try(TestBroker.stop(broker))
+    try super.afterAll() finally scala.util.Try(broker.stopServer())
   }
 
   /** Fresh database with the scenario tenants, fresh fake Ponton, nothing left on the recorder. */

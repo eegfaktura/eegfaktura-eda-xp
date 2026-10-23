@@ -50,13 +50,9 @@ this changelog highlights the changes relevant for overview and operations.
 - Windows checkouts with `core.autocrlf`: `.gitattributes` keeps the protocol golden files LF (they are
   compared byte for byte and failed with CRLF); S12 (`SupervisorScenarioSpec`) writes the journal path with
   `/` into its HOCON config (a Windows `\` broke the parse).
-- The embedded test broker stops reliably (`TestBroker.stop`): clients that earlier tests and specs left
-  connected (33 sockets on port 18831 in the CI run) kept moquette's `stopServer` waiting for Netty without a
-  limit, and on the GitHub runner the unit and full suite hung until the job timeout. The stop now disconnects
-  and purges every connected client first and waits at most 15 s.
-- Every test suite runs in its own forked JVM, one after another (`Test / testGrouping`): suites leave MQTT
-  clients, embedded databases and actor systems behind, and on the GitHub runner `MqttRequestStreamSpec` hung on
-  them after the other suites (alone it passes in seconds). The unit lane takes about 1.5 minutes longer.
+- Test console output cuts a log message after 4000 characters (`logback-test.xml`, `%.-4000msg`): a test posts
+  a 2 MB body that `PontonRoute` logs in full, and that one line stalled the GitHub runner's log processing, so
+  every process writing to the step output blocked and the unit and full suite hung until the job timeout.
 - CI resource monitor (`scripts/dev/ci-monitor.sh`): the unit and the full test step log load, memory, swap,
   processes, threads, java/postgres processes and sockets on the test broker port every 2 minutes, print the
   peaks at the end and upload the samples as `ci-monitor-unit` / `ci-monitor-full` even when the job is
