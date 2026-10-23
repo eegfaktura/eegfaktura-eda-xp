@@ -112,13 +112,19 @@ lazy val dockerSettings = Seq(
   }
 )
 
-// Test environment (docs: scripts/dev/test.sh). One forked JVM, suites one after another, fixed zone,
+// Test environment (docs: scripts/dev/test.sh). One forked JVM per suite, one after another, fixed zone,
 // the test configuration by resource name (ScalaTestWithActorTestKit loads `application-test` by name),
 // every file a test writes under target/. EDA_XP_EXTRA_TESTS adds a private test directory for one run.
 lazy val testSettings = Seq(
   Test / fork := true,
   Test / parallelExecution := false,
   Test / testForkedParallel := false,
+  // One forked JVM per suite, one after another: suites leave MQTT clients, embedded databases and actor systems
+  // behind, and on the GitHub runner MqttRequestStreamSpec hung on them after the other suites (alone it takes
+  // seconds). The JVM start costs about a second per suite.
+  Test / testGrouping := (Test / definedTests).value.map { t =>
+    Tests.Group(t.name, Seq(t), Tests.SubProcess((Test / forkOptions).value))
+  },
   Test / javaOptions ++= Seq(
     "-Duser.timezone=Europe/Vienna",
     "-Dconfig.resource=application-test.conf",
