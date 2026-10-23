@@ -22,6 +22,47 @@ this changelog highlights the changes relevant for overview and operations.
   carry `dependencyOverrides`, so the transitive packages with findings are declared directly
   (platform#182).
 
+### CI
+- `rolling-release.yml`: no image build on a draft pull request — it runs when the pull request is marked ready for review (`ready_for_review`) and on every later push to it; `pr-checks.yml` still checks drafts. Pushes, tags and the deploy dispatch are unchanged.
+- `pr-checks.yml`: a unit job beside the full test suite on every pull request (unit = the suite without the `Slow` tag, a fast signal; full = `test.yml` with coverage and floors).
+
+### Tests
+- **Coverage floors gate the image:** `test.yml` (run by `rolling-release.yml` before the image job since
+  1.1.0) also checks the coverage floors per package; falling below one stops the image like a red test.
+- One command for the suite, `scripts/dev/test.sh` (local sbt or the pinned sbt image); the tests use
+  loopback stand-ins only — the test configuration pointed the Ponton client at a network address before
+  and one spec sent to it.
+- Embedded PostgreSQL once per run, migrated with the **production** migrations (the hand-written test
+  schema is gone); embedded broker without persistence; fixed zone `Europe/Vienna`; nothing written outside `target/`.
+- Defect tests for known errors (`knownError`), coverage with sbt-scoverage and floors, the protocol
+  catalog with golden files (first row: `ANFORDERUNG_ECON` 02.40).
+- Removed the unused test dependencies `slick-testkit` and `h2` and the remaining empty specs.
+- `EXTERNAL_SOURCES.md` added.
+- On 1.0.8: a missing or unknown version label is a `refused` catalog row (no document, ERROR naming the
+  label, nothing sent, an error to the sender); guard 9 pins the Ponton header rule (message type + schema
+  set version; PT, CCMS and GN still send the process code, pinned to their current labels).
+- Tests of the protocol checks: the guards and the row check are functions (`ProtocolChecks`);
+  `ProtocolSelfTestSpec` feeds each a broken catalog or a wrong row and requires it to name the problem
+  (guard 1 could not report rows for a code without a builder before). `--fast` skips the Slow-tagged tests.
+- Adapted to 1.0.8 #35: `ANFORDERUNG_GN` without a label (and with an unknown one) is a `refused` row; the
+  conversation store is asynchronous and keeps the row of a request that is then not sent (unknown tenant,
+  Ponton error) — the tests wait for the row and pin it.
+- Windows checkouts with `core.autocrlf`: `.gitattributes` keeps the protocol golden files LF (they are
+  compared byte for byte and failed with CRLF); S12 (`SupervisorScenarioSpec`) writes the journal path with
+  `/` into its HOCON config (a Windows `\` broke the parse).
+- Test console output cuts a log message after 4000 characters (`logback-test.xml`, `%.-4000msg`): a test posts
+  a 2 MB body that `PontonRoute` logs in full, and that one line stalled the GitHub runner's log processing, so
+  every process writing to the step output blocked and the unit and full suite hung until the job timeout.
+- CI resource monitor (`scripts/dev/ci-monitor.sh`): the unit and the full test step log load, memory, swap,
+  processes, threads, java/postgres processes and sockets on the test broker port every 2 minutes, print the
+  peaks at the end and upload the samples as `ci-monitor-unit` / `ci-monitor-full` even when the job is
+  cancelled (GitHub keeps no log of a cancelled job and reports no CPU or memory per job).
+- `scripts/dev/test.sh` under WSL skips a Windows `sbt` seen through interop (`/mnt/c/...`), which ran in
+  `C:\Windows` and found no build; it uses the pinned image instead. Run as root, the container runs as
+  the checkout's owner (embedded PostgreSQL refuses root and the DB suites aborted). It first hands the
+  sbt cache and `target/` to that owner (earlier root runs left root-owned files there); it stops with
+  exit 2 if the checkout is owned by root or the cache cannot be handed over (cache on `/mnt/<drive>`).
+
 ## [1.1.0] – 2026-10-21
 
 ### Changed

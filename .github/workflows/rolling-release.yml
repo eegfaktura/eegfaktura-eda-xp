@@ -42,7 +42,9 @@ on:
       - 'env/**'
     tags:
       - v*
+  # ready_for_review: a draft gets no image build; it runs once the PR is marked ready
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
       - main
@@ -56,8 +58,9 @@ jobs:
 
   build-and-push-image:
     needs: test
-    # push: only after green tests; pull_request: test is skipped, build check runs
-    if: ${{ !cancelled() && (needs.test.result == 'success' || needs.test.result == 'skipped') }}
+    # push: only after green tests; pull_request: test is skipped, build check runs — not while a
+    # draft (pr-checks.yml tests drafts)
+    if: ${{ !cancelled() && (needs.test.result == 'success' || needs.test.result == 'skipped') && !(github.event_name == 'pull_request' && github.event.pull_request.draft) }}
     runs-on: ubuntu-latest
 
     permissions:

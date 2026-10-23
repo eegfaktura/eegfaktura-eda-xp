@@ -1,0 +1,79 @@
+package at.energydash.interfaces
+
+import at.energydash.EmbeddedDb
+import at.energydash.actors.ConversationEntity.{ConversationMerged, InitConversation, InitDone, MergeConversation, MergeNotification, NotificationMerged}
+import at.energydash.actors.MqttPublisher.{AggregateNotification, EdaNotification, MqttCommand, MqttPublish}
+import at.energydash.actors.{ConversationEntity, EbMsAggregator, EdaCommand}
+import at.energydash.domain.enums.EbMsMessageType
+import at.energydash.domain.{EbMsMessage, Meter}
+import at.energydash.testsupport.TestDb
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.Eventually
+import org.scalatest.wordspec.AnyWordSpecLike
+
+import scala.concurrent.duration._
+
+/** The conversation store (requests kept for the answers) and the aggregator that enriches answers. */
+class ConversationStoreSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with EmbeddedDb with BeforeAndAfterEach with Eventually {
+  override def beforeEach(): Unit = TestDb.reset()
+
+  private val request = EbMsMessage(messageId = Some("M1"), conversationId = "RC100401209901010000000000000002",
+    sender = "RC100401", receiver = "AT003000", messageCode = EbMsMessageType.ENERGY_SYNC_REQ,
+    meter = Some(Meter("AT0030000000000000000000000401001", None)), ecId = Some("EC-REQUEST"))
+  private val answer = EbMsMessage(conversationId = request.conversationId, sender = "AT003000", receiver = "RC100401",
+    messageCode = EbMsMessageType.ENERGY_SYNC_RES)
+
+  // Since 1.0.8 #35 (platform#111 ca6) InitDone comes before the insert completes, so the request can be
+  // sent at once; the row follows asynchronously.
+  private def awaitStored(): Unit = eventually(timeout(5.seconds), interval(50.millis)) {
+    TestDb.count(s"SELECT count(*) FROM eda.conversation WHERE id = '${request.conversationId}'") shouldBe 1
+  }
+
+  "ConversationEntity" should {
+    "store a request and merge it into the answer" in {
+      val entity = spawn(ConversationEntity())
+      val probe = createTestProbe[EdaCommand]()
+      entity ! InitConversation(request, probe.ref)
+      probe.expectMessage(InitDone(request))
+      awaitStored()
+      entity ! MergeNotification(EdaNotification("CR_REQ_PT", answer), probe.ref)
+      val merged = probe.expectMessageType[NotificationMerged].notification.message
+      (merged.meter, merged.ecId) shouldBe ((request.meter, Some("EC-REQUEST")))
+    }
+    "merge a message into its stored request, and pass a message without a stored request through" in {
+      val entity = spawn(ConversationEntity())
+      val probe = createTestProbe[EdaCommand]()
+      entity ! InitConversation(request, probe.ref)
+      probe.expectMessage(InitDone(request))
+      awaitStored()
+      entity ! MergeConversation(answer, probe.ref)
+      probe.expectMessageType[ConversationMerged].message.ecId shouldBe Some("EC-REQUEST")
+      val unknown = answer.copy(conversationId = "RC100401209901010000000000000099")
+      entity ! MergeConversation(unknown, probe.ref)
+      probe.expectMessage(ConversationMerged(unknown))
+    }
+  }
+
+  "EbMsAggregator" should {
+    val crmsg = EbMsMessage(conversationId = "unknown", sender = "AT003000", receiver = "RC100401",
+      messageCode = EbMsMessageType.ENERGY_FILE_RESPONSE)
+    def aggregate(n: EdaNotification): EdaNotification = {
+      val aggregator = spawn(EbMsAggregator(spawn(ConversationEntity())))
+      val probe = createTestProbe[MqttCommand]()
+      aggregator ! AggregateNotification("", List(n), probe.ref)
+      probe.expectMessageType[MqttPublish].mails.head
+    }
+    "fill a missing ecId from base.eeg for the receiver" in {
+      TestDb.seedEeg("RC100401", "AT00300000000RC100401000000000001")
+      aggregate(EdaNotification("CR_MSG", crmsg)).message.ecId shouldBe Some("AT00300000000RC100401000000000001")
+    }
+    "leave the ecId empty when the receiver has no community row (pinned)" in {
+      aggregate(EdaNotification("CR_MSG", crmsg)).message.ecId shouldBe None
+    }
+    "not touch message types that need no ecId" in {
+      TestDb.seedEeg("RC100401", "AT00300000000RC100401000000000001")
+      aggregate(EdaNotification("CM_REV_IMP", crmsg.copy(messageCode = EbMsMessageType.EDA_MSG_AUFHEBUNG_CCMI))).message.ecId shouldBe None
+    }
+  }
+}

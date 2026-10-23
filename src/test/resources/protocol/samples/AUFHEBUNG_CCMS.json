@@ -1,0 +1,22 @@
+{
+  "messageId": "RC100401209901010000000000000001",
+  "conversationId": "RC100401209901010000000000000002",
+  "requestId": "TESTREQ1",
+  "sender": "RC100401",
+  "receiver": "AT003000",
+  "messageCode": "AUFHEBUNG_CCMS",
+  "meter": {
+    "meteringPoint": "AT0030000000000000000000000401001",
+    "direction": "CONSUMPTION",
+    "partFact": 100,
+    "from": 4070905200000,
+    "to": 4102354800000,
+    "consentId": "AT003000209901010000000000000401"
+  },
+  "consentEnd": 4102354800000,
+  "reason": "Austritt",
+  "reasonKey": 1,
+  "ecId": "AT00300000000RC100401000000000001",
+  "ecType": "LOCAL",
+  "ecDisModel": "DYNAMIC"
+}
