@@ -50,9 +50,10 @@ this changelog highlights the changes relevant for overview and operations.
 - Windows checkouts with `core.autocrlf`: `.gitattributes` keeps the protocol golden files LF (they are
   compared byte for byte and failed with CRLF); S12 (`SupervisorScenarioSpec`) writes the journal path with
   `/` into its HOCON config (a Windows `\` broke the parse).
-- The embedded test broker is stopped with a 15 s limit (`TestBroker.stop`): moquette's `stopServer` waits
-  without a limit for Netty, and with a test client still disconnecting both waited for each other — on the
-  GitHub runner `MqttRequestStreamSpec` hung the unit and full suite until the job timeout.
+- The embedded test broker stops reliably (`TestBroker.stop`): clients that earlier tests and specs left
+  connected (33 sockets on port 18831 in the CI run) kept moquette's `stopServer` waiting for Netty without a
+  limit, and on the GitHub runner the unit and full suite hung until the job timeout. The stop now disconnects
+  and purges every connected client first and waits at most 15 s.
 - `scripts/dev/test.sh` under WSL skips a Windows `sbt` seen through interop (`/mnt/c/...`), which ran in
   `C:\Windows` and found no build; it uses the pinned image instead. Run as root, the container runs as
   the checkout's owner (embedded PostgreSQL refuses root and the DB suites aborted). It first hands the
