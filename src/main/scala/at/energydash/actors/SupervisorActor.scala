@@ -66,12 +66,13 @@ object SupervisorActor {
 
       val targets = InboundForwarding.targets(Config.config)
       val maxBodyBytes = BodySizeLimit.maxBytes(Config.config)
+      val publishTimeout = PontonRoute.publishTimeout(Config.config)
       // deadlines only matter (and are only checked) when something is forwarded
       val routes =
-        if (targets.isEmpty) new PontonRoute(mqttPublisher, maxBodyBytes = maxBodyBytes)
+        if (targets.isEmpty) new PontonRoute(mqttPublisher, maxBodyBytes = maxBodyBytes, publishTimeout = publishTimeout)
         else {
           val deadlines = InboundForwarding.timeouts(Config.config)
-          new PontonRoute(mqttPublisher, targets, forwardTimeout = deadlines.forward, readTimeout = deadlines.read, maxBodyBytes = maxBodyBytes)
+          new PontonRoute(mqttPublisher, targets, forwardTimeout = deadlines.forward, readTimeout = deadlines.read, maxBodyBytes = maxBodyBytes, publishTimeout = publishTimeout)
         }
       val fileService = FileService(system, mqttPublisher)
       val adminRoutes = new ServiceRoute(fileService, maxBodyBytes)

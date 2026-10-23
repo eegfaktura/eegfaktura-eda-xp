@@ -1,5 +1,6 @@
 package at.energydash.actors.http
 
+import org.apache.pekko.Done
 import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Scheduler}
 import org.apache.pekko.http.scaladsl.Http
 import org.apache.pekko.http.scaladsl.marshallers.xml.ScalaXmlSupport._
@@ -18,7 +19,7 @@ import soapenvelope11.Envelope
 
 import java.util.concurrent.TimeoutException
 import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 import scala.xml.NodeSeq
@@ -27,7 +28,8 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                   forwardTargets: Map[String, Uri] = Map.empty,
                   forwardTimeout: FiniteDuration = InboundForwarding.DefaultForwardTimeout,
                   readTimeout: FiniteDuration = InboundForwarding.DefaultReadTimeout,
-                  maxBodyBytes: Long)(implicit val system: ActorSystem[_]) {
+                  maxBodyBytes: Long,
+                  publishTimeout: FiniteDuration = PontonRoute.DefaultPublishTimeout)(implicit val system: ActorSystem[_]) {
 
   implicit val timeout: Timeout = 3.seconds
   implicit val scheduler: Scheduler = system.scheduler
@@ -77,6 +79,22 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
   private def logSize(size: Option[Long], details: => String): Unit =
     size.filter(_ > PontonRoute.LogSizeAboveBytes).foreach(b => logger.info(s"ponton-message-size: $b bytes, $details"))
 
+  /**
+   * Hands the notification to the publisher and completes when the broker confirmed it (QoS 1
+   * PUBACK). Fails when the publisher reports it as not published, or after publishTimeout (also
+   * covers an event dropped by a full MQTT buffer or lost in a client restart). A confirmation after
+   * the timeout is ignored: the message is then at the broker and, after Ponton's redelivery, a
+   * second time (at-least-once, as with forwarding).
+   */
+  private def publish(notification: EdaNotification): Future[Done] = {
+    val delivered = Promise[Done]()
+    val timer = system.scheduler.scheduleOnce(publishTimeout, () =>
+      delivered.tryFailure(new TimeoutException(s"no broker confirmation within $publishTimeout")))
+    delivered.future.onComplete(_ => timer.cancel())
+    mqttPublisher ! MqttPublish(notification :: Nil, Some(delivered))
+    delivered.future
+  }
+
   private def processLocally(response: NodeSeq, size: Option[Long]): Route =
     onComplete(Future {
       logger.debug(s"Receive message from edaAdapter. Length ${response.head.length}")
@@ -87,8 +105,17 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
         val notification = PontonRoute.notificationFor(x)
         if (notification.protocol == PontonRoute.ErrorProtocol)
           logger.error(s"Inbound message from edaAdapter not processed (conversation ${x.conversationId}, receiver ${x.receiver}): ${notification.message.errorMessage.getOrElse("")}")
-        mqttPublisher ! MqttPublish(notification :: Nil)
-        complete(HttpResponse(StatusCodes.NoContent))
+        // 204 only once the broker confirmed the publish; anything else is a 500, so Ponton keeps
+        // the message and redelivers it instead of it being lost silently (261005-ca1)
+        val started = System.nanoTime()
+        onComplete(publish(notification)) {
+          case Success(_) =>
+            complete(HttpResponse(StatusCodes.NoContent))
+          case Failure(ex) =>
+            val ms = (System.nanoTime() - started) / 1000000
+            logger.error(s"Inbound message (conversation ${x.conversationId}, message code ${x.messageCode}) not published to MQTT after $ms ms: ${ex.getMessage}; Ponton will redeliver")
+            complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
+        }
       case Failure(ex) =>
         logSize(size, "not parsed")
         // The message does not parse, or a known document cannot be mapped (e.g. a new
@@ -202,6 +229,20 @@ object PontonRoute {
 
   /** Inbound messages above this size are logged at INFO with their size (ponton-message-size). */
   val LogSizeAboveBytes: Long = 16L * 1024 * 1024
+
+  val DefaultPublishTimeout: FiniteDuration = 10.seconds
+
+  /**
+   * `app.inbound-publish-timeout` (env INBOUND_PUBLISH_TIMEOUT, with unit, e.g. `10s`): how long an
+   * inbound message waits for the broker's confirmation before Ponton gets a 500. Below 1 s stops
+   * the start (a number without unit is milliseconds).
+   */
+  def publishTimeout(config: com.typesafe.config.Config): FiniteDuration = {
+    val t = if (config.hasPath("app.inbound-publish-timeout")) config.getDuration("app.inbound-publish-timeout").toMillis.millis else DefaultPublishTimeout
+    if (t < 1.second)
+      throw new IllegalArgumentException(s"app.inbound-publish-timeout must be at least 1s (give a unit, e.g. 10s): $t")
+    t
+  }
 
   /*
    * Deadlines: app.forward-read-timeout / app.forward-timeout (InboundForwarding.timeouts). Reading the

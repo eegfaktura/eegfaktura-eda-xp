@@ -9,6 +9,20 @@ this changelog highlights the changes relevant for overview and operations.
 ## [Unreleased]
 
 ### Fixed
+- **Behaviour change towards Ponton:** an inbound message on `/pontonxp/message` that is processed in
+  this zone is answered `204` only after the MQTT broker confirmed its publish (QoS 1). Until now it was
+  answered `204` at once and could be lost silently: MQTT not connected yet (start, restart backoff
+  after a broker restart), aggregator timeout or failure (slow eda-xp database), a merge error that
+  replaced the message, or a full publish buffer. These cases now get a `500` (empty body, one ERROR line
+  with conversation id and cause, "…; Ponton will redeliver"), so Ponton keeps the message, as the
+  forwarding to another zone already did. New setting `app.inbound-publish-timeout` (env
+  `INBOUND_PUBLISH_TIMEOUT`, default `10s`, at least `1s`): how long a message waits for the broker's
+  confirmation. A message confirmed after the timeout, or redelivered by Ponton after a lost
+  confirmation, arrives a second time (at-least-once; backend writes an extra process-history row,
+  energystore overwrites the same values). Unknown document types (`204` + error topic), unparseable
+  messages (`500`) and forwarding are unchanged. **Operators:** after an eda-xp or mosquitto outage, check
+  the Ponton message monitor for inbound messages in state FAILED if Ponton does not redeliver them by
+  itself, and resend them (261005-ca1).
 - Dependencies with HIGH findings in the security scan (Trivy) raised to fixed patch/minor versions:
   `postgresql` 42.7.3 → 42.7.14, gRPC (`grpc-netty-shaded` and the other `io.grpc` modules, via
   pekko-grpc-runtime) 1.67.1 → 1.75.0, `protobuf-java` declared at 3.25.8 (the pom asked for 3.19.6

@@ -51,7 +51,12 @@ object MqttProtocol {
 
   case class EdaInboundMessage(protocol: String, message: EbMsMessage) extends EdaEvent
 
-  case class EdaEventReceived(ev: EdaEvent, ack: Option[() => Future[Done]]) extends MqttMessageCmd
+  /**
+   * `ack` runs when the broker confirmed the publish (QoS 1 PUBACK). `nack` runs when the event is
+   * not published because the client is not connected (start, restart backoff after a connection
+   * error); the sender then fails instead of losing it silently (261005-ca1).
+   */
+  case class EdaEventReceived(ev: EdaEvent, ack: Option[() => Future[Done]], nack: Option[Throwable => Unit] = None) extends MqttMessageCmd
 
   case class EdaMessageCommand(command: CommandMessage, ack: Option[() => Future[Done]]) extends MqttMessageCmd
 
@@ -97,6 +102,9 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
           case MQTTConnected =>
             context.log.info("mqtt client successfully connected")
             connected(mqttStream)
+          case ev: EdaEventReceived =>
+            ev.nack.foreach(_(new IllegalStateException("MQTT client not connected")))
+            Behaviors.same
           case TerminatedWithError(err) =>
             context.log.error("mqtt client connection error", err)
             // stream already failed. just force restart through supervisor
@@ -200,7 +208,7 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
 
   private def moduleEvent2Mqtt(ev: MqttMessageCmd)(implicit _btp: MqttBaseTopicProvider): Option[MqttMessage] = {
     ev match {
-      case EdaEventReceived(ev, _) => eventToMqttMessage(ev)
+      case EdaEventReceived(ev, _, _) => eventToMqttMessage(ev)
       case EdaMessageCommand(cmd, _) => commandToMqttMessage(cmd)
     }
   }
