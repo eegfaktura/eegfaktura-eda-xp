@@ -4,8 +4,7 @@ import at.energydash.actors.MqttPublisher
 import at.energydash.actors.MqttPublisher.{AggregateNotification, MqttCommand, MqttPublish}
 import at.energydash.actors.http.{BodySizeLimit, PontonRoute}
 import at.energydash.config.Config.MqttConfig
-import at.energydash.domain.EbMsMessage
-import at.energydash.mqtt.MqttProtocol.{EdaEventReceived, EdaInboundMessage, Handover, MqttCmd, Terminate}
+import at.energydash.mqtt.MqttProtocol.{MqttCmd, Terminate}
 import io.moquette.broker.Server
 import io.moquette.broker.config.MemoryConfig
 import io.moquette.interception.AbstractInterceptHandler
@@ -21,7 +20,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import java.util.Properties
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Await
 
 /**
  * 261005-ca1 end to end (route, publisher, MqttSystem, embedded broker): a message MQTT cannot take
@@ -29,8 +28,6 @@ import scala.concurrent.{Await, Future}
  * exactly once, also when the broker restarts while the client is connected.
  */
 class InboundDeliverySpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
-
-  private implicit val ec: scala.concurrent.ExecutionContext = system.executionContext
 
   private val envelope = scala.io.Source.fromInputStream(getClass.getResourceAsStream("/Response-Envelope.xml"), "UTF-8").mkString
   private val soapAction = RawHeader("SOAPAction", "http://xp.ponton.de/eda/v320/inboundDocument")
@@ -123,29 +120,6 @@ class InboundDeliverySpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
         val second = new Broker(18833)
         try awaitCount(second.published, 1, 60.seconds)
         finally second.stop()
-      }
-    }
-
-    "be refused when the publish buffer is full" in {
-      withAdapter(18834) { (uri, mqttSystem) =>
-        val broker = new Broker(18834)
-        postUntilAccepted(uri)
-        // confirmed first: a publish still in flight when the connection drops fails the client stream
-        awaitCount(broker.published, 1, 5.seconds)
-        broker.stop()
-        Thread.sleep(1000)
-        // fill the buffer while the client waits for the broker
-        val msg = EbMsMessage(conversationId = "RC100181202407101720603980000000099", sender = "AT003000", receiver = "RC100181")
-        val handovers = (1 to 2100).map { _ =>
-          val h = new Handover
-          mqttSystem ! EdaEventReceived(EdaInboundMessage("cr_msg", msg), None, Some(h))
-          h
-        }
-        val results = Await.result(Future.sequence(handovers.map(h => h.future.map(_ => None).recover { case e => Some(e.getMessage) })), 10.seconds)
-        val refused = results.flatten
-        refused.size should be > 0
-        refused.foreach(_ should startWith("MQTT publish buffer full"))
-        post(uri) shouldBe StatusCodes.InternalServerError
       }
     }
   }

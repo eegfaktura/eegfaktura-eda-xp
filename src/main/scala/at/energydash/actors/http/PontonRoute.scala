@@ -19,7 +19,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import soapenvelope11.Envelope
 
 import java.util.concurrent.TimeoutException
-import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
+import scala.concurrent.duration.{Duration, DurationInt, DurationLong, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
@@ -84,20 +84,27 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
    * Hands the notification to the publisher and completes once it is in the MQTT publishing stream,
    * from where it is published (also after a reconnect of the client: buffered there, as before).
    * Fails when it will not be published: aggregator failure or merge error, client not connected
-   * (start, restart backoff), publish buffer full (261005-ca1). After handoverTimeout (e.g. while
+   * (start, restart backoff), publish buffer full (261005-ca1). After the deadline (e.g. while
    * MqttSystem waits out its restart backoff) the route gives up; a message it gave up on is never
-   * published, so Ponton's redelivery does not create a duplicate.
+   * published, so Ponton's redelivery does not create a duplicate. The deadline ends before the
+   * server's request-timeout, so its 503 never answers while the hand-over is still open.
    */
-  private def handOver(notification: EdaNotification): Future[Done] = {
+  private def handOver(notification: EdaNotification, started: Long): Future[Done] = {
     val handover = new Handover
-    val timer = system.scheduler.scheduleOnce(handoverTimeout, () =>
-      handover.giveUp(new TimeoutException(s"not handed to MQTT within $handoverTimeout")))
+    val deadline = PontonRoute.handoverDeadline(handoverTimeout, requestTimeout, (System.nanoTime() - started).nanos)
+    val timer = system.scheduler.scheduleOnce(deadline, () =>
+      handover.giveUp(new TimeoutException(s"not handed to MQTT within ${deadline.toMillis} ms")))
     handover.future.onComplete(_ => timer.cancel())
     mqttPublisher ! MqttPublish(notification :: Nil, Some(handover))
     handover.future
   }
 
-  private def processLocally(response: NodeSeq, size: Option[Long]): Route =
+  /** pekko.http.server.request-timeout; None when `infinite`. */
+  private val requestTimeout: Option[FiniteDuration] =
+    Try(system.settings.config.getDuration("pekko.http.server.request-timeout").toMillis.millis).toOption
+
+  /** `started`: System.nanoTime() when the request reached the route, before its body was read. */
+  private def processLocally(response: NodeSeq, size: Option[Long], started: Long): Route =
     onComplete(Future {
       logger.debug(s"Receive message from edaAdapter. Length ${response.head.length}")
       scalaxb.fromXML[Envelope](response.head)
@@ -109,8 +116,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
           logger.error(s"Inbound message from edaAdapter not processed (conversation ${x.conversationId}, receiver ${x.receiver}): ${notification.message.errorMessage.getOrElse("")}")
         // 204 only once the message is in the MQTT publishing stream; otherwise a 500, so Ponton
         // keeps the message and redelivers it instead of it being lost silently (261005-ca1)
-        val started = System.nanoTime()
-        onComplete(handOver(notification)) {
+        onComplete(handOver(notification, started)) {
           case Success(_) =>
             complete(HttpResponse(StatusCodes.NoContent))
           case Failure(ex) =>
@@ -171,12 +177,12 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
           }
         } ~
         path("message") {
-          post {
+          (post & extract(_ => System.nanoTime())) { started =>
             if (forwardTargets.isEmpty)
               // no community forwarded: no read deadline, the body is parsed while it streams in
               // (capped by bodyLimit); its size is known when the request declares a Content-Length
               extractRequest { request =>
-                entity(as[NodeSeq])(processLocally(_, request.entity.contentLengthOption))
+                entity(as[NodeSeq])(processLocally(_, request.entity.contentLengthOption, started))
               }
             else
               // strict, so the unchanged body can be forwarded after reading the receiver; capped at
@@ -189,7 +195,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                     val receiver = InboundForwarding.receiverOf(response)
                     val alreadyForwarded = request.headers.exists(_.is(InboundForwarding.ForwardedHeader.toLowerCase))
                     InboundForwarding.decide(forwardTargets, receiver, alreadyForwarded) match {
-                      case InboundForwarding.Local => processLocally(response, size)
+                      case InboundForwarding.Local => processLocally(response, size, started)
                       case InboundForwarding.Loop(rc, target) =>
                         logger.error(s"Inbound message for $rc arrived already forwarded, but $rc is forwarded again to $target here; refusing it to avoid a loop")
                         complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
@@ -197,9 +203,9 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                         logSize(size, s"forwarded for $rc")
                         // No MqttPublishError on failure: this zone's backend does not own the
                         // community any more; the error stays in this log and Ponton redelivers.
-                        val started = System.nanoTime()
+                        val forwardStarted = System.nanoTime()
                         onComplete(forward(target, request)) { result =>
-                          val ms = (System.nanoTime() - started) / 1000000
+                          val ms = (System.nanoTime() - forwardStarted) / 1000000
                           result match {
                             case Success(status) if status.isSuccess() =>
                               logger.info(s"Inbound message for $rc forwarded to $target: $status in $ms ms")
@@ -233,10 +239,21 @@ object PontonRoute {
   val LogSizeAboveBytes: Long = 16L * 1024 * 1024
 
   /**
-   * Upper bound for the hand-over to MQTT, below pekko.http.server.request-timeout (20 s). Normally the
-   * hand-over takes milliseconds or fails at once; only a MqttSystem in restart backoff holds it longer.
+   * Upper bound for the hand-over to MQTT. Normally the hand-over takes milliseconds or fails at
+   * once; only a MqttSystem in restart backoff holds it longer.
    */
   val HandoverTimeout: FiniteDuration = 10.seconds
+
+  /** Time left between the end of the hand-over deadline and the server's request-timeout. */
+  val RequestTimeoutMargin: FiniteDuration = 2.seconds
+
+  /**
+   * Hand-over deadline: at most `cap`, and over at least RequestTimeoutMargin before the server's
+   * request-timeout counted from the request start (reading and parsing the body already took
+   * `elapsed`); zero when no time is left.
+   */
+  def handoverDeadline(cap: FiniteDuration, requestTimeout: Option[FiniteDuration], elapsed: FiniteDuration): FiniteDuration =
+    requestTimeout.fold(cap)(t => (t - elapsed - RequestTimeoutMargin) min cap) max Duration.Zero
 
   /*
    * Deadlines: app.forward-read-timeout / app.forward-timeout (InboundForwarding.timeouts). Reading the

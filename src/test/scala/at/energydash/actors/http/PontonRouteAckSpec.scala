@@ -68,7 +68,7 @@ class PontonRouteAckSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
         publish.handover.get.claim() shouldBe false
         log().exists(e => e.getLevel == Level.ERROR &&
           e.getFormattedMessage.contains("conversation RC100181202407101720603980000000011") &&
-          e.getFormattedMessage.contains("not handed to MQTT within 1 second")) shouldBe true
+          e.getFormattedMessage.contains("not handed to MQTT within 1000 ms")) shouldBe true
       }
     }
 
@@ -82,6 +82,16 @@ class PontonRouteAckSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
         (System.nanoTime() - started).nanos should be < 5.seconds
         log().exists(e => e.getLevel == Level.ERROR && e.getFormattedMessage.contains("MQTT client not connected; Ponton will redeliver")) shouldBe true
       }
+    }
+  }
+
+  "the hand-over deadline" should {
+    "end before the server's request-timeout, counted from the request start" in {
+      PontonRoute.handoverDeadline(10.seconds, Some(20.seconds), 1.second) shouldBe 10.seconds
+      // body read and parse took 12 s: 20 - 12 - 2 s margin
+      PontonRoute.handoverDeadline(10.seconds, Some(20.seconds), 12.seconds) shouldBe 6.seconds
+      PontonRoute.handoverDeadline(10.seconds, Some(20.seconds), 19.seconds) shouldBe Duration.Zero
+      PontonRoute.handoverDeadline(10.seconds, None, 60.seconds) shouldBe 10.seconds
     }
   }
 }

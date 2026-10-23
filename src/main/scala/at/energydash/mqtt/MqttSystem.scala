@@ -116,9 +116,9 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
           case MQTTConnected =>
             context.log.info("mqtt client successfully connected")
             connected(mqttStream)
-          case ev: EdaEventReceived =>
-            // dropped here before (261005-ca1): the sender fails instead
-            ev.handover.foreach(_.refused(new IllegalStateException("MQTT client not connected")))
+          case cmd: MqttMessageCmd =>
+            // dropped silently here before (261005-ca1): the sender fails instead, or it is logged
+            notPublished(cmd, "MQTT client not connected")
             Behaviors.same
           case TerminatedWithError(err) =>
             context.log.error("mqtt client connection error", err)
@@ -132,11 +132,19 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
     }.onFailure(SupervisorStrategy.restartWithBackoff(minBackoff = 4.seconds, maxBackoff = 1.minute, randomFactor = 0.2))
   }
 
-  private def connected(mqttStream: BoundedSourceQueue[MqttMessageCmd]): Behavior[MqttCmd] = {
+  /** A message that is not published: the sender of a hand-over fails (and logs it), anything else is logged here. */
+  private def notPublished(cmd: MqttMessageCmd, reason: String)(implicit context: ActorContext[MqttCmd]): Unit = cmd match {
+    case EdaEventReceived(_, _, Some(h)) => h.refused(new IllegalStateException(reason))
+    case EdaEventReceived(ev, _, None) => context.log.error(s"MQTT event (conversation ${ev.message.conversationId}) not published: $reason")
+    case EdaMessageCommand(command, _) => context.log.error(s"MQTT command ${command.command} not published: $reason")
+  }
+
+  /** Connected: messages go into the publishing stream (package-visible for tests). */
+  private[mqtt] def connected(mqttStream: BoundedSourceQueue[MqttMessageCmd]): Behavior[MqttCmd] = {
     Behaviors.setup { implicit context =>
       def offer(cmd: MqttMessageCmd): Either[String, Unit] = mqttStream.offer(cmd) match {
         case QueueOfferResult.Enqueued => Right(())
-        case QueueOfferResult.Dropped => Left(s"MQTT publish buffer full ($BufferSize)")
+        case QueueOfferResult.Dropped => Left("MQTT publish buffer full")
         case QueueOfferResult.Failure(e) => Left(s"MQTT publish stream failed: ${e.getMessage}")
         case QueueOfferResult.QueueClosed => Left("MQTT publish stream closed")
       }
@@ -146,11 +154,11 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
             case Some(h) =>
               if (h.claim()) offer(ev).fold(reason => h.refused(new IllegalStateException(reason)), _ => h.accepted())
             case None =>
-              offer(ev).left.foreach(reason => context.log.error(s"MQTT event (conversation ${ev.ev.message.conversationId}) not published: $reason"))
+              offer(ev).left.foreach(notPublished(ev, _))
           }
           Behaviors.same
         case cmd: EdaMessageCommand =>
-          offer(cmd).left.foreach(reason => context.log.error(s"MQTT command ${cmd.command.command} not published: $reason"))
+          offer(cmd).left.foreach(notPublished(cmd, _))
           Behaviors.same
         case TerminatedWithError(err) =>
           context.log.error("mqtt client connection error", err)
@@ -169,8 +177,8 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
     Behaviors.receiveMessagePartial {
       case TerminatedOk =>
         Behaviors.stopped
-      case ev: EdaEventReceived =>
-        ev.handover.foreach(_.refused(new IllegalStateException("MQTT client terminating")))
+      case cmd: MqttMessageCmd =>
+        notPublished(cmd, "MQTT client terminating")(context)
         Behaviors.same
       case TerminatedWithError(err) =>
         context.log.error("mqtt client connection error", err)

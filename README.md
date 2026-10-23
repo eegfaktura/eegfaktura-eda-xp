@@ -91,14 +91,26 @@ docker run -p 6090:6090 -p 9093:9093 \
   as ERROR `refused as too large`, and Ponton redelivers.
   Inbound Ponton messages above 16 MiB are logged at INFO with their size (search key `ponton-message-size`).
 - Inbound messages processed here (`/pontonxp/message`) are answered 204 once they are in the MQTT
-  publishing stream; from there they are published, also after the client reconnects to a restarted broker
-  (buffered, up to 2000). They are answered 500 (ERROR line `not handed to MQTT … Ponton will redeliver`)
-  when they cannot be published: MQTT not connected (start, restart backoff after a client error), the
-  eda-xp database lookup fails or times out (aggregator, merge error), or the buffer is full; after 10 s at
-  most. Such a message is never published later, so Ponton's redelivery is no duplicate. Still lost, as
-  before: messages already in the buffer when the client stream fails (e.g. a publish in flight when the
-  connection drops) and the stream restarts. If Ponton does not redeliver after a 500, the message shows
-  as FAILED in the Ponton message monitor.
+  publishing stream (buffer of 2000); from there they are published, also after the client reconnects to
+  a restarted broker. They are answered 500 (ERROR line `not handed to MQTT … Ponton will redeliver`)
+  when they cannot be published: MQTT not connected (start, or restart backoff of 4 s to 1 min after a
+  client stream failure, e.g. a publish in flight when the broker connection drops), the eda-xp database
+  lookup fails or times out (aggregator, merge error), or the buffer is full. This also applies to unknown
+  document types. The route gives up at the latest after 10 s, and always 2 s before
+  `pekko.http.server.request-timeout` counted from the request start; a message answered 500 is never
+  published later. Each retry of a message refused by a merge error or aggregator failure still publishes
+  the `error` notification as before, so the backend gets one error entry per Ponton retry during an
+  eda-xp database outage. Still lost, as before: messages already in the buffer when the client stream
+  fails. **Runbook after 500s:**
+  1. Find the window: search the eda-xp log (Dynatrace) for `not handed to MQTT`; the window runs from the
+     first such line until the next successfully processed message (no more such lines). Note the
+     conversation ids of the lines.
+  2. In the Ponton message monitor, look for inbound messages of that window in state FAILED or not
+     delivered (exact menu path and status names to be confirmed by operations).
+  3. Resend them to the adapter. That is safe: energystore stores energy values idempotently; the backend
+     may get an extra `base.processhistory` row.
+  4. Afterwards check `base.processhistory` for the conversation ids from step 1 (read-only).
+  5. Not verified yet: whether Ponton redelivers on its own after a 500.
 - `epmsmail.*` — IMAP/SMTP accounts for EDA-over-email
 - `slick.pgsql.local.db.*` / `flyway.*` — PostgreSQL connection + migrations
 
