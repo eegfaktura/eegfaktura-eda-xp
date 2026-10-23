@@ -9,6 +9,9 @@ this changelog highlights the changes relevant for overview and operations.
 ## [Unreleased]
 
 ### Fixed
+- Ponton notification and status bodies are logged with their first 500 characters and their size instead of in
+  full (`PontonRoute.logBody`). These bodies have no size limit; a large one became one huge INFO line in the pod
+  log and in Dynatrace (found because a 2 MB test body stalled the GitHub runner's log processing).
 - Dependencies with HIGH findings in the security scan (Trivy) raised to fixed patch/minor versions:
   `postgresql` 42.7.3 → 42.7.14, gRPC (`grpc-netty-shaded` and the other `io.grpc` modules, via
   pekko-grpc-runtime) 1.67.1 → 1.75.0, `protobuf-java` declared at 3.25.8 (the pom asked for 3.19.6

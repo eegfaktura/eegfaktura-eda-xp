@@ -9,7 +9,7 @@ import org.apache.pekko.pattern.after
 import org.apache.pekko.http.scaladsl.server.Directives._
 import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
-import org.apache.pekko.util.Timeout
+import org.apache.pekko.util.{ByteString, Timeout}
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish, MqttPublishError}
 import at.energydash.domain.{EbMsMessage, XmlParseHandler}
 import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
@@ -113,7 +113,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
               }.flatMap(_=>request.entity.toStrict(1 second))) {
                 case Success(d) =>
 //                  println(d.data.utf8String)
-                  logger.info(s"Notification from EDA: ${d.data.utf8String}")
+                  logger.info(s"Notification from EDA: ${PontonRoute.logBody(d.data)}")
                   complete(HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                 case Failure(f) =>
                   logger.error(f.getMessage)
@@ -132,7 +132,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
               } {
                 case Success(d) =>
 //                    println(d.data.utf8String)
-                  logger.info(s"Status from EDA: ${d.data.utf8String}")
+                  logger.info(s"Status from EDA: ${PontonRoute.logBody(d.data)}")
                   complete(HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                 case Failure(e) =>
                   logger.error(e.toString)
@@ -199,6 +199,20 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
 
 object PontonRoute {
   val ErrorProtocol = "ERROR"
+
+  /** Notification and status bodies are logged up to this many characters. */
+  val LogBodyChars = 500
+
+  /**
+   * A notification or status body for the log: in full up to [[LogBodyChars]] characters, otherwise its start and
+   * its size. Ponton's bodies are short; a large one (the body has no size limit there) would otherwise become one
+   * huge log line in the pod log and in Dynatrace.
+   */
+  def logBody(data: ByteString): String = {
+    val head = data.take(LogBodyChars * 4).utf8String
+    if (data.length <= LogBodyChars * 4 && head.length <= LogBodyChars) head // all of it decoded, short enough
+    else s"${head.take(LogBodyChars)}… (${data.length} bytes)"
+  }
 
   /** Inbound messages above this size are logged at INFO with their size (ponton-message-size). */
   val LogSizeAboveBytes: Long = 16L * 1024 * 1024
