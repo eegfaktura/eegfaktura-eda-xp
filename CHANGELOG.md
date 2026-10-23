@@ -9,6 +9,25 @@ this changelog highlights the changes relevant for overview and operations.
 ## [Unreleased]
 
 ### Fixed
+- **Behaviour change towards Ponton:** an inbound message on `/pontonxp/message` that is processed in
+  this zone is answered `500` instead of `204` when it cannot be published to MQTT. Until now it was
+  answered `204` and lost silently when MQTT was not connected (start, or the restart backoff of 4 s to
+  1 min after a client stream failure, e.g. a publish in flight when the broker connection drops), the
+  aggregator lookup in the eda-xp database failed or timed out, a merge error replaced the message, or the
+  publish buffer was full (the oldest buffered message was dropped; now the new one is refused). This
+  also applies to unknown document types, which otherwise still get `204` + error topic. Each such `500`
+  has an empty body and one ERROR line with conversation id and cause ("not handed to MQTT …; Ponton
+  will redeliver"). The route gives up at the latest after 10 s and always before the server's
+  request-timeout, so a message answered `500` is never published later and Ponton's redelivery creates no
+  duplicate. A message refused by a merge error or aggregator failure still publishes the `error`
+  notification as before: during an eda-xp database outage the backend gets one error entry per Ponton
+  retry. A message handed to the publishing stream is answered `204` as before, without waiting for the
+  broker, also while the client reconnects to a restarted broker. Messages without a Ponton request
+  (mail, file upload, commands) that MQTT does not take are now logged at ERROR instead of dropped
+  silently. Unparseable messages, forwarding, topics and payloads are unchanged. **Operators:** see the
+  runbook in the README (search `not handed to MQTT`, check the Ponton message monitor for FAILED inbound
+  messages of that window and resend); Ponton's automatic redelivery after a `500` is not verified yet
+  (261005-ca1).
 - Dependencies with HIGH findings in the security scan (Trivy) raised to fixed patch/minor versions:
   `postgresql` 42.7.3 → 42.7.14, gRPC (`grpc-netty-shaded` and the other `io.grpc` modules, via
   pekko-grpc-runtime) 1.67.1 → 1.75.0, `protobuf-java` declared at 3.25.8 (the pom asked for 3.19.6

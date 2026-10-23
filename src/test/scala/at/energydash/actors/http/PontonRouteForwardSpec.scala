@@ -47,7 +47,7 @@ class PontonRouteForwardSpec extends ScalaTestWithActorTestKit with AnyWordSpecL
   }
 
   private def withAdapter[T](targets: Map[String, Uri], probe: TestProbe[MqttCommand])(test: Uri => T): T = {
-    val routes = new PontonRoute(probe.ref, targets, forwardTimeout = 1.second, maxBodyBytes = BodySizeLimit.maxBytes(system.settings.config))
+    val routes = new PontonRoute(testKit.spawn(AckingPublisher(probe.ref)), targets, forwardTimeout = 1.second, maxBodyBytes = BodySizeLimit.maxBytes(system.settings.config))
     val binding = Await.result(Http().newServerAt("127.0.0.1", 0).bind(routes.pontonRoutes), 5.seconds)
     try test(Uri(s"http://127.0.0.1:${binding.localAddress.getPort}/pontonxp/message"))
     finally Await.ready(binding.unbind(), 5.seconds)
