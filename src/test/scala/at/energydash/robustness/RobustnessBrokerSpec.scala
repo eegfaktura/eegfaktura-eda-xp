@@ -23,7 +23,7 @@ class RobustnessBrokerSpec extends ScalaTestWithActorTestKit with AnyWordSpecLik
           publisher ! EdaEventReceived(EdaInboundMessage("EC_REQ_ONL", answer), None)
           await("eda/response/rc100401/protocol/ec_req_onl", 300.millis)
         }
-        broker.stopServer()
+        TestBroker.stop(broker)
         val restarted = TestBroker.start()
         try {
           val again = new at.energydash.testsupport.MqttRecorder("eda/response/#")
@@ -31,7 +31,7 @@ class RobustnessBrokerSpec extends ScalaTestWithActorTestKit with AnyWordSpecLik
             publisher ! EdaEventReceived(EdaInboundMessage("EC_REQ_ONL", answer), None)
             again.next(400.millis).map(_.topic) shouldBe Some("eda/response/rc100401/protocol/ec_req_onl")
           } finally again.close()
-        } finally restarted.stopServer()
+        } finally TestBroker.stop(restarted)
       } finally g.stop()
     }
   }

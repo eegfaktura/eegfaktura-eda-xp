@@ -18,8 +18,25 @@ object TestBroker {
     server
   }
 
+  /** How long a stop may take before the test goes on without it. */
+  val StopTimeoutMillis = 15000L
+
   def withBroker[T](f: Server => T): T = {
     val server = start()
-    try f(server) finally server.stopServer()
+    try f(server) finally stop(server)
+  }
+
+  /**
+   * Stops the broker, but waits at most [[StopTimeoutMillis]]. moquette's `stopServer` waits without a limit
+   * for Netty to close; with a client of the test still connected (a Paho disconnect in flight), both can
+   * wait for each other — on the GitHub runner this hung the whole suite until the job timeout.
+   */
+  def stop(server: Server): Unit = {
+    val stopper = new Thread(() => server.stopServer(), "test-broker-stop")
+    stopper.setDaemon(true)
+    stopper.start()
+    stopper.join(StopTimeoutMillis)
+    if (stopper.isAlive)
+      System.err.println(s"TestBroker: stopServer did not finish within $StopTimeoutMillis ms; the test goes on")
   }
 }
