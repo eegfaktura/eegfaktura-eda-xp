@@ -8,6 +8,20 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Fixed
+- Dependencies with HIGH findings in the security scan (Trivy) raised to fixed patch/minor versions:
+  `postgresql` 42.7.3 → 42.7.14, gRPC (`grpc-netty-shaded` and the other `io.grpc` modules, via
+  pekko-grpc-runtime) 1.67.1 → 1.75.0, `protobuf-java` declared at 3.25.8 (the pom asked for 3.19.6
+  through scalapb-runtime), Jackson (via pekko-serialization-jackson; `jackson-dataformat-toml` via
+  flyway-core from 2.15.2) 2.19.2 → 2.21.7, circe 0.14.3 → 0.14.16 for `jawn-parser` 1.7.0 (at runtime
+  circe-core/-parser were 0.14.12 and circe-generic 0.14.7, shapeless moves 2.3.10 → 2.3.13), and
+  `org.lz4:lz4-java` 1.8.0 replaced by its maintained fork `at.yawk.lz4:lz4-java` 1.11.4. Guava stays on
+  the `-jre` build at 33.3.1-jre (gRPC 1.75 brings 33.3.1-android). The security scan (Trivy and
+  OSV-Scanner) does not read `build.sbt`: the workflow exports the declared dependencies with
+  `sbt makePom` and the scanners resolve the transitive ones from that pom Maven-style. The pom does not
+  carry `dependencyOverrides`, so the transitive packages with findings are declared directly
+  (platform#182).
+
 ### CI
 - `rolling-release.yml`: no image build on a draft pull request — it runs when the pull request is marked ready for review (`ready_for_review`) and on every later push to it; `pr-checks.yml` still checks drafts. Pushes, tags and the deploy dispatch are unchanged.
 - `pr-checks.yml`: a unit job beside the full test suite on every pull request (unit = the suite without the `Slow` tag, a fast signal; full = `test.yml` with coverage and floors).

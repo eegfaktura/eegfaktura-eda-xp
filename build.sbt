@@ -10,9 +10,20 @@ lazy val courierVersion  = "3.0.1"
 lazy val pekkoVersion             = "1.2.1"
 lazy val pekkoHttpVersion         = "1.2.0"
 lazy val pekkoConnectorsVersion   = "1.1.0"
-lazy val circeVersion             = "0.14.3"
+lazy val circeVersion             = "0.14.16"
 lazy val slickVersion             = "3.5.1"
 lazy val scalaXmlVersion          = "2.3.0"
+// gRPC comes in through pekko-grpc-runtime (1.67.1); raised for the security scan (platform#182).
+// All io.grpc modules share one version.
+lazy val grpcVersion              = "1.75.0"
+// the protobuf-java that grpc-protobuf (grpcVersion) depends on; raise both together
+lazy val protobufVersion          = "3.25.8"
+// Jackson comes in through pekko-serialization-jackson (2.19.2); raised for the security scan
+// (platform#182). Since 2.20 jackson-annotations is versioned without a patch number.
+// On the next Pekko / pekko-grpc upgrade: compare with what they bring, and raise or remove the
+// gRPC, protobuf and Jackson pins and dependencyOverrides below.
+lazy val jacksonVersion           = "2.21.7"
+lazy val jacksonAnnotationsVersion = "2.21"
 
 lazy val scalaxbSettings = Seq(
   Compile / scalaxb / scalaxbPackageName := "generated",
@@ -149,7 +160,7 @@ lazy val root = (project in file("."))
       "org.apache.pekko" %% "pekko-actor-typed" % pekkoVersion,
       "org.apache.pekko" %% "pekko-stream" % pekkoVersion,
       "org.apache.pekko" %% "pekko-persistence-typed" % pekkoVersion,
-      "org.apache.pekko" %% "pekko-serialization-jackson"  % pekkoVersion,
+      ("org.apache.pekko" %% "pekko-serialization-jackson"  % pekkoVersion).exclude("org.lz4", "lz4-java"),
       "org.apache.pekko" %% "pekko-discovery" % pekkoVersion,
       "org.apache.pekko" %% "pekko-slf4j" % pekkoVersion,
       "org.apache.pekko" %% "pekko-connectors-mqtt" % pekkoConnectorsVersion,
@@ -169,7 +180,35 @@ lazy val root = (project in file("."))
       "org.scala-lang.modules" %% "scala-xml" % scalaXmlVersion,
 //      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2",
 
-      "com.google.guava" % "guava" % "33.2.1-jre",
+      "com.google.guava" % "guava" % "33.3.1-jre", // grpc 1.75 brings 33.3.1-android; keep the -jre build
+
+      // transitive, declared directly so that the exported pom (security scan) carries the fixed version
+      "io.grpc" % "grpc-netty-shaded" % grpcVersion,
+      // scalapb-runtime asks for 3.19.6; sbt already resolves the version grpc-protobuf brings
+      "com.google.protobuf" % "protobuf-java" % protobufVersion,
+      "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
+      // flyway-core asks for 2.15.2; kept with the other Jackson modules
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-toml" % jacksonVersion,
+      // org.lz4 is abandoned; at.yawk.lz4 is the maintained fork (same net.jpountz packages)
+      "at.yawk.lz4" % "lz4-java" % "1.11.4",
+    ),
+
+    dependencyOverrides ++= Seq(
+      "grpc-api", "grpc-context", "grpc-core", "grpc-netty-shaded", "grpc-protobuf",
+      "grpc-protobuf-lite", "grpc-stub", "grpc-util",
+    ).map("io.grpc" % _ % grpcVersion),
+
+    // jackson-module-scala refuses a databind of another minor version: all modules move together
+    dependencyOverrides ++= Seq(
+      "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
+      "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonAnnotationsVersion,
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
+      "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % jacksonVersion,
+      "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % jacksonVersion,
+      "com.fasterxml.jackson.module" % "jackson-module-parameter-names" % jacksonVersion,
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion,
     ),
 
     libraryDependencies ++= Seq(
@@ -192,7 +231,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "com.typesafe.slick" %% "slick" % slickVersion,
       "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
-      "org.postgresql" % "postgresql" % "42.7.3",
+      "org.postgresql" % "postgresql" % "42.7.14",
       "com.github.tminglei" %% "slick-pg" % "0.22.2",
       "com.github.tminglei" %% "slick-pg_circe-json" % "0.22.2"
     ),
