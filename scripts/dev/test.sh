@@ -48,7 +48,13 @@ user="$(id -u):$(id -g)"
 if [ "$(id -u)" = 0 ]; then
   user="$(stat -c '%u:%g' .)"
   if [ "${user%%:*}" = 0 ]; then echo "the checkout is owned by root; embedded PostgreSQL cannot run as root" >&2; exit 2; fi
-  chown "$user" "$CACHE" "$CACHE/sbt" "$CACHE/ivy2" "$CACHE/cache"
+  # Earlier runs as root left root-owned files in the cache and in target/; hand them to that owner.
+  owned=("$CACHE")
+  for d in target project/target project/project; do [ -e "$d" ] && owned+=("$d"); done
+  if ! chown -R "$user" "${owned[@]}"; then
+    echo "cannot hand ${owned[*]} to $user (a cache on /mnt/<drive>?); set EDA_XP_SBT_CACHE to a Linux path" >&2
+    exit 2
+  fi
 fi
 docker_args=(--rm -u "$user" -e TZ=Europe/Vienna
   -e "SBT_OPTS=-Duser.home=/sbt-home -Dsbt.global.base=/sbt-home/.sbt/1.0 -Dsbt.boot.directory=/sbt-home/.sbt/boot -Dsbt.ivy.home=/sbt-home/.ivy2"

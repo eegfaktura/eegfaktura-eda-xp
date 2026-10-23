@@ -52,7 +52,9 @@ this changelog highlights the changes relevant for overview and operations.
   `/` into its HOCON config (a Windows `\` broke the parse).
 - `scripts/dev/test.sh` under WSL skips a Windows `sbt` seen through interop (`/mnt/c/...`), which ran in
   `C:\Windows` and found no build; it uses the pinned image instead. Run as root, the container runs as
-  the checkout's owner (embedded PostgreSQL refuses root and the DB suites aborted).
+  the checkout's owner (embedded PostgreSQL refuses root and the DB suites aborted). It first hands the
+  sbt cache and `target/` to that owner (earlier root runs left root-owned files there); it stops with
+  exit 2 if the checkout is owned by root or the cache cannot be handed over (cache on `/mnt/<drive>`).
 
 ## [1.1.0] – 2026-10-21
 
