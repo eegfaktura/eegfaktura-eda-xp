@@ -54,6 +54,10 @@ this changelog highlights the changes relevant for overview and operations.
   connected (33 sockets on port 18831 in the CI run) kept moquette's `stopServer` waiting for Netty without a
   limit, and on the GitHub runner the unit and full suite hung until the job timeout. The stop now disconnects
   and purges every connected client first and waits at most 15 s.
+- CI resource monitor (`scripts/dev/ci-monitor.sh`): the unit and the full test step log load, memory, swap,
+  processes, threads, java/postgres processes and sockets on the test broker port every 2 minutes, print the
+  peaks at the end and upload the samples as `ci-monitor-unit` / `ci-monitor-full` even when the job is
+  cancelled (GitHub keeps no log of a cancelled job and reports no CPU or memory per job).
 - `scripts/dev/test.sh` under WSL skips a Windows `sbt` seen through interop (`/mnt/c/...`), which ran in
   `C:\Windows` and found no build; it uses the pinned image instead. Run as root, the container runs as
   the checkout's owner (embedded PostgreSQL refuses root and the DB suites aborted). It first hands the

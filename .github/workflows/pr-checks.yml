@@ -43,7 +43,19 @@ jobs:
         uses: sbt/setup-sbt@6158cb0903b8ceeae04f830055f3155e1b6a5ad7 # v1.5.11
 
       - name: Unit tests (without the Slow tag)
-        run: sbt -batch "testOnly * -- -l at.energydash.Slow"
+        run: |
+          bash scripts/dev/ci-monitor.sh start
+          trap 'bash scripts/dev/ci-monitor.sh stop' EXIT
+          sbt -batch "testOnly * -- -l at.energydash.Slow"
+
+      - name: Keep the resource monitor
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ci-monitor-unit
+          path: ${{ runner.temp }}/ci-monitor.log
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Keep the test results
         if: always()
