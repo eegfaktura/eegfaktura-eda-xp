@@ -50,6 +50,9 @@ this changelog highlights the changes relevant for overview and operations.
 - Windows checkouts with `core.autocrlf`: `.gitattributes` keeps the protocol golden files LF (they are
   compared byte for byte and failed with CRLF); S12 (`SupervisorScenarioSpec`) writes the journal path with
   `/` into its HOCON config (a Windows `\` broke the parse).
+- `scripts/dev/test.sh` under WSL skips a Windows `sbt` seen through interop (`/mnt/c/...`), which ran in
+  `C:\Windows` and found no build; it uses the pinned image instead. Run as root, the container runs as
+  the checkout's owner (embedded PostgreSQL refuses root and the DB suites aborted).
 
 ## [1.1.0] – 2026-10-21
 

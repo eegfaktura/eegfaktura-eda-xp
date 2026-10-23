@@ -35,13 +35,22 @@ done
 
 floors() { [ -z "$coverage" ] || python3 scripts/dev/coverage-check.py; }
 
-if command -v sbt >/dev/null 2>&1; then
+# Not a Windows sbt seen through WSL interop (/mnt/c/...): it runs in C:\Windows and finds no build.
+sbt_bin="$(command -v sbt || true)"
+if [ -n "$sbt_bin" ] && [[ "$sbt_bin" != /mnt/[a-z]/* ]]; then
   EDA_XP_EXTRA_TESTS="$private_dir" sbt -batch "${props[@]}" "${cmds[@]}"
   floors; exit 0
 fi
 
 mkdir -p "$CACHE/sbt" "$CACHE/ivy2" "$CACHE/cache"
-docker_args=(--rm -u "$(id -u):$(id -g)" -e TZ=Europe/Vienna
+# Embedded PostgreSQL refuses to run as root (initdb): as root, run the container as the checkout's owner.
+user="$(id -u):$(id -g)"
+if [ "$(id -u)" = 0 ]; then
+  user="$(stat -c '%u:%g' .)"
+  if [ "${user%%:*}" = 0 ]; then echo "the checkout is owned by root; embedded PostgreSQL cannot run as root" >&2; exit 2; fi
+  chown "$user" "$CACHE" "$CACHE/sbt" "$CACHE/ivy2" "$CACHE/cache"
+fi
+docker_args=(--rm -u "$user" -e TZ=Europe/Vienna
   -e "SBT_OPTS=-Duser.home=/sbt-home -Dsbt.global.base=/sbt-home/.sbt/1.0 -Dsbt.boot.directory=/sbt-home/.sbt/boot -Dsbt.ivy.home=/sbt-home/.ivy2"
   -e COURSIER_CACHE=/sbt-home/.cache/coursier
   -v "$CACHE/sbt:/sbt-home/.sbt" -v "$CACHE/ivy2:/sbt-home/.ivy2" -v "$CACHE/cache:/sbt-home/.cache"
