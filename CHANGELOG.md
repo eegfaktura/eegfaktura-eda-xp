@@ -8,6 +8,8 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.1.1] – 2026-10-25
+
 ### Fixed
 - Ponton notification and status bodies are logged with their first 500 characters and their size instead of in
   full (`PontonRoute.logBody`). These bodies have no size limit; a large one became one huge INFO line in the pod
