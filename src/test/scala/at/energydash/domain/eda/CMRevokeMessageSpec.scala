@@ -38,7 +38,6 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
 
       (node \ "ProcessDirectory" \ "ConsentEnd" ).text should fullyMatch regex """[12][0-9]{3}-[01][0-9]-[0-3][0-9]"""
       (node \ "ProcessDirectory" \ "ConsentEnd" ).text shouldBe  "2023-03-31"
-      println(node)
 
 //      val obj = CMRevokeXMLMessageV0100.fromXML(node.asInstanceOf[Elem])
 //      obj match {
@@ -79,10 +78,8 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
 
       val node = requestObj.toXML
       (node \ "ProcessDirectory" \ "ConsentEnd" ).text shouldBe  "2024-06-21"
-      println(node)
 
       val doc = requestObj.toByte
-      println(doc.map(_.utf8String))
     }
   }
 }

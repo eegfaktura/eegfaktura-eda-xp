@@ -60,16 +60,10 @@ class ECPartitionChangeSpec extends AnyWordSpec with Matchers {
 
 
 
-      println(expectedProcessDate.toString)
-      println(buildCalendarDate(expectedProcessDate.getTime))
-      println(buildCalendarDate(expectedProcessDate1.getTime))
-      println(expectedProcessDate2)
-      println(expectedProcessDate3)
 
       (node \ "ProcessDirectory" \ "MPListData" \ "MPTimeData" \ "ECPartFact").text shouldBe "25"
       (node \ "ProcessDirectory" \ "MPListData" \ "MPTimeData" \ "DateFrom").text shouldBe MessageHelper.buildCalendarDate(expectedProcessDate.getTime)
       (node \ "ProcessDirectory" \ "ProcessDate" ).text shouldBe MessageHelper.buildCalendarDate(expectedProcessDate.getTime)
-      println(node)
 
       //      val obj = CMRevokeXMLMessageV0100.fromXML(node.asInstanceOf[Elem])
       //      obj match {

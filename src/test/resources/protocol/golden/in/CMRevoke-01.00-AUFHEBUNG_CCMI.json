@@ -1,0 +1,18 @@
+{
+  "conversationId" : "RC900001202607141781008000000000002",
+  "messageCode" : "AUFHEBUNG_CCMI",
+  "messageCodeVersion" : "01.00",
+  "messageId" : "AT009999202607141781008000000000101",
+  "receiver" : "RC900001",
+  "responseData" : [
+    {
+      "ConsentEnd" : 1788127200000,
+      "ConsentId" : "AT009999000000001",
+      "MeteringPoint" : "AT0090001000000000000000000000001",
+      "ResponseCode" : [
+        1099
+      ]
+    }
+  ],
+  "sender" : "AT009999"
+}

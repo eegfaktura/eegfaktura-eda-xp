@@ -1,103 +1,104 @@
 package at.energydash.actors
 
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import at.energydash.actors.MqttPublisher.MqttCommand
+import org.apache.pekko.actor.typed.ActorRef
+import at.energydash.actors.MqttPublisher.{MqttCommand, MqttPublishCommand}
 import at.energydash.actors.TenantProvider.TenantStart
-import at.energydash.config.Config
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.dao.TenantConfig
 import at.energydash.domain.enums.EbMsMessageType
+import at.energydash.testsupport.TestDb
 import at.energydash.{EmailMock, EmbeddedDb}
-import com.typesafe.slick.testkit.util.ProfileTest
-import com.typesafe.slick.testkit.util.StandardTestDBs.Postgres
 import org.jvnet.mock_javamail.{Mailbox, MockTransport}
-import org.scalatest.BeforeAndAfter
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import javax.mail.Provider
-import javax.mail.internet.MimeMultipart
-
-class MyPostgresTest extends ProfileTest(Postgres)
+import scala.concurrent.duration.DurationInt
 
 class MockedSMTPProvider
   extends Provider(Provider.Type.TRANSPORT, "mocked", classOf[MockTransport].getName, "Mock", null)
 
-class TenantProviderSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with BeforeAndAfter with EmbeddedDb with EmailMock {
+class TenantProviderSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with EmbeddedDb with EmailMock {
 
-  private val testEdaMessage = EbMsMessage(messageId = Some("1234"), conversationId = "con",
-    sender = "sender",
-    receiver = "rec",
-    messageCode = EbMsMessageType.OFFLINE_REG_INIT,
-    messageCodeVersion = Some("02.00"),
-    requestId = Some("567890"))
+  // MAIL tenants on the mock-javamail domain (formerly seeded by the test-only migration V000.002).
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    TestDb.reset()
+    TestDb.seedTenant("myeeg", "MAIL")
+    TestDb.seedTenant("mymaileeg", "MAIL")
+  }
+
+  private def offlineReg(sender: String, receiver: String) = EbMsMessage(messageId = Some("1234"), conversationId = "con",
+    sender = sender, receiver = receiver, messageCode = EbMsMessageType.OFFLINE_REG_INIT,
+    messageCodeVersion = Some("02.00"), requestId = Some("567890"))
+
+  /** Waits until the provider has left its initialisation: a command for an unknown tenant is answered. */
+  private def awaitReady(provider: ActorRef[EdaCommand]): Unit = {
+    val probe = createTestProbe[EdaCommand]()
+    val ready = Iterator.continually {
+      provider ! PassEdaCommand("not-a-tenant", offlineReg("not-a-tenant", "rec"), probe.ref)
+      scala.util.Try(probe.expectMessageType[SendResponseError](200.millis)).isSuccess
+    }.take(50).contains(true)
+    assert(ready, "tenant provider did not finish its initialisation within 10 s")
+  }
 
   "Tenant Provider Actor" should {
+    // 261005-ca4 (fixed upstream, platform#182): commands sent during the initialisation are queued and replayed.
     "Handle Eda Message OFFLINE Reg" in {
-      val mqttPublisherProbe = createTestProbe[MqttCommand]()
       val edaResponse = createTestProbe[EdaCommand]()
-      val tenantActor = spawn(TenantProvider(mqttPublisherProbe.ref))
-      val testMessage = EbMsMessage(messageId = Some("1234"), conversationId = "con",
-        sender = "myeeg",
-        receiver = "rec",
-        messageCode = EbMsMessageType.OFFLINE_REG_INIT,
-        messageCodeVersion = Some("02.00"),
-        requestId = Some("567890"))
+      val tenantActor = spawn(TenantProvider(createTestProbe[MqttCommand]().ref))
+      val testMessage = offlineReg("myeeg", "rec")
       tenantActor ! TenantStart
-      // sent while the tenants are still loading: queued and processed after initialization
       tenantActor ! PassEdaCommand("myeeg", testMessage, edaResponse.ref)
-      edaResponse.expectMessage[SendEdaResponse](SendEdaResponse(testMessage))
-      // the test config (epmsmail.mail.test.enable) sends every mail to the test receiver
-      val msg = Mailbox.get(s"${Config.testReceiver}@email.com").get(0)
-      msg.getSubject shouldBe "[EC_REQ_OFF_02.00 MessageId=1234]"
-      msg.getContent shouldBe a[MimeMultipart]
+      edaResponse.expectMessage(3.seconds, SendEdaResponse(testMessage))
+      Mailbox.get("rec@email.com").get(0).getSubject shouldBe "[EC_REQ_OFF_02.00 MessageId=1234]"
     }
 
     "Handle Eda Message with unregistered participant" in {
-      val mqttPublisherProbe = createTestProbe[MqttCommand]()
       val edaResponse = createTestProbe[EdaCommand]()
-      val tenantActor = spawn(TenantProvider(mqttPublisherProbe.ref))
-      val testMessage = EbMsMessage(messageId = Some("1234"), conversationId = "con",
-        sender = "sender",
-        receiver = "rec",
-        messageCode = EbMsMessageType.OFFLINE_REG_INIT,
-        messageCodeVersion = Some("02.00"),
-        requestId = Some("567890"))
+      val tenantActor = spawn(TenantProvider(createTestProbe[MqttCommand]().ref))
       tenantActor ! TenantStart
+      tenantActor ! PassEdaCommand("sender", offlineReg("sender", "rec"), edaResponse.ref)
+      edaResponse.expectMessage(3.seconds, SendResponseError("sender", "rec", "Tenant not registered"))
+    }
 
-      tenantActor ! PassEdaCommand("sender", testMessage, edaResponse.ref)
-      val errorResponse = edaResponse.expectMessage[SendResponseError](SendResponseError("sender", "rec", "Tenant not registered"))
-      println(errorResponse)
+    "Handle malformed Eda Message" in {
+      val edaResponse = createTestProbe[EdaCommand]()
+      val tenantActor = spawn(TenantProvider(createTestProbe[MqttCommand]().ref))
+      tenantActor ! TenantStart
+      tenantActor ! PassEdaCommand("myeeg", offlineReg("myeeg", "netz ooe"), edaResponse.ref)
+      edaResponse.expectMessage(3.seconds,
+        SendResponseError("myeeg", "NETZ OOE", "Local address contains control or whitespace", "Send Mail"))
     }
 
     "Handle reconfigure Tenant Settings" in {
       val mqttPublisherProbe = createTestProbe[MqttCommand]()
       val configResponse = createTestProbe[EdaCommand]()
       val tenantActor = spawn(TenantProvider(mqttPublisherProbe.ref))
-      val testMessage = TenantConfig(
-        tenant = "mymaileeg", cType = "KEP", active = true, domain = None, host = None, imapPort = None, smtpHost = None, smtpPort = None, user = None, passwd = None, imapSecurity = None, smtpSecurity = None)
       tenantActor ! TenantStart
-      // TenantModified is not queued during initialization: wait until the provider answers
-      val probe = createTestProbe[EdaCommand]()
-      tenantActor ! PassEdaCommand("unknown", testEdaMessage, probe.ref)
-      probe.expectMessageType[SendResponseError]
+      awaitReady(tenantActor)
 
-      tenantActor ! TenantModified(testMessage, configResponse.ref)
-      configResponse.expectMessageType[at.energydash.actors.ResponseOk]
+      tenantActor ! TenantModified(TenantConfig(tenant = "mymaileeg", cType = "KEP", active = true, domain = None,
+        host = None, imapPort = None, smtpHost = None, smtpPort = None, user = None, passwd = None,
+        imapSecurity = None, smtpSecurity = None), configResponse.ref)
+      configResponse.expectMessageType[ResponseOk]
+      val online = mqttPublisherProbe.expectMessageType[MqttPublishCommand]
+      online.command.tenant shouldBe "mymaileeg"
+      online.command.command shouldBe "pontonOnlineState"
     }
 
     "Process messages queued during initialization in arrival order" in {
-      val mqttPublisherProbe = createTestProbe[MqttCommand]()
       val edaResponse = createTestProbe[EdaCommand]()
-      val tenantActor = spawn(TenantProvider(mqttPublisherProbe.ref))
+      val tenantActor = spawn(TenantProvider(createTestProbe[MqttCommand]().ref))
       tenantActor ! TenantStart
 
-      tenantActor ! PassEdaCommand("first", testEdaMessage, edaResponse.ref)
-      tenantActor ! PassEdaCommand("second", testEdaMessage, edaResponse.ref)
-      tenantActor ! PassEdaCommand("third", testEdaMessage, edaResponse.ref)
+      tenantActor ! PassEdaCommand("first", offlineReg("first", "rec"), edaResponse.ref)
+      tenantActor ! PassEdaCommand("second", offlineReg("second", "rec"), edaResponse.ref)
+      tenantActor ! PassEdaCommand("third", offlineReg("third", "rec"), edaResponse.ref)
 
-      edaResponse.expectMessage(SendResponseError("first", "rec", "Tenant not registered"))
-      edaResponse.expectMessage(SendResponseError("second", "rec", "Tenant not registered"))
-      edaResponse.expectMessage(SendResponseError("third", "rec", "Tenant not registered"))
+      edaResponse.expectMessage(3.seconds, SendResponseError("first", "rec", "Tenant not registered"))
+      edaResponse.expectMessage(3.seconds, SendResponseError("second", "rec", "Tenant not registered"))
+      edaResponse.expectMessage(3.seconds, SendResponseError("third", "rec", "Tenant not registered"))
     }
   }
 }
