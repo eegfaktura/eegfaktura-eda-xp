@@ -42,8 +42,11 @@ class AdminServer(tenantProvider: ActorRef[EdaCommand], system: ActorSystem[_]) 
     val grpcPort = AdminServer.grpcSrvConfig.getInt("port")
     val grpcHost = AdminServer.grpcSrvConfig.getString("host")
 
+    // Only this binding gets the larger limit (mails with images/PDF); other routes keep the default.
+    val grpcMaxContentLength = system.settings.config.getBytes("app.grpc-max-content-length").longValue
     val bound: Future[Http.ServerBinding] = Http(system)
       .newServerAt(interface = grpcHost, port = grpcPort)
+      .adaptSettings(s => s.withParserSettings(s.parserSettings.withMaxContentLength(grpcMaxContentLength)))
       .bind(services)
       .map(_.addToCoordinatedShutdown(hardTerminationDeadline = 20.seconds))
 
