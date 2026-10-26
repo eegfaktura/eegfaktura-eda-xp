@@ -8,6 +8,8 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.2.0] – 2026-10-26
+
 ### Changed
 - **gRPC port: request size limit 16 MB** (`app.grpc-max-content-length`, env `GRPC_MAX_CONTENT_LENGTH`). The gRPC
   `SendMail` call from the backend will carry inline images and a PDF of mails that communities can edit themselves
