@@ -14,6 +14,13 @@ this changelog highlights the changes relevant for overview and operations.
   issues go to Code Scanning), an authentication or tool error fails it. The Snyk CLI is pinned to 1.1308.1
   instead of the latest version.
 
+### Security
+- **CI: the release workflow pins its actions by commit SHA** (eegfaktura-dev tracking W-261028-mm6). `rolling-release.yml`
+  builds and pushes the shipped image, but used floating tags (`@v4`, `@v3`, …) and an unpinned Java 17; a moved tag ran in the job that holds
+  the push credentials. Now every action is pinned to a commit, the same SHAs `pr-checks.yml` and `security-scan.yml` already
+  use where the action is the same, otherwise the commit the floating tag pointed to on 2026-10-28. Java is fixed to
+  `17.0.19+10` and `setup-java` moves from v4 to v6.0.1, both as in `pr-checks.yml`.
+
 ## [1.2.0] – 2026-10-26
 
 ### Changed
