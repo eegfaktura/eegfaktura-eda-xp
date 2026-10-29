@@ -14,8 +14,9 @@ this changelog highlights the changes relevant for overview and operations.
   under the name of the old one before it had stopped; the provider failed, ran without supervision and stayed
   dead, so every outbound EDA request timed out after 30 s until the pod was restarted. Mail workers now get a
   unique name (`worker-<tenant>-<n>`); a reload of the tenants stops the running mail workers first, so a mailbox
-  is never polled by two workers; a tenant whose worker cannot be started is logged and left out instead of failing
-  the provider. The provider is restarted with backoff (1 s up to 30 s) after a failure and then loads its tenants
+  is never polled by two workers; a tenant whose worker cannot be started is logged and left out of the load, and an
+  update for it is answered with an error (before, the update was confirmed and the provider failed afterwards). The
+  provider is restarted with backoff (1 s up to 30 s) after a failure and then loads its tenants
   again; it starts that load itself when it is created instead of on the supervisor's `Start`. Requests that arrive
   while it restarts or loads are queued and answered after the load; a queued request older than 25 s (the request
   stream waits 30 s for the answer) is answered with an error and not sent, so a request its caller has given up on

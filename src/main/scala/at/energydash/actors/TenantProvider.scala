@@ -272,32 +272,43 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand], queuedRequestLimit: F
 
         case TenantModified(tenantConfig, replyTo) =>
           logger.info(s"Tenant modified: ${tenantConfig.tenant}")
-          replyTo ! ResponseOk()
 
-          // Publish tenant state with error handling
-          parse(s"""{"online": true}""") match {
-            case Right(json) =>
-              mqttPublisher ! MqttPublishCommand(
-                CommandMessage(tenantConfig.tenant, "pontonOnlineState", json)
-              )
-            case Left(e) =>
-              logger.error(
-                s"Failed to parse MQTT message for tenant ${tenantConfig.tenant}: ${e.message}"
-              )
-          }
-
-          // Gracefully shutdown old actor reference
-          tenantActors.get(tenantConfig.tenant.toUpperCase()).foreach(shutdownWorker)
-
-          // Recreate tenant with updated configuration
-          val updatedActor = tenantConfig.cType.toUpperCase match {
+          // Recreate tenant with updated configuration first: a worker that cannot be spawned (e.g. a character
+          // not allowed in an actor name) is answered with an error instead of failing the provider after the
+          // caller was told it worked (261005-ca3)
+          val updated: Try[ActorRef[EdaCommand]] = tenantConfig.cType.toUpperCase match {
             case "KEP" =>
-              pontonMessager
+              Success(pontonMessager)
             case _ =>
-              spawnMailWorker(tenantConfig)
+              Try(spawnMailWorker(tenantConfig))
           }
 
-          provide(tenantActors + (tenantConfig.tenant.toUpperCase() -> updatedActor))
+          updated match {
+            case Failure(e) =>
+              logger.error(s"Tenant ${tenantConfig.tenant}: worker not started: ${e.getMessage}", e)
+              replyTo ! ResponseError(s"Tenant worker not started: ${e.getMessage}")
+              Behaviors.same
+
+            case Success(updatedActor) =>
+              replyTo ! ResponseOk()
+
+              // Publish tenant state with error handling
+              parse(s"""{"online": true}""") match {
+                case Right(json) =>
+                  mqttPublisher ! MqttPublishCommand(
+                    CommandMessage(tenantConfig.tenant, "pontonOnlineState", json)
+                  )
+                case Left(e) =>
+                  logger.error(
+                    s"Failed to parse MQTT message for tenant ${tenantConfig.tenant}: ${e.message}"
+                  )
+              }
+
+              // Gracefully shutdown old actor reference
+              tenantActors.get(tenantConfig.tenant.toUpperCase()).foreach(shutdownWorker)
+
+              provide(tenantActors + (tenantConfig.tenant.toUpperCase() -> updatedActor))
+          }
 
         case TenantStart =>
           // Reinitialize if needed; the reload spawns new mail workers, so the current ones stop
@@ -355,10 +366,11 @@ object TenantProvider {
     new TenantProvider(mqttPublisher, queuedRequestLimit).start
 
   /** The provider as the service runs it (261005-ca3): restarted with backoff when it fails, and it starts its
-   *  own initialisation, so a restart loads the tenants again. */
-  def supervised(mqttPublisher: ActorRef[MqttCommand]): Behavior[EdaCommand] =
+   *  own initialisation, so a restart loads the tenants again. `provider` is replaceable for tests. */
+  def supervised(mqttPublisher: ActorRef[MqttCommand],
+                 provider: ActorRef[MqttCommand] => Behavior[EdaCommand] = p => apply(p)): Behavior[EdaCommand] =
     Behaviors.supervise(Behaviors.setup[EdaCommand] { context =>
       context.self ! TenantStart
-      apply(mqttPublisher)
+      provider(mqttPublisher)
     }).onFailure[Exception](SupervisorStrategy.restartWithBackoff(1.second, 30.seconds, 0.2))
 }

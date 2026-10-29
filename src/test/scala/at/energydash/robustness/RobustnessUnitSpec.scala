@@ -16,6 +16,9 @@ import at.energydash.testsupport.KnownError.knownError
 import at.energydash.testsupport.{FakePonton, TestBroker, TestDb, Tenants}
 import io.circe.parser.parse
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, BehaviorInterceptor, TypedActorContext}
 import org.apache.pekko.stream.connectors.mqtt.scaladsl.MqttSource
 import org.apache.pekko.stream.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
 import org.apache.pekko.stream.KillSwitches
@@ -89,16 +92,19 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
     }
   }
 
-  "R12: a request while the supervisor restarts the provider" should {
+  "R14: a request while the supervisor restarts the provider" should {
     "be answered after the reload [261005-ca3]" taggedAs Slow in {
-      val provider = spawn(TenantProvider.supervised(createTestProbe[MqttCommand]().ref)) // starts itself
+      // the provider fails on Fail (no message of the service fails it any more)
+      case object Fail extends EdaCommand
+      def failing(p: ActorRef[MqttCommand]): Behavior[EdaCommand] =
+        Behaviors.intercept(() => new BehaviorInterceptor[EdaCommand, EdaCommand] {
+          override def aroundReceive(ctx: TypedActorContext[EdaCommand], msg: EdaCommand,
+                                     target: BehaviorInterceptor.ReceiveTarget[EdaCommand]): Behavior[EdaCommand] =
+            if (msg == Fail) throw new IllegalStateException("test failure") else target(ctx, msg)
+        })(TenantProvider(p))
+      val provider = spawn(TenantProvider.supervised(createTestProbe[MqttCommand]().ref, failing)) // starts itself
       Tenants.awaitReady(provider, testKit)
-      // a tenant name that is not a valid actor name: spawning its worker on the update fails the provider
-      val bad = TenantConfig("RC/BAD", "MAIL", Some("email.com"), Some("email.com"), Some(143), Some("email.com"), Some(25),
-        Some("u"), Some("p"), Some("STARTTLS"), Some("STARTTLS"), active = true)
-      val added = createTestProbe[EdaCommand]()
-      provider ! AddTenant(bad, added.ref)
-      added.expectMessageType[ResponseOk](3.seconds)
+      provider ! Fail
       val reply = createTestProbe[EdaCommand]()
       provider ! PassEdaCommand("not-a-tenant", ecp.copy(sender = "not-a-tenant"), reply.ref)
       reply.expectMessageType[SendResponseError](10.seconds) // restart backoff 1 s, then the reload
@@ -118,6 +124,23 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       stale.expectMessageType[SendResponseError](3.seconds)
       fresh.expectMessage(3.seconds, SendEdaResponse(ecp2))
       ponton.requests should have size 1
+    }
+  }
+
+  "R16: an update whose mail worker cannot be started" should {
+    "be answered with an error and keep the provider alive [261005-ca3]" taggedAs Slow in {
+      val provider = spawn(TenantProvider(createTestProbe[MqttCommand]().ref))
+      provider ! TenantStart
+      Tenants.awaitReady(provider, testKit)
+      // a tenant name that is not a valid actor name
+      val bad = TenantConfig("RC/BAD", "MAIL", Some("email.com"), Some("email.com"), Some(143), Some("email.com"), Some(25),
+        Some("u"), Some("p"), Some("STARTTLS"), Some("STARTTLS"), active = true)
+      val added = createTestProbe[EdaCommand]()
+      provider ! AddTenant(bad, added.ref)
+      added.expectMessageType[ResponseError](3.seconds)
+      Tenants.awaitReady(provider, testKit)
+      provider ! TenantStart // the reload leaves the tenant out instead of failing
+      Tenants.awaitReady(provider, testKit)
     }
   }
 
