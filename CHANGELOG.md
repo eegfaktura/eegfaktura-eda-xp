@@ -12,10 +12,13 @@ this changelog highlights the changes relevant for overview and operations.
 - **The tenant provider survives a second update of a mail tenant and is supervised** (eegfaktura-dev tracking
   261005-ca3). A second register/update of a tenant with type MAIL (or an empty type) spawned the new mail worker
   under the name of the old one before it had stopped; the provider failed, ran without supervision and stayed
-  dead, so every outbound EDA request timed out after 30 s until the pod was restarted. Workers spawned on an
-  update now get a unique name (`worker-<tenant>-<n>`), and the provider is restarted with backoff (1 s up to
-  30 s) after a failure and then loads its tenants again; it starts that load itself when it is created instead
-  of on the supervisor's `Start`. What is sent to Ponton or by mail is unchanged.
+  dead, so every outbound EDA request timed out after 30 s until the pod was restarted. Mail workers now get a
+  unique name (`worker-<tenant>-<n>`); a reload of the tenants stops the running mail workers first, so a mailbox
+  is never polled by two workers; a tenant whose worker cannot be started is logged and left out instead of failing
+  the provider. The provider is restarted with backoff (1 s up to 30 s) after a failure and then loads its tenants
+  again; it starts that load itself when it is created instead of on the supervisor's `Start`. Requests that arrive
+  while it restarts or loads are queued and answered after the load; the 5 s retry after a failed load no longer
+  outlives a restart. What is sent to Ponton or by mail is unchanged.
 - **The outbound request listener restarts after a failure** (eegfaktura-dev tracking 261005-ca2). When the MQTT
   broker was unreachable at start or the connection failed for good, the `eda/request` listener stopped and no
   outbound EDA request was processed again until the pod was restarted, while the pod stayed healthy. The MQTT

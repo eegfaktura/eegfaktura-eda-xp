@@ -19,7 +19,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
   import TenantProvider._
   var logger: Logger = LoggerFactory.getLogger(classOf[TenantProvider])
 
-  def start: Behavior[EdaCommand] = Behaviors.withStash[EdaCommand](StashCapacity) { buffer => Behaviors.setup[EdaCommand] { context => {
+  def start: Behavior[EdaCommand] = Behaviors.withStash[EdaCommand](StashCapacity) { buffer => Behaviors.withTimers[EdaCommand] { timers => Behaviors.setup[EdaCommand] { context => {
 
     import context.executionContext
 
@@ -34,9 +34,30 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
       name = "worker-ponton-messenager"
     )
 
-    // suffix of the workers spawned on a tenant update (261005-ca3): the replaced worker stops asynchronously
-    // after GracefulShutdown, so its name may still be taken when the new one is spawned
+    // suffix of the mail worker names (261005-ca3): a replaced worker stops asynchronously after
+    // GracefulShutdown, so its name may still be taken when the new one is spawned
     var workerSeq = 0
+
+    def spawnMailWorker(t: TenantConfig): ActorRef[EdaCommand] = {
+      workerSeq += 1
+      context.spawn(
+        Behaviors.supervise(
+          FetchMailTenantWorker(t, mqttPublisher, mailRepo)
+        ).onFailure[Exception](SupervisorStrategy.restart),
+        s"worker-${t.tenant}-$workerSeq"
+      )
+    }
+
+    // a replaced or reloaded mail worker must stop, or two workers poll the same mailbox (261005-ca3)
+    def shutdownWorker(a: ActorRef[EdaCommand]): Unit =
+      if (a.compareTo(pontonMessager) != 0) {
+        try {
+          a ! GracefulShutdown
+        } catch {
+          case e: Exception =>
+            logger.warn(s"Error sending shutdown to tenant actor: ${e.getMessage}")
+        }
+      }
 
     // Async initialization: Load tenants without blocking
 //    def initializeTenants(): Future[Try[Map[String, ActorRef[EdaCommand]]]] = {
@@ -92,6 +113,11 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
           // Return waiting behavior that queues incoming messages
           waitingForInitialization()
 
+        // after a supervisor restart requests arrive before the TenantStart the provider sends itself (261005-ca3)
+        case msg @ (_: PassEdaCommand | _: AddTenant | _: UpdateTenant) =>
+          logger.debug(s"Queuing ${msg.getClass.getSimpleName} (initialization not started yet)")
+          queue(msg)
+
         case other =>
           logger.warn(s"Received message ${other.getClass.getSimpleName} before initialization started")
           Behaviors.same
@@ -119,13 +145,14 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
                 Some(t.tenant.toUpperCase -> pontonMessager)
 
               case "MAIL" =>
-                val mailWorker = context.spawn(
-                  Behaviors.supervise(
-                    FetchMailTenantWorker(t, mqttPublisher, mailRepo)
-                  ).onFailure[Exception](SupervisorStrategy.restart),
-                  s"worker-${t.tenant}"
-                )
-                Some(t.tenant.toUpperCase -> mailWorker)
+                // a tenant whose worker cannot be spawned (e.g. a character not allowed in an actor name) is
+                // left out instead of failing the provider and losing the queued messages (261005-ca3)
+                Try(spawnMailWorker(t)) match {
+                  case Success(mailWorker) => Some(t.tenant.toUpperCase -> mailWorker)
+                  case Failure(e) =>
+                    logger.error(s"Tenant ${t.tenant}: mail worker not started: ${e.getMessage}", e)
+                    None
+                }
 
               case _ =>
                 logger.warn(s"Tenant ${t.tenant} has no type definition.")
@@ -143,7 +170,8 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
             s"Initialization failed: ${exception.getMessage}. Retrying in 5 seconds...",
             exception
           )
-          context.scheduleOnce(5.seconds, context.self, TenantStart)
+          // a timer, not scheduleOnce: a restart cancels it, so no stale TenantStart reaches the next incarnation
+          timers.startSingleTimer(TenantStart, 5.seconds)
           // Keep queuing messages
           Behaviors.same
 
@@ -237,36 +265,22 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
           }
 
           // Gracefully shutdown old actor reference
-          tenantActors.get(tenantConfig.tenant.toUpperCase()).foreach(a => {
-            if (a.compareTo(pontonMessager) != 0) {
-              try {
-                a ! GracefulShutdown
-              } catch {
-                case e: Exception =>
-                  logger.warn(s"Error sending shutdown to tenant actor: ${e.getMessage}")
-              }
-            }
-          })
+          tenantActors.get(tenantConfig.tenant.toUpperCase()).foreach(shutdownWorker)
 
           // Recreate tenant with updated configuration
           val updatedActor = tenantConfig.cType.toUpperCase match {
             case "KEP" =>
               pontonMessager
             case _ =>
-              workerSeq += 1
-              context.spawn(
-                Behaviors.supervise(
-                  FetchMailTenantWorker(tenantConfig, mqttPublisher, mailRepo)
-                ).onFailure[Exception](SupervisorStrategy.restart),
-                s"worker-${tenantConfig.tenant}-$workerSeq"
-              )
+              spawnMailWorker(tenantConfig)
           }
 
           provide(tenantActors + (tenantConfig.tenant.toUpperCase() -> updatedActor))
 
         case TenantStart =>
-          // Reinitialize if needed
+          // Reinitialize if needed; the reload spawns new mail workers, so the current ones stop
           logger.warn("Restarting tenant initialization")
+          tenantActors.values.foreach(shutdownWorker)
           context.pipeToSelf(initializeTenants()) {
             case Success(Success(updatedTenants)) =>
               InitializationSuccess(updatedTenants)
@@ -288,7 +302,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
     }
 
     initializing()
-  }}}
+  }}}}
 }
 
 object TenantProvider {

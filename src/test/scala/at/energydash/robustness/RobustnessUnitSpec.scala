@@ -77,13 +77,30 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
     }
   }
 
-  "R10: a re-initialisation with a MAIL tenant, provider as the service runs it" should {
-    "be restarted by its supervisor and answer again [261005-ca3]" taggedAs Slow in {
+  "R10: a re-initialisation with a MAIL tenant" should {
+    "keep the provider alive [261005-ca3]" taggedAs Slow in {
       TestDb.seedTenant("RC100409", "MAIL")
+      val provider = spawn(TenantProvider(createTestProbe[MqttCommand]().ref))
+      provider ! TenantStart
+      Tenants.awaitReady(provider, testKit)
+      provider ! TenantStart // the reload spawns a new worker for RC100409 while the first one may still run
+      Tenants.awaitReady(provider, testKit)
+    }
+  }
+
+  "R12: a request while the supervisor restarts the provider" should {
+    "be answered after the reload [261005-ca3]" taggedAs Slow in {
       val provider = spawn(TenantProvider.supervised(createTestProbe[MqttCommand]().ref)) // starts itself
       Tenants.awaitReady(provider, testKit)
-      provider ! TenantStart // re-spawns worker-RC100409 while the first one runs: the provider fails
-      Tenants.awaitReady(provider, testKit)
+      // a tenant name that is not a valid actor name: spawning its worker on the update fails the provider
+      val bad = TenantConfig("RC/BAD", "MAIL", Some("email.com"), Some("email.com"), Some(143), Some("email.com"), Some(25),
+        Some("u"), Some("p"), Some("STARTTLS"), Some("STARTTLS"), active = true)
+      val added = createTestProbe[EdaCommand]()
+      provider ! AddTenant(bad, added.ref)
+      added.expectMessageType[ResponseOk](3.seconds)
+      val reply = createTestProbe[EdaCommand]()
+      provider ! PassEdaCommand("not-a-tenant", ecp.copy(sender = "not-a-tenant"), reply.ref)
+      reply.expectMessageType[SendResponseError](10.seconds) // restart backoff 1 s, then the reload
     }
   }
 
