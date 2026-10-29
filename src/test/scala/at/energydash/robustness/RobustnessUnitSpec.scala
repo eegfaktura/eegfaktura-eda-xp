@@ -81,13 +81,17 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
     }
   }
 
-  "R10: a re-initialisation with a MAIL tenant" should {
-    "keep the provider alive [261005-ca3]" taggedAs Slow in {
+  "R13: a re-initialisation with a MAIL tenant" should {
+    "stop the old worker and keep the provider alive [261005-ca3]" taggedAs Slow in {
       TestDb.seedTenant("RC100409", "MAIL")
       val provider = spawn(TenantProvider(createTestProbe[MqttCommand]().ref))
       provider ! TenantStart
       Tenants.awaitReady(provider, testKit)
+      val oldWorker = Await.result(system.classicSystem.actorSelection(provider.path / "worker-RC100409-1")
+        .resolveOne(3.seconds), 5.seconds).toTyped[EdaCommand]
+      val watcher = createTestProbe[EdaCommand]()
       provider ! TenantStart // the reload spawns a new worker for RC100409 while the first one may still run
+      watcher.expectTerminated(oldWorker, 5.seconds) // a mailbox is never polled by two workers
       Tenants.awaitReady(provider, testKit)
     }
   }
