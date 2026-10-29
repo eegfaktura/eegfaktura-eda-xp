@@ -113,8 +113,10 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
     }
 
     logger.info("Start EDA command listener")
-    // 261005-ca2: a failed source or response sink (broker unreachable at start, connection lost for good)
-    // is started again with backoff instead of ending the listener. The returned Future is the first subscription.
+    // 261005-ca2: a failed source or response sink (broker unreachable at the first connect, subscribe or
+    // publish failure) is started again with backoff instead of ending the listener. A lost connection does not
+    // fail the stage (automatic reconnect), so a reconnect without re-subscribe is not covered (platform#171).
+    // The returned Future is the first subscription.
     val restartSettings = RestartSettings(1.second, 30.seconds, 0.2)
     val firstSubscription = Promise[Done]()
     RestartSource.onFailuresWithBackoff(restartSettings) { () =>
