@@ -18,6 +18,7 @@ import io.circe.parser.parse
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.stream.connectors.mqtt.scaladsl.MqttSource
 import org.apache.pekko.stream.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
+import org.apache.pekko.stream.KillSwitches
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.stream.testkit.scaladsl.TestSink
 import org.apache.pekko.util.ByteString
@@ -163,15 +164,20 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       TestBroker.withBroker { _ =>
         val prepare = createTestProbe[PrepareMessageActor.Command[PrepareMessageActor.PrepareMessageResult]]()
         val settings = MqttConnectionSettings(TestBroker.Url, s"r2c-${System.nanoTime()}", new MemoryPersistence)
+        // the stream restarts its source: without the switch it would subscribe again on every later test broker
+        val stop = KillSwitches.shared("r2c")
         val subscribed = new MqttRequestStream(createTestProbe[EdaCommand]().ref, prepare.ref, createTestProbe[EdaCommand]().ref)(system)
-          .runCommand(MqttSource.atMostOnce(settings, MqttSubscriptions("eda/request", MqttQoS.AtLeastOnce), 10),
+          .runCommand(MqttSource.atMostOnce(settings, MqttSubscriptions("eda/request", MqttQoS.AtLeastOnce), 10).via(stop.flow),
             org.apache.pekko.stream.scaladsl.Sink.ignore)
-        Await.result(subscribed, 10.seconds)
         val client = new at.energydash.testsupport.MqttRecorder("none")
         try {
+          Await.result(subscribed, 10.seconds)
           client.publish("eda/request", """{"conversationId":"C","sender":"RC100401","receiver":"AT003000","messageCode":"ANFORDERUNG_ECP"}""")
           prepare.expectMessageType[PrepareMessage](3.seconds)
-        } finally client.close()
+          stop.shutdown() // the stream ends and is not restarted: nothing is taken any more
+          client.publish("eda/request", """{"conversationId":"C","sender":"RC100401","receiver":"AT003000","messageCode":"ANFORDERUNG_ECP"}""")
+          prepare.expectNoMessage(1.second)
+        } finally { stop.shutdown(); client.close() }
       }
     }
   }
@@ -182,20 +188,23 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       val settings = MqttConnectionSettings(TestBroker.Url, s"r2-${System.nanoTime()}", new MemoryPersistence)
         .withAutomaticReconnect(true).withCleanSession(false)
       val sink = org.apache.pekko.stream.scaladsl.Sink.ignore // unlimited demand
-      val subscribed = new MqttRequestStream(createTestProbe[EdaCommand]().ref, prepare.ref, createTestProbe[EdaCommand]().ref)(system)
-        .runCommand(MqttSource.atMostOnce(settings, MqttSubscriptions("eda/request", MqttQoS.AtLeastOnce), 10), sink)
-      Await.ready(subscribed, 10.seconds) // no broker: the subscription fails
-      TestBroker.withBroker { _ =>
-        val client = new at.energydash.testsupport.MqttRecorder("none")
-        try {
-          // the stream subscribes on its next restart (backoff): a request published before that is not
-          // delivered (no session on the new broker), so publish until one is processed
-          eventually(timeout(10.seconds), interval(100.millis)) {
-            client.publish("eda/request", """{"conversationId":"C","sender":"RC100401","receiver":"AT003000","messageCode":"ANFORDERUNG_ECP"}""")
-            prepare.expectMessageType[PrepareMessage](500.millis)
-          }
-        } finally client.close()
-      }
+      val stop = KillSwitches.shared("r2") // ends the restarting stream with the case
+      try {
+        val subscribed = new MqttRequestStream(createTestProbe[EdaCommand]().ref, prepare.ref, createTestProbe[EdaCommand]().ref)(system)
+          .runCommand(MqttSource.atMostOnce(settings, MqttSubscriptions("eda/request", MqttQoS.AtLeastOnce), 10).via(stop.flow), sink)
+        Await.ready(subscribed, 10.seconds) // no broker: the subscription fails
+        TestBroker.withBroker { _ =>
+          val client = new at.energydash.testsupport.MqttRecorder("none")
+          try {
+            // the stream subscribes on its next restart (backoff): a request published before that is not
+            // delivered (no session on the new broker), so publish until one is processed
+            eventually(timeout(10.seconds), interval(100.millis)) {
+              client.publish("eda/request", """{"conversationId":"C","sender":"RC100401","receiver":"AT003000","messageCode":"ANFORDERUNG_ECP"}""")
+              prepare.expectMessageType[PrepareMessage](500.millis)
+            }
+          } finally client.close()
+        }
+      } finally stop.shutdown()
     }
 
     "publish answers once the broker is up, through an MQTT response sink [261005-ca2]" taggedAs Slow in {
@@ -203,19 +212,22 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       val settings = MqttConnectionSettings(TestBroker.Url, s"r2s-${System.nanoTime()}", new MemoryPersistence)
         .withAutomaticReconnect(true).withCleanSession(false)
       val sink = org.apache.pekko.stream.connectors.mqtt.scaladsl.MqttSink(settings.withClientId(s"${settings.clientId}/pong"), MqttQoS.AtLeastOnce)
-      val subscribed = new MqttRequestStream(createTestProbe[EdaCommand]().ref, prepare.ref, createTestProbe[EdaCommand]().ref)(system)
-        .runCommand(MqttSource.atMostOnce(settings, MqttSubscriptions("eda/request", MqttQoS.AtLeastOnce), 10), sink)
-      Await.ready(subscribed, 10.seconds) // no broker: source and sink fail
-      TestBroker.withBroker { _ =>
-        val client = new at.energydash.testsupport.MqttRecorder("eda/response/#")
-        try {
-          // malformed JSON is answered with an error JSON on eda/response/error, through the sink
-          eventually(timeout(10.seconds), interval(100.millis)) {
-            client.publish("eda/request", "{not json")
-            client.next(500.millis).map(_.topic) shouldBe Some("eda/response/error")
-          }
-        } finally client.close()
-      }
+      val stop = KillSwitches.shared("r2s") // ends the restarting stream (and with it the sink) with the case
+      try {
+        val subscribed = new MqttRequestStream(createTestProbe[EdaCommand]().ref, prepare.ref, createTestProbe[EdaCommand]().ref)(system)
+          .runCommand(MqttSource.atMostOnce(settings, MqttSubscriptions("eda/request", MqttQoS.AtLeastOnce), 10).via(stop.flow), sink)
+        Await.ready(subscribed, 10.seconds) // no broker: source and sink fail
+        TestBroker.withBroker { _ =>
+          val client = new at.energydash.testsupport.MqttRecorder("eda/response/#")
+          try {
+            // malformed JSON is answered with an error JSON on eda/response/error, through the sink
+            eventually(timeout(10.seconds), interval(100.millis)) {
+              client.publish("eda/request", "{not json")
+              client.next(500.millis).map(_.topic) shouldBe Some("eda/response/error")
+            }
+          } finally client.close()
+        }
+      } finally stop.shutdown()
     }
   }
 }
