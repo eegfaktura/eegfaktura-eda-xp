@@ -16,7 +16,10 @@ case class SendResponseError(tenant: String, receiver: String, message: String, 
 
 case class ResponseOk() extends EdaCommand
 
-case class PassEdaCommand(tenant: String, message: EbMsMessage, replyTo: ActorRef[EdaCommand]) extends EdaCommand
+// createdAt (System.nanoTime) is set when the request is created (the ask in MqttRequestStream); the tenant
+// provider does not send a request older than TenantProvider.QueuedRequestLimit (261005-ca3). Local only.
+case class PassEdaCommand(tenant: String, message: EbMsMessage, replyTo: ActorRef[EdaCommand],
+                          createdAt: Long = System.nanoTime()) extends EdaCommand
 
 case class SendEdaCommand(message: EbMsMessage, replyTo: ActorRef[EdaCommand]) extends EdaCommand
 //case class TestSendEdaCommand(message: EbMsMessage) extends EdaCommand

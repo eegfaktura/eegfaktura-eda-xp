@@ -96,16 +96,17 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
     }
   }
 
+  // the provider as the service runs it fails on Fail (no message of the service fails it any more)
+  private case object Fail extends EdaCommand
+  private def failing(p: ActorRef[MqttCommand]): Behavior[EdaCommand] =
+    Behaviors.intercept(() => new BehaviorInterceptor[EdaCommand, EdaCommand] {
+      override def aroundReceive(ctx: TypedActorContext[EdaCommand], msg: EdaCommand,
+                                 target: BehaviorInterceptor.ReceiveTarget[EdaCommand]): Behavior[EdaCommand] =
+        if (msg == Fail) throw new IllegalStateException("test failure") else target(ctx, msg)
+    })(TenantProvider(p))
+
   "R14: a request while the supervisor restarts the provider" should {
     "be answered after the reload [261005-ca3]" taggedAs Slow in {
-      // the provider fails on Fail (no message of the service fails it any more)
-      case object Fail extends EdaCommand
-      def failing(p: ActorRef[MqttCommand]): Behavior[EdaCommand] =
-        Behaviors.intercept(() => new BehaviorInterceptor[EdaCommand, EdaCommand] {
-          override def aroundReceive(ctx: TypedActorContext[EdaCommand], msg: EdaCommand,
-                                     target: BehaviorInterceptor.ReceiveTarget[EdaCommand]): Behavior[EdaCommand] =
-            if (msg == Fail) throw new IllegalStateException("test failure") else target(ctx, msg)
-        })(TenantProvider(p))
       val provider = spawn(TenantProvider.supervised(createTestProbe[MqttCommand]().ref, failing)) // starts itself
       Tenants.awaitReady(provider, testKit)
       provider ! Fail
@@ -115,17 +116,19 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
     }
   }
 
-  "R15: requests queued during the initialization" should {
+  "R15: requests that reach the provider during a supervisor restart" should {
     "not send one whose caller has given up, but send a fresh one [261005-ca3]" taggedAs Slow in {
-      val provider = spawn(TenantProvider(createTestProbe[MqttCommand]().ref, queuedRequestLimit = 1.second))
+      val provider = spawn(TenantProvider.supervised(createTestProbe[MqttCommand]().ref, failing)) // starts itself
+      Tenants.awaitReady(provider, testKit)
+      provider ! Fail
+      // created longer ago than the limit (its caller's ask has timed out), it waits through the restart
       val stale = createTestProbe[EdaCommand]()
-      provider ! PassEdaCommand("RC100401", ecp, stale.ref) // queued: the initialization has not started
-      stale.expectNoMessage(1500.millis) // older than the limit now
+      provider ! PassEdaCommand("RC100401", ecp, stale.ref,
+        createdAt = System.nanoTime() - (TenantProvider.QueuedRequestLimit + 1.second).toNanos)
       val fresh = createTestProbe[EdaCommand]()
       val ecp2 = ecp.copy(messageId = Some("RC100401209901010000000000000002"))
       provider ! PassEdaCommand("RC100401", ecp2, fresh.ref)
-      provider ! TenantStart
-      stale.expectMessageType[SendResponseError](3.seconds)
+      stale.expectMessageType[SendResponseError](10.seconds) // restart backoff 1 s, then the reload
       fresh.expectMessage(3.seconds, SendEdaResponse(ecp2))
       ponton.requests should have size 1
     }

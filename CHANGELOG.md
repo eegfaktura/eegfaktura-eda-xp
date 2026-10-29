@@ -18,9 +18,9 @@ this changelog highlights the changes relevant for overview and operations.
   update for it is answered with an error (before, the update was confirmed and the provider failed afterwards). The
   provider is restarted with backoff (1 s up to 30 s) after a failure and then loads its tenants
   again; it starts that load itself when it is created instead of on the supervisor's `Start`. Requests that arrive
-  while it restarts or loads are queued and answered after the load; a queued request older than 25 s (the request
-  stream waits 30 s for the answer) is answered with an error and not sent, so a request its caller has given up on
-  never reaches Ponton or the mail server later. The 5 s retry after a failed load no longer outlives a restart.
+  while it restarts or loads are queued and answered after the load; a request older than 25 s, counted from its
+  creation in the request stream (which waits 30 s for the answer), is answered with an error and not sent, so a
+  request its caller has given up on never reaches Ponton or the mail server later. The 5 s retry after a failed load no longer outlives a restart.
   Apart from those stale requests, what is sent to Ponton or by mail is unchanged.
 - **The outbound request listener restarts after a failure** (eegfaktura-dev tracking 261005-ca2). When the MQTT
   broker was unreachable at the first connect, or a subscribe or a publish of an answer failed, the `eda/request`
