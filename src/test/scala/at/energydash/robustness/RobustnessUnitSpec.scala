@@ -23,13 +23,14 @@ import org.apache.pekko.stream.testkit.scaladsl.TestSink
 import org.apache.pekko.util.ByteString
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.Eventually
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
 /** M5: failure modes on actor and stream level (rows R1, R2, R4, R6, R7, R10, R11 of m05-robustness.md). */
-class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with EmbeddedDb with BeforeAndAfterEach {
+class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with EmbeddedDb with BeforeAndAfterEach with Eventually {
   private lazy val ponton = new FakePonton()(system)
   override def beforeEach(): Unit = { TestDb.reset(); TestDb.seedTenant("RC100401", "KEP"); ponton.reset() }
   override def afterAll(): Unit = { ponton.stop(); super.afterAll() }
@@ -149,7 +150,7 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   }
 
   "R2: the broker is absent when the request stream starts" should {
-    "process requests once the broker is up [261005-ca2]" taggedAs Slow in knownError("261005-ca2") {
+    "process requests once the broker is up [261005-ca2]" taggedAs Slow in {
       val prepare = createTestProbe[PrepareMessageActor.Command[PrepareMessageActor.PrepareMessageResult]]()
       val settings = MqttConnectionSettings(TestBroker.Url, s"r2-${System.nanoTime()}", new MemoryPersistence)
         .withAutomaticReconnect(true).withCleanSession(false)
@@ -160,8 +161,32 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       TestBroker.withBroker { _ =>
         val client = new at.energydash.testsupport.MqttRecorder("none")
         try {
-          client.publish("eda/request", """{"conversationId":"C","sender":"RC100401","receiver":"AT003000","messageCode":"ANFORDERUNG_ECP"}""")
-          prepare.expectMessageType[PrepareMessage](3.seconds)
+          // the stream subscribes on its next restart (backoff): a request published before that is not
+          // delivered (no session on the new broker), so publish until one is processed
+          eventually(timeout(10.seconds), interval(100.millis)) {
+            client.publish("eda/request", """{"conversationId":"C","sender":"RC100401","receiver":"AT003000","messageCode":"ANFORDERUNG_ECP"}""")
+            prepare.expectMessageType[PrepareMessage](500.millis)
+          }
+        } finally client.close()
+      }
+    }
+
+    "publish answers once the broker is up, through an MQTT response sink [261005-ca2]" taggedAs Slow in {
+      val prepare = createTestProbe[PrepareMessageActor.Command[PrepareMessageActor.PrepareMessageResult]]()
+      val settings = MqttConnectionSettings(TestBroker.Url, s"r2s-${System.nanoTime()}", new MemoryPersistence)
+        .withAutomaticReconnect(true).withCleanSession(false)
+      val sink = org.apache.pekko.stream.connectors.mqtt.scaladsl.MqttSink(settings.withClientId(s"${settings.clientId}/pong"), MqttQoS.AtLeastOnce)
+      val subscribed = new MqttRequestStream(createTestProbe[EdaCommand]().ref, prepare.ref, createTestProbe[EdaCommand]().ref)(system)
+        .runCommand(MqttSource.atMostOnce(settings, MqttSubscriptions("eda/request", MqttQoS.AtLeastOnce), 10), sink)
+      Await.ready(subscribed, 10.seconds) // no broker: source and sink fail
+      TestBroker.withBroker { _ =>
+        val client = new at.energydash.testsupport.MqttRecorder("eda/response/#")
+        try {
+          // malformed JSON is answered with an error JSON on eda/response/error, through the sink
+          eventually(timeout(10.seconds), interval(100.millis)) {
+            client.publish("eda/request", "{not json")
+            client.next(500.millis).map(_.topic) shouldBe Some("eda/response/error")
+          }
         } finally client.close()
       }
     }

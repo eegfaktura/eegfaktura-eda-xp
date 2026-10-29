@@ -9,6 +9,11 @@ this changelog highlights the changes relevant for overview and operations.
 ## [Unreleased]
 
 ### Fixed
+- **The outbound request listener restarts after a failure** (eegfaktura-dev tracking 261005-ca2). When the MQTT
+  broker was unreachable at start or the connection failed for good, the `eda/request` listener stopped and no
+  outbound EDA request was processed again until the pod was restarted, while the pod stayed healthy. The MQTT
+  source and the response sink now restart with backoff (1 s up to 30 s). Topics, payloads and what is sent to
+  Ponton are unchanged; the source stays at-most-once (a request in flight during a crash is still lost).
 - **CI: the Snyk Code scan fails visibly when it cannot run.** An invalid `SNYK_TOKEN` ended the weekly and
   push scan green without any result (`continue-on-error`); now only „issues found“ keeps the run green (the
   issues go to Code Scanning), an authentication or tool error fails it. The Snyk CLI is pinned to 1.1308.1
