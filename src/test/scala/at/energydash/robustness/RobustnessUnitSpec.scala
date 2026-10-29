@@ -62,7 +62,7 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   }
 
   "R4: a second update of a non-KEP tenant" should {
-    "keep the provider alive and answer ResponseOk [261005-ca3]" taggedAs Slow in knownError("261005-ca3") {
+    "keep the provider alive and answer ResponseOk [261005-ca3]" taggedAs Slow in {
       val provider = spawn(TenantProvider(createTestProbe[MqttCommand]().ref))
       provider ! TenantStart
       Tenants.awaitReady(provider, testKit)
@@ -74,6 +74,16 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       provider ! UpdateTenant(mail, reply.ref)
       reply.expectMessageType[ResponseOk](3.seconds)
       Tenants.awaitReady(provider, testKit) // still answering
+    }
+  }
+
+  "R10: a re-initialisation with a MAIL tenant, provider as the service runs it" should {
+    "be restarted by its supervisor and answer again [261005-ca3]" taggedAs Slow in {
+      TestDb.seedTenant("RC100409", "MAIL")
+      val provider = spawn(TenantProvider.supervised(createTestProbe[MqttCommand]().ref)) // starts itself
+      Tenants.awaitReady(provider, testKit)
+      provider ! TenantStart // re-spawns worker-RC100409 while the first one runs: the provider fails
+      Tenants.awaitReady(provider, testKit)
     }
   }
 

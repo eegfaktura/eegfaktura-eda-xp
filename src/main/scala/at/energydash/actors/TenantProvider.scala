@@ -34,6 +34,10 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
       name = "worker-ponton-messenager"
     )
 
+    // suffix of the workers spawned on a tenant update (261005-ca3): the replaced worker stops asynchronously
+    // after GracefulShutdown, so its name may still be taken when the new one is spawned
+    var workerSeq = 0
+
     // Async initialization: Load tenants without blocking
 //    def initializeTenants(): Future[Try[Map[String, ActorRef[EdaCommand]]]] = {
 //      tenantConfigRepository.allActivated(Config.superviseType)
@@ -249,11 +253,12 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
             case "KEP" =>
               pontonMessager
             case _ =>
+              workerSeq += 1
               context.spawn(
                 Behaviors.supervise(
                   FetchMailTenantWorker(tenantConfig, mqttPublisher, mailRepo)
                 ).onFailure[Exception](SupervisorStrategy.restart),
-                s"worker-${tenantConfig.tenant}"
+                s"worker-${tenantConfig.tenant}-$workerSeq"
               )
           }
 
@@ -303,4 +308,12 @@ object TenantProvider {
 
   def apply(mqttPublisher: ActorRef[MqttCommand]): Behavior[EdaCommand] =
     new TenantProvider(mqttPublisher).start
+
+  /** The provider as the service runs it (261005-ca3): restarted with backoff when it fails, and it starts its
+   *  own initialisation, so a restart loads the tenants again. */
+  def supervised(mqttPublisher: ActorRef[MqttCommand]): Behavior[EdaCommand] =
+    Behaviors.supervise(Behaviors.setup[EdaCommand] { context =>
+      context.self ! TenantStart
+      apply(mqttPublisher)
+    }).onFailure[Exception](SupervisorStrategy.restartWithBackoff(1.second, 30.seconds, 0.2))
 }

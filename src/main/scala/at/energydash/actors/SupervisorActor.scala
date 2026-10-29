@@ -5,7 +5,6 @@ import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior}
 import org.apache.pekko.http.scaladsl.server.Directives._
 import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.http.scaladsl.Http
-import at.energydash.actors.TenantProvider.TenantStart
 import at.energydash.actors.http.{BodySizeLimit, InboundForwarding, PontonRoute, ServiceRoute}
 import at.energydash.config.Config
 import at.energydash.mqtt.MqttSystem
@@ -60,7 +59,7 @@ object SupervisorActor {
       val mqttPublisher = ctx.spawn(MqttPublisher(mqttSystem, ebMsAggregator), name = "mqtt-publisher")
 
       val messageTransformer = ctx.spawn(PrepareMessageActor(PrepareMessageActor.seqFloor(Config.config)), "message-transformer")
-      val tenantProvider = ctx.spawn(TenantProvider(mqttPublisher), name = "tenant-provider")
+      val tenantProvider = ctx.spawn(TenantProvider.supervised(mqttPublisher), name = "tenant-provider")
 
       val mqttRequestStream = MqttRequestStream(tenantProvider, messageTransformer, conversationEntity)
 
@@ -83,7 +82,6 @@ object SupervisorActor {
 //            adapter.partnerExistenceTest()
 //            adapter.getPartnerlistTest()
 //            adapter.sendTest()
-            tenantProvider ! TenantStart
             mqttRequestStream.startCommand()
 
             startHttpServer(routes.pontonRoutes ~ adminRoutes.adminRoutes)
