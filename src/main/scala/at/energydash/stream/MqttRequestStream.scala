@@ -80,7 +80,7 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
       .via(storeMessageFlow)
       .via(
         ActorFlow.ask(parallelism = 1)(tenantService)((msg: EbMsMessage, replyTo: ActorRef[EdaCommand]) =>
-          PassEdaCommand(msg.sender, msg, replyTo))(30.seconds).collect {
+          PassEdaCommand(msg.sender, msg, replyTo))(TenantProvider.PassAskTimeout).collect {
           case SendEdaResponse(msg) => msg
           case err: SendResponseError =>
             throw MqttException(MqttMessage(

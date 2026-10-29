@@ -11,10 +11,10 @@ import io.circe.parser._
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.Future
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
 import scala.util.{Failure, Success, Try}
 
-class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
+class TenantProvider(mqttPublisher: ActorRef[MqttCommand], queuedRequestLimit: FiniteDuration) {
 
   import TenantProvider._
   var logger: Logger = LoggerFactory.getLogger(classOf[TenantProvider])
@@ -114,7 +114,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
           waitingForInitialization()
 
         // after a supervisor restart requests arrive before the TenantStart the provider sends itself (261005-ca3)
-        case msg @ (_: PassEdaCommand | _: AddTenant | _: UpdateTenant) =>
+        case msg @ (_: PassEdaCommand | _: QueuedPass | _: AddTenant | _: UpdateTenant) =>
           logger.debug(s"Queuing ${msg.getClass.getSimpleName} (initialization not started yet)")
           queue(msg)
 
@@ -129,7 +129,11 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
       if (buffer.isFull) {
         logger.warn(s"Discarding message ${msg.getClass.getSimpleName} during initialization, queue full (${buffer.capacity})")
       } else {
-        buffer.stash(msg)
+        msg match {
+          // with the time it was queued: the caller waits PassAskTimeout, after that it must not be sent
+          case p: PassEdaCommand => buffer.stash(QueuedPass(p, System.nanoTime()))
+          case other => buffer.stash(other)
+        }
       }
       Behaviors.same
     }
@@ -192,6 +196,9 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
           logger.debug(s"Queuing message for tenant ${msg.tenant} (initialization in progress)")
           queue(msg)
 
+        case msg: QueuedPass =>
+          queue(msg)
+
         case msg: AddTenant =>
           logger.debug("Queuing AddTenant message (initialization in progress)")
           queue(msg)
@@ -206,24 +213,39 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
       }
     }
 
+    // Pass a request to the tenant's worker
+    def pass(tenantActors: Map[String, ActorRef[EdaCommand]], cmd: PassEdaCommand): Unit = {
+      val PassEdaCommand(tenant, message, replyTo) = cmd
+      try {
+        tenantActors.get(tenant.toUpperCase()) match {
+          case Some(a) => a ! SendEdaCommand(message, replyTo)
+          case None =>
+            logger.warn(s"Tenant not registered: $tenant")
+            replyTo ! SendResponseError(tenant, message.receiver, "Tenant not registered")
+        }
+      } catch {
+        case e: Exception =>
+          logger.error(s"Error passing command to tenant: ${e.getMessage}", e)
+          replyTo ! SendResponseError(tenant, message.receiver, s"Internal error: ${e.getMessage}")
+      }
+    }
+
     // Provided behavior - normal operation
     def provide(tenantActors: Map[String, ActorRef[EdaCommand]]): Behavior[EdaCommand] = {
       logger.info(s"Tenant Actor ready with tenants: ${tenantActors.keys.mkString(", ")}")
 
       Behaviors.receiveMessage {
-        case PassEdaCommand(tenant, message, replyTo) =>
-          try {
-            tenantActors.get(tenant.toUpperCase()) match {
-              case Some(a) => a ! SendEdaCommand(message, replyTo)
-              case None =>
-                logger.warn(s"Tenant not registered: $tenant")
-                replyTo ! SendResponseError(tenant, message.receiver, "Tenant not registered")
-            }
-          } catch {
-            case e: Exception =>
-              logger.error(s"Error passing command to tenant: ${e.getMessage}", e)
-              replyTo ! SendResponseError(tenant, message.receiver, s"Internal error: ${e.getMessage}")
-          }
+        case cmd: PassEdaCommand =>
+          pass(tenantActors, cmd)
+          Behaviors.same
+
+        // a queued request whose caller has given up (ask timeout) is answered with an error, never sent (261005-ca3)
+        case QueuedPass(cmd, queuedAt) =>
+          val waited = (System.nanoTime() - queuedAt).nanos
+          if (waited > queuedRequestLimit) {
+            logger.warn(s"Request for tenant ${cmd.tenant} (${cmd.message.messageCode}) queued ${waited.toSeconds} s during the tenant initialization: not sent")
+            cmd.replyTo ! SendResponseError(cmd.tenant, cmd.message.receiver, "Request expired during the tenant initialization")
+          } else pass(tenantActors, cmd)
           Behaviors.same
 
         case AddTenant(tenantConfig, replyTo) =>
@@ -320,8 +342,17 @@ object TenantProvider {
   private case class InitializationFailure(exception: Throwable)
     extends EdaCommand
 
-  def apply(mqttPublisher: ActorRef[MqttCommand]): Behavior[EdaCommand] =
-    new TenantProvider(mqttPublisher).start
+  // a request queued during the initialization, with the time (System.nanoTime) it was queued
+  private case class QueuedPass(cmd: PassEdaCommand, queuedAt: Long) extends EdaCommand
+
+  /** How long the request stream waits for the answer to a PassEdaCommand. */
+  val PassAskTimeout: FiniteDuration = 30.seconds
+
+  /** A queued request older than this is not sent any more: its caller gives up after PassAskTimeout (261005-ca3). */
+  val QueuedRequestLimit: FiniteDuration = PassAskTimeout - 5.seconds
+
+  def apply(mqttPublisher: ActorRef[MqttCommand], queuedRequestLimit: FiniteDuration = QueuedRequestLimit): Behavior[EdaCommand] =
+    new TenantProvider(mqttPublisher, queuedRequestLimit).start
 
   /** The provider as the service runs it (261005-ca3): restarted with backoff when it fails, and it starts its
    *  own initialisation, so a restart loads the tenants again. */

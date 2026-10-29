@@ -30,7 +30,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-/** M5: failure modes on actor and stream level (rows R1, R2, R4, R6, R7, R10, R11 of m05-robustness.md). */
+/** M5: failure modes on actor and stream level (rows R1, R2, R4, R6, R7, R10, R11 of m05-robustness.md; R13-R16 for 261005-ca3). */
 class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with EmbeddedDb with BeforeAndAfterEach with Eventually {
   private lazy val ponton = new FakePonton()(system)
   override def beforeEach(): Unit = { TestDb.reset(); TestDb.seedTenant("RC100401", "KEP"); ponton.reset() }
@@ -102,6 +102,22 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       val reply = createTestProbe[EdaCommand]()
       provider ! PassEdaCommand("not-a-tenant", ecp.copy(sender = "not-a-tenant"), reply.ref)
       reply.expectMessageType[SendResponseError](10.seconds) // restart backoff 1 s, then the reload
+    }
+  }
+
+  "R15: requests queued during the initialization" should {
+    "not send one whose caller has given up, but send a fresh one [261005-ca3]" taggedAs Slow in {
+      val provider = spawn(TenantProvider(createTestProbe[MqttCommand]().ref, queuedRequestLimit = 1.second))
+      val stale = createTestProbe[EdaCommand]()
+      provider ! PassEdaCommand("RC100401", ecp, stale.ref) // queued: the initialization has not started
+      stale.expectNoMessage(1500.millis) // older than the limit now
+      val fresh = createTestProbe[EdaCommand]()
+      val ecp2 = ecp.copy(messageId = Some("RC100401209901010000000000000002"))
+      provider ! PassEdaCommand("RC100401", ecp2, fresh.ref)
+      provider ! TenantStart
+      stale.expectMessageType[SendResponseError](3.seconds)
+      fresh.expectMessage(3.seconds, SendEdaResponse(ecp2))
+      ponton.requests should have size 1
     }
   }
 
