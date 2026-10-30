@@ -13,7 +13,7 @@ import org.apache.pekko.util.Timeout
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish, MqttPublishError}
 import at.energydash.domain.{EbMsMessage, XmlParseHandler}
 import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
-import at.energydash.logging.LogText
+import at.energydash.logging.{LogFields, LogText}
 import org.slf4j.{Logger, LoggerFactory}
 import soapenvelope11.Envelope
 
@@ -63,7 +63,11 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
       .withConnectionSettings(ClientConnectionSettings(system).withIdleTimeout(forwardTimeout))
 
   private def forward(target: Uri, request: HttpRequest): Future[StatusCode] = {
-    val headers = request.headers.filter(_.is("soapaction")) :+ RawHeader(InboundForwarding.ForwardedHeader, "true")
+    // request id and a valid traceparent travel along, so both zones' lines of the message can be joined
+    val correlation = request.attribute(AccessLog.ContextKey).toSeq.flatMap { c =>
+      RawHeader(AccessLog.RequestIdHeader, c.requestId) +: c.traceParent.map(RawHeader("traceparent", _)).toSeq
+    }
+    val headers = request.headers.filter(_.is("soapaction")) ++ correlation :+ RawHeader(InboundForwarding.ForwardedHeader, "true")
     val sent = Http().singleRequest(HttpRequest(HttpMethods.POST, target, headers, request.entity), settings = forwardPool).map { r =>
       r.discardEntityBytes()
       r.status
@@ -78,28 +82,41 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
   private def logSize(size: Option[Long], details: => String): Unit =
     size.filter(_ > PontonRoute.LogSizeAboveBytes).foreach(b => logger.info(s"ponton-message-size: $b bytes, $details"))
 
+  /** Runs `body` with the request id, tenant and conversation the access context knows so far in the MDC. */
+  private def withContext[T](context: Option[AccessLog.Context])(body: => T): T =
+    LogFields.withMdc(
+      LogFields.RequestId -> context.map(_.requestId),
+      LogFields.TenantId -> context.flatMap(_.tenant),
+      LogFields.ConversationId -> context.flatMap(_.conversationId))(body)
+
   private def processLocally(response: NodeSeq, size: Option[Long]): Route =
-    onComplete(Future {
-      logger.debug(s"Receive message from edaAdapter. Length ${response.head.length}")
-      scalaxb.fromXML[Envelope](response.head)
-    }.flatMap(e => XmlParseHandler.reponseEbMsMessage(e))) {
-      case Success(x) =>
-        logSize(size, s"message code ${x.messageCode}, conversation ${x.conversationId}")
-        val notification = PontonRoute.notificationFor(x)
-        if (notification.protocol == PontonRoute.ErrorProtocol)
-          logger.error(s"Inbound message from edaAdapter not processed (conversation ${x.conversationId}, receiver ${x.receiver}): ${notification.message.errorMessage.getOrElse("")}")
-        mqttPublisher ! MqttPublish(notification :: Nil)
-        complete(HttpResponse(StatusCodes.NoContent))
-      case Failure(ex) =>
-        logSize(size, "not parsed")
-        // The message does not parse, or a known document cannot be mapped (e.g. a new
-        // MessageCode): keep the 500 so Ponton holds it and redelivers it after a fix
-        // (team decision, platform#111 ca11). Only unknown document types are
-        // acknowledged above, because eda-xp can never process them.
-        // no exception attached: scalaxb puts the whole document into its message (261005-ca14)
-        logger.error(s"Error while parsing message from edaAdapter: ${LogText.errorText(ex)}")
-        mqttPublisher ! MqttPublishError("NotSpecified", ex.getMessage)
-        complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
+    optionalAttribute(AccessLog.ContextKey) { context =>
+      onComplete(Future {
+        logger.debug(s"Receive message from edaAdapter. Length ${response.head.length}")
+        scalaxb.fromXML[Envelope](response.head)
+      }.flatMap(e => XmlParseHandler.reponseEbMsMessage(e))) {
+        case Success(x) =>
+          context.foreach { c => c.tenant = Some(x.receiver); c.conversationId = Some(x.conversationId) }
+          val notification = PontonRoute.notificationFor(x)
+          withContext(context) {
+            logSize(size, s"message code ${x.messageCode}, conversation ${x.conversationId}")
+            if (notification.protocol == PontonRoute.ErrorProtocol)
+              logger.error(s"Inbound message from edaAdapter not processed (conversation ${x.conversationId}, receiver ${x.receiver}): ${notification.message.errorMessage.getOrElse("")}")
+          }
+          mqttPublisher ! MqttPublish(notification :: Nil)
+          complete(HttpResponse(StatusCodes.NoContent))
+        case Failure(ex) => withContext(context) {
+          logSize(size, "not parsed")
+          // The message does not parse, or a known document cannot be mapped (e.g. a new
+          // MessageCode): keep the 500 so Ponton holds it and redelivers it after a fix
+          // (team decision, platform#111 ca11). Only unknown document types are
+          // acknowledged above, because eda-xp can never process them.
+          // no exception attached: scalaxb puts the whole document into its message (261005-ca14)
+          logger.error(s"Error while parsing message from edaAdapter: ${LogText.errorText(ex)}")
+          mqttPublisher ! MqttPublishError("NotSpecified", ex.getMessage)
+          complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
+        }
+      }
     }
 
   val pontonRoutes: Route = pathPrefix("pontonxp") {
@@ -161,19 +178,22 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                     val size = request.entity.contentLengthOption
                     val receiver = InboundForwarding.receiverOf(response)
                     val alreadyForwarded = request.headers.exists(_.is(InboundForwarding.ForwardedHeader.toLowerCase))
+                    val context = request.attribute(AccessLog.ContextKey)
                     InboundForwarding.decide(forwardTargets, receiver, alreadyForwarded) match {
                       case InboundForwarding.Local => processLocally(response, size)
                       case InboundForwarding.Loop(rc, target) =>
-                        logger.error(s"Inbound message for $rc arrived already forwarded, but $rc is forwarded again to $target here; refusing it to avoid a loop")
+                        context.foreach(_.tenant = Some(rc))
+                        withContext(context)(logger.error(s"Inbound message for $rc arrived already forwarded, but $rc is forwarded again to $target here; refusing it to avoid a loop"))
                         complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                       case InboundForwarding.Forward(rc, target) =>
-                        logSize(size, s"forwarded for $rc")
+                        context.foreach(_.tenant = Some(rc))
+                        withContext(context)(logSize(size, s"forwarded for $rc"))
                         // No MqttPublishError on failure: this zone's backend does not own the
                         // community any more; the error stays in this log and Ponton redelivers.
                         val started = System.nanoTime()
                         onComplete(forward(target, request)) { result =>
                           val ms = (System.nanoTime() - started) / 1000000
-                          result match {
+                          withContext(context) { result match {
                             case Success(status) if status.isSuccess() =>
                               logger.info(s"Inbound message for $rc forwarded to $target: $status in $ms ms")
                               complete(HttpResponse(StatusCodes.NoContent))
@@ -186,7 +206,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                             case Failure(ex) =>
                               logger.error(s"Inbound message for $rc could not be forwarded to $target after $ms ms: ${ex.getMessage}; Ponton will redeliver")
                               complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
-                          }
+                          } }
                         }
                     }
                   }
@@ -201,6 +221,9 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
 
 object PontonRoute {
   val ErrorProtocol = "ERROR"
+
+  /** The paths of [[PontonRoute.pontonRoutes]], for the access line. */
+  val Templates: Set[String] = Set("/pontonxp/notification", "/pontonxp/status", "/pontonxp/message")
 
   /** Inbound messages above this size are logged at INFO with their size (ponton-message-size). */
   val LogSizeAboveBytes: Long = 16L * 1024 * 1024

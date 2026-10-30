@@ -5,7 +5,7 @@ import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior, Dispatcher
 import org.apache.pekko.http.scaladsl.server.Directives._
 import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.http.scaladsl.Http
-import at.energydash.actors.http.{BodySizeLimit, HealthRoute, InboundForwarding, PontonRoute, ServiceRoute}
+import at.energydash.actors.http.{AccessLog, BodySizeLimit, HealthRoute, InboundForwarding, PontonRoute, ServiceRoute}
 import at.energydash.config.Config
 import at.energydash.mqtt.MqttSystem
 import at.energydash.service.FileService
@@ -40,6 +40,10 @@ object SupervisorActor {
         system.terminate()
     }
   }
+
+  /** All routes of the HTTP port, with one access line per request (probe paths excepted). */
+  def httpRoutes(ponton: PontonRoute, admin: ServiceRoute, health: HealthRoute): Route =
+    AccessLog(PontonRoute.Templates ++ ServiceRoute.Templates)(ponton.pontonRoutes ~ admin.adminRoutes ~ health.healthRoutes)
 
   private def startGRPCServer(tenantProvider: ActorRef[EdaCommand])(implicit system: ActorSystem[_]) = {
     AdminServer.apply(tenantProvider, system)
@@ -85,7 +89,7 @@ object SupervisorActor {
 //            adapter.sendTest()
             mqttRequestStream.startCommand()
 
-            startHttpServer(routes.pontonRoutes ~ adminRoutes.adminRoutes ~ healthRoutes.healthRoutes)
+            startHttpServer(httpRoutes(routes, adminRoutes, healthRoutes))
             startGRPCServer(tenantProvider)
 
 //            val edaMessage = EbMsMessage(

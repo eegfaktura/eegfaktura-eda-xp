@@ -13,6 +13,7 @@ import at.energydash.actors._
 import at.energydash.config.Config
 import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
 import at.energydash.domain.{DefaultEbMsMessage, EbMsMessage}
+import at.energydash.logging.LogFields
 import at.energydash.mqtt.path.MqttPaths
 import io.circe.generic.auto._
 import io.circe.parser.decode
@@ -73,6 +74,14 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
         ByteString(m.asJson.toString()))
     }
 
+  /** Runs `body` with the tenant (sender) and EDA ConversationId of the request in the MDC, when it decodes. */
+  private def withRequest[T](input: String)(body: => T): T = {
+    val request = decode[EbMsMessage](input).toOption
+    LogFields.withMdc(
+      LogFields.TenantId -> request.map(_.sender),
+      LogFields.ConversationId -> request.map(_.conversationId))(body)
+  }
+
   private def commandFlow(input: String): Future[MqttMessage] = {
     Source.single[String](input)
       .via(decodingFlow)
@@ -92,10 +101,10 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
       .via(responseFlow)
       .recover {
         case me: MqttException =>
-          logger.error(s"Error Stream handling - ${me.getMessage}")
+          withRequest(input)(logger.error(s"Error Stream handling - ${me.getMessage}"))
           me.errorMsg
         case e =>
-          logger.error(s"Recover: ${e.getMessage}")
+          withRequest(input)(logger.error(s"Recover: ${e.getMessage}"))
           MqttMessage("eda/response/error", ByteString(e.getMessage))
       }.runWith(Sink.head[MqttMessage])
   }
