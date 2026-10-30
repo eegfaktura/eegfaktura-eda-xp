@@ -145,6 +145,17 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
       (p00 \ "ProcessDirectory" \ "Reason").text shouldBe "Auszug des Mitglieds"
     }
 
+    "drop format characters and characters XML 1.0 does not allow, as the backend does" in {
+      val node = revoke("01.30", Some("\u200bAus\ufeffzug\u202e des\ufffe Mitglieds\uffff"))
+      Xsd.validate(node, "CMRevoke_01p10.xsd")
+      (node \ "ProcessDirectory" \ "Reason").text shouldBe "Auszug des Mitglieds"
+      val none = revoke("01.30", Some("\u200b\ufeff\uffff"))
+      Xsd.validate(none, "CMRevoke_01p10.xsd")
+      (none \ "ProcessDirectory" \ "ReasonKey") shouldBe empty
+      (none \ "ProcessDirectory" \ "Reason") shouldBe empty
+      at.energydash.domain.xml.RevokeReason.clean("a\ud800b") shouldBe "ab" // a lone surrogate
+    }
+
     "keep 50 characters and drop a longer reason instead of sending a document outside the schema" in {
       val fifty = "ä" * 50
       (revoke("01.30", Some(fifty)) \ "ProcessDirectory" \ "Reason").text shouldBe fifty

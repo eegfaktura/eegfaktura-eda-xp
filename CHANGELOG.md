@@ -31,8 +31,10 @@ this changelog highlights the changes relevant for overview and operations.
   (label 01.30) defines `Reason` as "Grund der Beendigung für ReasonKey 0"; eda-xp now sends `ReasonKey` 0 together
   with the `reason` from `eda/request`, and neither element without one. Before, `ReasonKey` was copied from the MQTT
   field `reasonKey`, which the backend never sends. CMRevoke 01p00 (labels 01.02, 01.10) has no `ReasonKey`: `Reason`
-  only. Both builders share one cleaning step: control characters and every kind of white space (also U+00A0) become
-  one space, the ends are trimmed, blank means no reason; a reason still longer than 50 characters is dropped with a
+  only. Both builders share one cleaning step, the same as the backend's: control characters and every kind of white
+  space (also U+00A0) become one space, format characters (U+200B, U+FEFF, U+202E …) and characters XML 1.0 does not
+  allow (U+FFFE, U+FFFF, lone surrogates) are dropped, the ends are trimmed, blank means no reason; a reason still
+  longer than 50 characters is dropped with a
   warning naming only the message id, so no document outside the schema is sent (the backend refuses such a reason
   with 400 already). The reason arrives once eegfaktura/eegfaktura-backend#127 and eegfaktura/eegfaktura-web#245 are
   deployed. It is also kept in eda-xp's conversation store and, through the echo, in the backend's EDA history.
