@@ -27,4 +27,12 @@ class LogTextSpec extends AnyWordSpec with Matchers {
       LogText.errorText(new IllegalStateException(failure)) should startWith("java.lang.IllegalStateException: Error while parsing the document: parser error")
     }
   }
+
+  "withoutEmailAddresses" should {
+    "replace every address" in {
+      LogText.withoutEmailAddresses("Invalid Addresses: member@email.com, <cc@email.com>") shouldBe "Invalid Addresses: <address>, <<address>>"
+      LogText.withoutEmailAddresses("no address here") shouldBe "no address here"
+      LogText.withoutEmailAddresses(null) shouldBe ""
+    }
+  }
 }

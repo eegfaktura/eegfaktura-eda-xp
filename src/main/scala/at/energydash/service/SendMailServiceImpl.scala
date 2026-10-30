@@ -4,6 +4,7 @@ import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
 import org.apache.pekko.util.{ByteString, Timeout}
 import at.energydash.admin.mail.{SendMailReply, SendMailRequest, SendMailService, SendMailWithInlineAttachmentsRequest}
 import at.energydash.config.Config
+import at.energydash.logging.LogText
 import at.energydash.mailer.ConfiguredMailer
 import courier.{Envelope, Mailer, Multipart}
 
@@ -31,7 +32,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
    * Send Mail with inline images/pdfs
    */
   override def sendMailWithInlineAttachment(in: SendMailWithInlineAttachmentsRequest): Future[SendMailReply] = {
-    system.log.info(s"Send Inline Mail: To:${in.recipient} CC:${in.cc} - ${in.subject}")
+    system.log.info(s"Send Inline Mail: ${in.subject}")
     val from = Config.adminMailFrom
     val inlineMail = MailInlineMessage(
       from = from, to = in.recipient, in.cc, subject = in.subject,
@@ -49,7 +50,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
     shippingInlineHtmlEmail(ConfiguredMailer.createMailerFromSession(session), inlineMail).transformWith {
       case Success(rejected) => Future(SendMailReply(200, Some("Email sent"), rejected))
       case Failure(exception) => {
-        system.log.error(exception.toString)
+        system.log.error(LogText.withoutEmailAddresses(exception.toString))
         Future(SendMailReply(500, Some(exception.toString)))
       }
     }
@@ -71,7 +72,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
     shippingEmail(ConfiguredMailer.createMailerFromSession(session), adminMail).transformWith {
       case Success(rejected) => Future(SendMailReply(200, Some("Email sent"), rejected))
       case Failure(exception) => {
-        system.log.error(exception.toString)
+        system.log.error(LogText.withoutEmailAddresses(exception.toString))
         Future(SendMailReply(500, Some(exception.toString)))
       }
     }
@@ -96,7 +97,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
   }
 
   private def shippingEmail(mailer: Mailer, email: AdminMail)(implicit ex: ExecutionContext): Future[Seq[String]] = {
-    system.log.info(s"About to send Email ${email.from} to ${email.to}")
+    system.log.info("About to send Email")
 
     val mailContent = (email.body, email.attachment) match {
       case (Some(html), Some(a)) =>

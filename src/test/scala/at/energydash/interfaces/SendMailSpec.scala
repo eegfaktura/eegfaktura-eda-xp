@@ -3,6 +3,7 @@ package at.energydash.interfaces
 import at.energydash.actors.AdminServer
 import at.energydash.admin.mail.{Attachment, SendMailRequest, SendMailWithInlineAttachmentsRequest}
 import at.energydash.service.SendMailServiceImpl
+import at.energydash.testsupport.LogCapture
 import com.google.protobuf.ByteString
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.jvnet.mock_javamail.Mailbox
@@ -38,6 +39,22 @@ class SendMailSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       reply.status shouldBe 200
       Mailbox.get("member@email.com").get(0).getSubject shouldBe "Aktivierung"
       Mailbox.get("cc@email.com") should have size 1
+    }
+    // no e-mail address in the log: neither the recipients of a sent mail nor the address in a send error
+    "log no e-mail address" in {
+      Mailbox.clearAll()
+      val (_, events) = LogCapture("ROOT") {
+        Await.result(service.sendMail(SendMailRequest(sender = "x", recipient = "member@email.com",
+          subject = "Willkommen", body = Some(ByteString.copyFromUtf8("<p>Hallo</p>")))), 15.seconds).status shouldBe 200
+        Await.result(service.sendMailWithInlineAttachment(SendMailWithInlineAttachmentsRequest(
+          sender = "x", recipient = "member@email.com", subject = "Aktivierung", htmlBody = "<p/>", cc = Some("cc@email.com"))), 15.seconds)
+          .status shouldBe 200
+        Await.result(service.sendMail(SendMailRequest(sender = "x", recipient = "a b@email.com",
+          subject = "x", body = Some(ByteString.copyFromUtf8("x")))), 15.seconds)
+      }
+      val logged = LogCapture.messages(events)
+      logged should not be empty
+      logged.exists(_.contains("@email.com")) shouldBe false
     }
     "answer an error for an invalid recipient (shape pinned)" in {
       val reply = Await.result(service.sendMail(SendMailRequest(sender = "x", recipient = "not an address",

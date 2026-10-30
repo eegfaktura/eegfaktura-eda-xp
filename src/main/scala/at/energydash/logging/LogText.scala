@@ -20,4 +20,10 @@ object LogText {
     }
 
   def errorText(ex: Throwable): String = s"${ex.getClass.getName}: ${errorText(ex.getMessage)}"
+
+  private val EmailAddress = """[^\s<>"'`(),;:]+@[^\s<>"'`(),;:]+""".r
+
+  /** The text with every e-mail address replaced by `<address>` (javax.mail names the address in its errors). */
+  def withoutEmailAddresses(text: String): String =
+    if (text == null) "" else EmailAddress.replaceAllIn(text, "<address>")
 }
