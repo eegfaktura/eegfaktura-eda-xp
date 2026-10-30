@@ -8,7 +8,7 @@
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <target>System.out</target>
         <encoder>
-            <pattern>%date{ISO8601} %-5level [%thread] %logger{0} - %.-4000msg tenant=%X{tenant:-}%n</pattern>
+            <pattern>%date{ISO8601} %-5level [%thread] %logger{0} - %.-4000msg tenant.id=%X{tenant.id:-} eda.conversation_id=%X{eda.conversation_id:-}%n</pattern>
         </encoder>
     </appender>
 
