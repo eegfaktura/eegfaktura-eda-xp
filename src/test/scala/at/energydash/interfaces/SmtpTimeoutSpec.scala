@@ -64,16 +64,21 @@ class SmtpTimeoutSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       reply.message.getOrElse("") should not include "member@email.com"
       elapsed should be < 5.seconds
     }
+    "answer 200 without waiting when the relay accepted the message but does not answer QUIT" in {
+      val (reply, elapsed) = sendThrough(FakeRelay.HangOnQuit, timeoutMs = 3000)
+      reply.status shouldBe 200
+      elapsed should be < 2.seconds
+    }
   }
 
-  /** Sends one mail through the real SMTP transport of the admin session to a fake relay (1 s timeouts). */
-  private def sendThrough(mode: FakeRelay.Mode): (SendMailReply, FiniteDuration) = {
+  /** Sends one mail through the real SMTP transport of the admin session to a fake relay. */
+  private def sendThrough(mode: FakeRelay.Mode, timeoutMs: Int = 1000): (SendMailReply, FiniteDuration) = {
     val relay = new FakeRelay(mode)
     try {
       val admin = ConfigFactory.parseString(
         s"""javaxmail.mail {
            |  transport.protocol.rfc822 = smtp
-           |  smtp { host = "127.0.0.1", port = ${relay.port}, connectiontimeout = 1000, timeout = 1000, writetimeout = 1000 }
+           |  smtp { host = "127.0.0.1", port = ${relay.port}, connectiontimeout = $timeoutMs, timeout = $timeoutMs, writetimeout = $timeoutMs }
            |}""".stripMargin)
       val service = new SendMailServiceImpl(ConfiguredMailer.getAdminSession(admin))(system)
       val started = System.nanoTime()
@@ -100,10 +105,14 @@ private class FakeRelay(mode: FakeRelay.Mode) {
         var inData = false
         Iterator.continually(in.readLine()).takeWhile(_ != null).foreach { line =>
           if (inData) {
-            if (line == ".") inData = false // the end of the message: no reply
+            if (line == ".") { // the end of the message: no reply, except HangOnQuit
+              inData = false
+              if (mode == FakeRelay.HangOnQuit) reply("250 queued")
+            }
           } else line.takeWhile(_ != ' ').toUpperCase match {
             case "DATA" if mode == FakeRelay.HangOnData => ()
             case "DATA" => reply("354 go ahead"); inData = true
+            case "QUIT" if mode == FakeRelay.HangOnQuit => ()
             case "QUIT" => reply("221 bye")
             case _ => reply("250 ok")
           }
@@ -124,4 +133,5 @@ private object FakeRelay {
   case object HangOnGreeting extends Mode
   case object HangOnData extends Mode
   case object HangOnDot extends Mode
+  case object HangOnQuit extends Mode
 }

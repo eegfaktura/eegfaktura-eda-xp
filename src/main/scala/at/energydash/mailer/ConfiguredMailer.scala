@@ -69,6 +69,9 @@ object ConfiguredMailer {
       val path = s"javaxmail.mail.smtp.$key"
       if (config.hasPath(path)) properties.put(s"mail.smtp.$key", config.getDuration(path).toMillis.toString)
     }
+    // QUIT is still sent, but its reply is not awaited: the mail is accepted at that point, and a relay
+    // that does not answer QUIT must not turn a delivered mail into a timeout.
+    properties.put("mail.smtp.quitwait", "false")
 
     def authenticatorFromConfig(config: Config) = {
       new javax.mail.Authenticator() {

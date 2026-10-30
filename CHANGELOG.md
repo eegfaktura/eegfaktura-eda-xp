@@ -32,7 +32,9 @@ this changelog highlights the changes relevant for overview and operations.
   `reference.conf` (also apply under the mounted `application.conf`): `mail.smtp.connectiontimeout` 10 s,
   `mail.smtp.timeout` (read) 20 s, `mail.smtp.writetimeout` 20 s; overrides via env
   `SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`, in milliseconds or with a unit
-  (`20s`); an invalid value stops the start. Tenant (EDA MAIL transport) sessions are unchanged.
+  (`20s`); an invalid value stops the start. The admin session no longer waits for the reply to QUIT
+  (`mail.smtp.quitwait=false`): the mail is accepted at that point, and a relay that does not answer QUIT no longer
+  turns a delivered mail into a timeout. Tenant (EDA MAIL transport) sessions are unchanged.
 - **The tenant provider survives a second update of a mail tenant and is supervised** (eegfaktura-dev tracking
   261005-ca3). A second register/update of a tenant with type MAIL (or an empty type) spawned the new mail worker
   under the name of the old one before it had stopped; the provider failed, ran without supervision and stayed
