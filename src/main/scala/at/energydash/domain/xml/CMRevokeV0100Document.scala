@@ -60,6 +60,6 @@ object CMRevokeV0100Document {
       ConsentId = message.meter.flatMap(_.consentId).get,
       MeteringPoint = message.meter.map(x => x.meteringPoint).get,
       ConsentEnd = Helper.toCalendar(buildCalendarDate(message.consentEnd.getOrElse(new Date))),
-      Reason = message.reason,
+      Reason = message.reason.filter(_.trim.nonEmpty), // CMRevoke_01p00 has no ReasonKey
     )))
 }

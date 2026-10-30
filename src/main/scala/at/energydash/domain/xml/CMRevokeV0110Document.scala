@@ -34,7 +34,11 @@ object CMRevokeV0110Document {
 
   def apply(doc: CMRevoke): CMRevokeV0110Document = new CMRevokeV0110Document(doc)
 
-  def apply(message: EbMsMessage): CMRevokeV0110Document = new CMRevokeV0110Document(CMRevoke(
+  def apply(message: EbMsMessage): CMRevokeV0110Document = {
+    // A free-text reason is "Grund der Beendigung für ReasonKey 0" (CMRevoke_01p10.xsd): it goes out with ReasonKey 0.
+    // Without a reason neither element is sent. The backend sends no reasonKey of its own.
+    val reason = message.reason.filter(_.trim.nonEmpty)
+    new CMRevokeV0110Document(CMRevoke(
     MarketParticipantDirectory = cmrevoke.v01p10.MarketParticipantDirectory(
       RoutingHeader = RoutingHeader(
         Sender = RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
@@ -58,7 +62,8 @@ object CMRevokeV0110Document {
       ConsentId = message.meter.flatMap(_.consentId).get,
       MeteringPoint = message.meter.map(x => x.meteringPoint).get,
       ConsentEnd = Helper.toCalendar(buildCalendarDate(message.consentEnd.getOrElse(new Date))),
-      Reason = message.reason,
-      ReasonKey = message.reasonKey
+      Reason = reason,
+      ReasonKey = reason.map(_ => BigInt(0))
     )))
+  }
 }

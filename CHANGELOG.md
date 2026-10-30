@@ -26,6 +26,13 @@ this changelog highlights the changes relevant for overview and operations.
   (eegfaktura-dev tracking 261005-ca1).
 
 ### Fixed
+- **A revoke's free-text reason goes to the grid operator with ReasonKey 0** (`AUFHEBUNG_CCMS`, revoke reason
+  2026-10-30, by user decision — behaviour towards the grid operator changes). CMRevoke 01p10 (label 01.30) defines
+  `Reason` as "Grund der Beendigung für ReasonKey 0"; eda-xp now sends `ReasonKey` 0 together with a non-blank
+  `reason` from `eda/request`, and neither element without one. Before, `ReasonKey` was copied from the MQTT field
+  `reasonKey`, which the backend never sends, so a reason would have gone out without its key. CMRevoke 01p00 (labels
+  01.02, 01.10) has no `ReasonKey`: only `Reason`, and a blank one is no longer written as an empty element. The
+  reason only arrives once backend and web ship their parts (backend reads `reason` instead of `to`, web fills it).
 - **The tenant provider survives a second update of a mail tenant and is supervised** (eegfaktura-dev tracking
   261005-ca3). A second register/update of a tenant with type MAIL (or an empty type) spawned the new mail worker
   under the name of the old one before it had stopped; the provider failed, ran without supervision and stayed
