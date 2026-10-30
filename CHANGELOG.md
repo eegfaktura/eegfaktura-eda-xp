@@ -25,14 +25,19 @@ this changelog highlights the changes relevant for overview and operations.
   energystore, admin-backend) — and whether Ponton redelivers after a refused connection is still open
   (eegfaktura-dev tracking 261005-ca1).
 
+### Changed
+- **A revoke's free-text reason goes to the grid operator with ReasonKey 0** (`AUFHEBUNG_CCMS`; user decision
+  2026-10-30, tracking: revoke reason (2026-10-30) — behaviour towards the grid operator changes). CMRevoke 01p10
+  (label 01.30) defines `Reason` as "Grund der Beendigung für ReasonKey 0"; eda-xp now sends `ReasonKey` 0 together
+  with the `reason` from `eda/request`, and neither element without one. Before, `ReasonKey` was copied from the MQTT
+  field `reasonKey`, which the backend never sends. CMRevoke 01p00 (labels 01.02, 01.10) has no `ReasonKey`: `Reason`
+  only. Both builders share one cleaning step: control characters and every kind of white space (also U+00A0) become
+  one space, the ends are trimmed, blank means no reason; a reason still longer than 50 characters is dropped with a
+  warning naming only the message id, so no document outside the schema is sent (the backend refuses such a reason
+  with 400 already). The reason arrives once eegfaktura/eegfaktura-backend#127 and eegfaktura/eegfaktura-web#245 are
+  deployed. It is also kept in eda-xp's conversation store and, through the echo, in the backend's EDA history.
+
 ### Fixed
-- **A revoke's free-text reason goes to the grid operator with ReasonKey 0** (`AUFHEBUNG_CCMS`, revoke reason
-  2026-10-30, by user decision — behaviour towards the grid operator changes). CMRevoke 01p10 (label 01.30) defines
-  `Reason` as "Grund der Beendigung für ReasonKey 0"; eda-xp now sends `ReasonKey` 0 together with a non-blank
-  `reason` from `eda/request`, and neither element without one. Before, `ReasonKey` was copied from the MQTT field
-  `reasonKey`, which the backend never sends, so a reason would have gone out without its key. CMRevoke 01p00 (labels
-  01.02, 01.10) has no `ReasonKey`: only `Reason`, and a blank one is no longer written as an empty element. The
-  reason only arrives once backend and web ship their parts (backend reads `reason` instead of `to`, web fills it).
 - **The tenant provider survives a second update of a mail tenant and is supervised** (eegfaktura-dev tracking
   261005-ca3). A second register/update of a tenant with type MAIL (or an empty type) spawned the new mail worker
   under the name of the old one before it had stopped; the provider failed, ran without supervision and stayed

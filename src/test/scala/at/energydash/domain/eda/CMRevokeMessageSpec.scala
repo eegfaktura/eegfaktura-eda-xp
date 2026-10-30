@@ -88,8 +88,9 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
   // CMRevoke_01p10 sends it as Reason with ReasonKey 0 ("Grund der Beendigung für ReasonKey 0"), CMRevoke_01p00 has
   // only Reason. Without a reason neither element is sent. Every document is valid against its XSD.
   "Revoke Message CCMS reason" should {
-    def revoke(label: String, reason: Option[String]) = {
-      val reasonField = reason.fold("")(r => "\"reason\":\"" + r + "\",")
+    def request(label: String, reason: Option[String]) = {
+      // circe writes the reason as a JSON string (control characters escaped)
+      val reasonField = reason.fold("")(r => "\"reason\":" + io.circe.Json.fromString(r).noSpaces + ",")
       val json =
         s"""{
            | "conversationId":"CC100063202406201615421120000059025",
@@ -101,8 +102,9 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
            | "meter":{"meteringPoint":"AT0030000000000000000000000749984", "consentId":"1"},
            | $reasonField
            | "consentEnd":1718920800000}""".stripMargin
-      CMRevokeRequest(decode[EbMsMessage](json).toOption.get).getVersion().get.toXML
+      CMRevokeRequest(decode[EbMsMessage](json).toOption.get).getVersion().get
     }
+    def revoke(label: String, reason: Option[String]) = request(label, reason).toXML
 
     "send ReasonKey 0 with the reason in CMRevoke 01p10 (label 01.30)" in {
       val node = revoke("01.30", Some("Auszug des Mitglieds"))
@@ -112,7 +114,7 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
     }
 
     "send neither ReasonKey nor Reason without a reason in CMRevoke 01p10 (label 01.30)" in {
-      for (reason <- Seq(None, Some(""), Some("   "))) {
+      for (reason <- Seq(None, Some(""), Some("   "), Some("\u00a0"), Some("\u0001\n"))) {
         val node = revoke("01.30", reason)
         Xsd.validate(node, "CMRevoke_01p10.xsd")
         (node \ "ProcessDirectory" \ "ReasonKey") shouldBe empty
@@ -130,6 +132,35 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
         Xsd.validate(none, "CMRevoke_01p00.xsd")
         (none \ "ProcessDirectory" \ "Reason") shouldBe empty
       }
+    }
+
+    "clean control characters and every kind of white space, in both schemas" in {
+      val raw = Some("\u00a0Auszug\u0001des\r\nMitglieds\t ")
+      val p10 = revoke("01.30", raw)
+      Xsd.validate(p10, "CMRevoke_01p10.xsd")
+      (p10 \ "ProcessDirectory" \ "Reason").text shouldBe "Auszug des Mitglieds"
+      (p10 \ "ProcessDirectory" \ "ReasonKey").text shouldBe "0"
+      val p00 = revoke("01.02", raw)
+      Xsd.validate(p00, "CMRevoke_01p00.xsd")
+      (p00 \ "ProcessDirectory" \ "Reason").text shouldBe "Auszug des Mitglieds"
+    }
+
+    "keep 50 characters and drop a longer reason instead of sending a document outside the schema" in {
+      val fifty = "ä" * 50
+      (revoke("01.30", Some(fifty)) \ "ProcessDirectory" \ "Reason").text shouldBe fifty
+      for ((label, xsd) <- Seq("01.30" -> "CMRevoke_01p10.xsd", "01.02" -> "CMRevoke_01p00.xsd")) {
+        val node = revoke(label, Some(fifty + "x"))
+        Xsd.validate(node, xsd)
+        (node \ "ProcessDirectory" \ "ReasonKey") shouldBe empty
+        (node \ "ProcessDirectory" \ "Reason") shouldBe empty
+      }
+    }
+
+    "serialise the reason as UTF-8 bytes that are valid against CMRevoke 01p10" in {
+      val bytes = request("01.30", Some("Auszug – Mitglied äöü")).toByte.get.utf8String
+      bytes should include("ReasonKey>0</")
+      bytes should include("Reason>Auszug – Mitglied äöü</")
+      Xsd.validate(scala.xml.XML.loadString(bytes), "CMRevoke_01p10.xsd")
     }
   }
 }

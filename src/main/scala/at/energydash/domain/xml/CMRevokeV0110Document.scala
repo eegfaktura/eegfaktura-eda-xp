@@ -34,36 +34,36 @@ object CMRevokeV0110Document {
 
   def apply(doc: CMRevoke): CMRevokeV0110Document = new CMRevokeV0110Document(doc)
 
+  // A free-text reason is "Grund der Beendigung für ReasonKey 0" (CMRevoke_01p10.xsd): it goes out with ReasonKey 0.
+  // Without a reason neither element is sent. The backend sends no reasonKey of its own.
   def apply(message: EbMsMessage): CMRevokeV0110Document = {
-    // A free-text reason is "Grund der Beendigung für ReasonKey 0" (CMRevoke_01p10.xsd): it goes out with ReasonKey 0.
-    // Without a reason neither element is sent. The backend sends no reasonKey of its own.
-    val reason = message.reason.filter(_.trim.nonEmpty)
+    val reason = RevokeReason(message)
     new CMRevokeV0110Document(CMRevoke(
-    MarketParticipantDirectory = cmrevoke.v01p10.MarketParticipantDirectory(
-      RoutingHeader = RoutingHeader(
-        Sender = RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
-        Receiver = RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
-        DocumentCreationDateTime = at.energydash.domain.eda.MessageHelper.xmlDateTime(new Date)
+      MarketParticipantDirectory = cmrevoke.v01p10.MarketParticipantDirectory(
+        RoutingHeader = RoutingHeader(
+          Sender = RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
+          Receiver = RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
+          DocumentCreationDateTime = at.energydash.domain.eda.MessageHelper.xmlDateTime(new Date)
+        ),
+        Sector = Number01,
+        MessageCode = message.messageCode.toString,
+        attributes = Map(
+          ("@DocumentMode", scalaxb.DataRecord[DocumentMode](Config.interfaceMode match {
+            case "SIMU" => SIMU
+            case _ => PROD
+          })),
+          ("@Duplicate", scalaxb.DataRecord(false)),
+          ("@SchemaVersion", scalaxb.DataRecord[SchemaVersion](Number01u4610)),
+        )
       ),
-      Sector = Number01,
-      MessageCode = message.messageCode.toString,
-      attributes = Map(
-        ("@DocumentMode", scalaxb.DataRecord[DocumentMode](Config.interfaceMode match {
-          case "SIMU" => SIMU
-          case _ => PROD
-        })),
-        ("@Duplicate", scalaxb.DataRecord(false)),
-        ("@SchemaVersion", scalaxb.DataRecord[SchemaVersion](Number01u4610)),
-      )
-    ),
-    ProcessDirectory = cmrevoke.v01p10.ProcessDirectory(
-      MessageId = message.messageId.get,
-      ConversationId = message.conversationId,
-      ConsentId = message.meter.flatMap(_.consentId).get,
-      MeteringPoint = message.meter.map(x => x.meteringPoint).get,
-      ConsentEnd = Helper.toCalendar(buildCalendarDate(message.consentEnd.getOrElse(new Date))),
-      Reason = reason,
-      ReasonKey = reason.map(_ => BigInt(0))
-    )))
+      ProcessDirectory = cmrevoke.v01p10.ProcessDirectory(
+        MessageId = message.messageId.get,
+        ConversationId = message.conversationId,
+        ConsentId = message.meter.flatMap(_.consentId).get,
+        MeteringPoint = message.meter.map(x => x.meteringPoint).get,
+        ConsentEnd = Helper.toCalendar(buildCalendarDate(message.consentEnd.getOrElse(new Date))),
+        Reason = reason,
+        ReasonKey = reason.map(_ => BigInt(0))
+      )))
   }
 }
