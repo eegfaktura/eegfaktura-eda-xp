@@ -29,12 +29,10 @@ this changelog highlights the changes relevant for overview and operations.
 - **Mails over the gRPC `SendMailService` end after an SMTP timeout instead of hanging** (caller: backend). The
   admin mail session had no SMTP timeouts, so a relay that accepted the connection but did not answer blocked the
   send until the backend gave up at its gRPC deadline, and the failure was not visible in eda-xp. Defaults in
-  `reference.conf` (also apply under the mounted `application.conf`), in milliseconds: `mail.smtp.connectiontimeout`
-  10000, `mail.smtp.timeout` (read) 20000, `mail.smtp.writetimeout` 20000; overrides via env
-  `SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`. A connect or read timeout is
-  answered with status 504 and the message `SMTP timeout: …` (before: no answer); a write timeout closes the
-  connection and is answered like every other error with status 500. The backend treats every status other than
-  200 as a failed send. Tenant (EDA MAIL transport) sessions are unchanged.
+  `reference.conf` (also apply under the mounted `application.conf`): `mail.smtp.connectiontimeout` 10 s,
+  `mail.smtp.timeout` (read) 20 s, `mail.smtp.writetimeout` 20 s; overrides via env
+  `SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`, in milliseconds or with a unit
+  (`20s`); an invalid value stops the start. Tenant (EDA MAIL transport) sessions are unchanged.
 - **The tenant provider survives a second update of a mail tenant and is supervised** (eegfaktura-dev tracking
   261005-ca3). A second register/update of a tenant with type MAIL (or an empty type) spawned the new mail worker
   under the name of the old one before it had stopped; the provider failed, ran without supervision and stayed
@@ -61,6 +59,17 @@ this changelog highlights the changes relevant for overview and operations.
   push scan green without any result (`continue-on-error`); now only „issues found“ keeps the run green (the
   issues go to Code Scanning), an authentication or tool error fails it. The Snyk CLI is pinned to 1.1308.1
   instead of the latest version.
+
+### Contract
+- **gRPC `SendMailService` reply status on SMTP timeouts** (caller: backend, mapped in
+  [eegfaktura-backend#132](https://github.com/eegfaktura/eegfaktura-backend/pull/132)); proto unchanged:
+  - `202`, message `SMTP unconfirmed: …` — the message was sent completely, but the relay's reply to its end did not
+    arrive in time: most likely delivered, must not be resent (a resend would be a duplicate).
+  - `504`, message `SMTP timeout: …` — timeout before the message was sent (connect, greeting, a command up to
+    DATA): nothing delivered, a failure.
+  - A write timeout makes JavaMail close the connection; it is answered like every other error with `500`.
+  - Before, none of these cases got an answer before the backend's deadline. A backend without #132 treats every
+    status other than 200, including 202, as a failed send.
 
 ### Security
 - **CI: the release workflow pins its actions by commit SHA** (eegfaktura-dev tracking W-261028-mm6). `rolling-release.yml`
