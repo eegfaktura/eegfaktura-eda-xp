@@ -115,7 +115,25 @@ docker run -p 6090:6090 -p 9093:9093 \
 - `slick.pgsql.local.db.*` / `flyway.*` — PostgreSQL connection + migrations
 
 Environment variables (names only): `SMTP_ADMIN_SERVER_HOST`, `SMTP_ADMIN_SERVER_PORT`,
-`EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `MAX_BODY_SIZE`, `TZ`, `JAVA_OPTS`.
+`EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `MAX_BODY_SIZE`, `TZ`, `JAVA_OPTS`,
+`LOG_FORMAT`, `LOG_LEVEL`, `SLICK_LOG_LEVEL`, `SERVICE_VERSION`.
+
+### Logging
+
+Every line goes through one encoder (`src/main/resources/logback.xml`, `at.energydash.logging`) to stdout:
+
+- `LOG_FORMAT` — `json` (set in the image): one JSON object per line with flat ECS names (`@timestamp` UTC,
+  `log.level`, `log.logger`, `service.name` `eegfaktura-eda-xp`, `service.version`, `message`, `error.*`, and when
+  known `request.id`, `tenant.id`, `eda.conversation_id`, …); other MDC entries are not written. `text` (the default
+  when run from source): a plain line for reading in a terminal.
+- `LOG_LEVEL` — `trace`, `debug`, `info` (default), `warn`, `error`; `SLICK_LOG_LEVEL` the same for the `slick`
+  loggers only. An unknown value stops the start (exit code 2).
+- `SERVICE_VERSION` — set by the image build (release for a tag, else the commit); `dev` otherwise.
+- Access line (`event.action=http.access`, logger `at.energydash.access`): one line per request on port 6090 with
+  method, route, status, `event.outcome`, `event.duration` (ns), `request.id` (`X-Request-Id`, also returned),
+  `client.id=ponton` on `/pontonxp/*`, and `tenant.id`/`eda.conversation_id` once the message is parsed. Never an
+  IP, user agent, query or body. `/healthz` and `/readyz` are not logged.
+- Never logged: EDA XML, MQTT payloads, mail bodies/attachments, e-mail addresses.
 
 Exposed ports: **6090** (HTTP), **9093** (gRPC). Volumes: `/conf`, `/storage/prod`.
 
