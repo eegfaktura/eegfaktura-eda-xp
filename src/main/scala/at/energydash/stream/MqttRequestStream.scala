@@ -92,10 +92,10 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
       .via(responseFlow)
       .recover {
         case me: MqttException =>
-          logger.error(s"Error Stream handling - ${me.getMessage} (${input})")
+          logger.error(s"Error Stream handling - ${me.getMessage}")
           me.errorMsg
         case e =>
-          logger.error(s"Recover: ${e.getMessage} (${input})")
+          logger.error(s"Recover: ${e.getMessage}")
           MqttMessage("eda/response/error", ByteString(e.getMessage))
       }.runWith(Sink.head[MqttMessage])
   }
