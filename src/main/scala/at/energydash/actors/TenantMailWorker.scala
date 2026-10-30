@@ -59,7 +59,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
                 case Some(email) => /*m match {*/
                   //                case Success(email) =>
                   context.log.debug(s"Forward mail to Mail Actor ${email.toEmail}")
-                  context.log.debug(s"Mail Attachment ${email.attachment.utf8String}")
+                  context.log.debug(s"Mail Attachment: ${email.attachment.length} bytes")
 
                   tenant.domain match {
                     case Some(domain) =>
@@ -119,7 +119,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
         val to = determineReceiver(data)
         val tenant = data.sender.toUpperCase()
 
-        logger.debug(s"Prepare Email Message Flow: $data")
+        logger.debug(s"Prepare Email Message Flow: ${data.messageCode}, conversation ${data.conversationId}")
         Some(EmailService.EmailModel(tenant = tenant, toEmail = to,
           subject = subject, attachment = attachment, data = data))
       }
