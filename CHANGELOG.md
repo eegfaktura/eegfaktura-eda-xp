@@ -14,7 +14,8 @@ this changelog highlights the changes relevant for overview and operations.
   outage never restarts the pod); `/readyz` answers `ok` when the database answers `SELECT 1` within 2 s, otherwise
   503 `unavailable` and the reason in the log (warn). The check opens a connection of its own (not the service's
   pools) with 2 s driver timeouts and closes it again; one check runs at a time, concurrent calls and calls within
-  1 s share its result. The MQTT connection is not part of it: the client reconnects by itself
+  1 s share its result. A refusal as one connection too many (SQLSTATE 53300) counts as ready (warn, at most once
+  a minute): the service's pools still have their connections. The MQTT connection is not part of it: the client reconnects by itself
   and its state is not tracked where the route could read it. Both endpoints are unauthenticated, like every route
   on this port.
 

@@ -55,6 +55,18 @@ class HealthRouteSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
     "answer 503 unavailable, without the reason, when the database is unreachable" in withServer(brokenDb) { base =>
       call(HttpMethods.GET, s"$base/readyz") shouldBe (StatusCodes.ServiceUnavailable, "unavailable")
     }
+    "answer 200 when Postgres refuses the ping as one connection too many (SQLSTATE 53300)" in {
+      // a role allowed no connection: Postgres refuses it with too_many_connections, like a saturated server
+      TestDb.exec("DROP ROLE IF EXISTS readyz_full", "CREATE ROLE readyz_full LOGIN PASSWORD 'x' CONNECTION LIMIT 0")
+      val saturated = HealthRoute.databaseCheck(ConfigFactory.parseString(
+        """slick.pgsql.local.db { user = "readyz_full", password = "x" }""").withFallback(system.settings.config))
+      val refused = intercept[java.sql.SQLException](java.sql.DriverManager.getConnection(
+        s"jdbc:postgresql://127.0.0.1:${TestDb.Port}/postgres", "readyz_full", "x").close())
+      refused.getSQLState shouldBe HealthRoute.TooManyConnections
+      withServer(saturated) { base =>
+        call(HttpMethods.GET, s"$base/readyz") shouldBe (StatusCodes.OK, "ok")
+      }
+    }
     "answer 503 when the check does not finish within the timeout" in
       withServer(() => Promise[Unit]().future, timeout = 300.millis) { base =>
         call(HttpMethods.GET, s"$base/readyz") shouldBe (StatusCodes.ServiceUnavailable, "unavailable")

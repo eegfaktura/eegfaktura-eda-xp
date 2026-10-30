@@ -8,10 +8,10 @@ import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.pattern.after
 import org.slf4j.{Logger, LoggerFactory}
 
-import java.sql.DriverManager
+import java.sql.{DriverManager, SQLException}
 import java.util.Properties
 import java.util.concurrent.TimeoutException
-import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.{AtomicLong, AtomicReference}
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future, Promise, blocking}
 import scala.util.{Failure, Success, Try, Using}
@@ -83,6 +83,9 @@ object HealthRoute {
    * `SELECT 1` over a connection of its own, opened for the check and closed after it — not the
    * service's pools (`slick.pgsql.local` settings: url, user, password), so a busy pool never makes the
    * service unready and the check never takes a connection from it. The driver's timeouts end it.
+   * Postgres refusing the connection as one too many (SQLSTATE 53300) counts as ready, logged at warn at
+   * most once per `TooManyConnectionsWarnEvery`: the service's pools still have their connections, and a
+   * saturated database must not take every pod out of its Service.
    */
   def databaseCheck(config: TypesafeConfig)(implicit ec: ExecutionContext): () => Future[Unit] = {
     val db = config.getConfig("slick.pgsql.local.db")
@@ -90,15 +93,27 @@ object HealthRoute {
     val props = new Properties()
     Seq("user", "password").filter(db.hasPath).foreach(k => props.setProperty(k, db.getString(k)))
     Seq("connectTimeout", "loginTimeout", "socketTimeout").foreach(props.setProperty(_, DriverTimeoutSeconds.toString))
+    val lastWarn = new AtomicLong(System.nanoTime() - TooManyConnectionsWarnEvery.toNanos)
     () => Future {
       blocking {
-        Using.resource(DriverManager.getConnection(url, props)) { c =>
+        try Using.resource(DriverManager.getConnection(url, props)) { c =>
           Using.resource(c.createStatement()) { st =>
             st.setQueryTimeout(DriverTimeoutSeconds)
             Using.resource(st.executeQuery("SELECT 1"))(rs => if (!rs.next()) throw new IllegalStateException("SELECT 1 returned no row"))
           }
+        } catch {
+          case ex: SQLException if ex.getSQLState == TooManyConnections =>
+            val now = System.nanoTime()
+            val last = lastWarn.get()
+            if (now - last >= TooManyConnectionsWarnEvery.toNanos && lastWarn.compareAndSet(last, now))
+              logger.warn(s"readyz: database refuses further connections (SQLSTATE $TooManyConnections), counted as ready: ${ex.getMessage}")
         }
       }
     }
   }
+
+  /** Postgres too_many_connections. */
+  val TooManyConnections = "53300"
+  val TooManyConnectionsWarnEvery: FiniteDuration = 1.minute
+  private val logger: Logger = LoggerFactory.getLogger(classOf[HealthRoute])
 }
