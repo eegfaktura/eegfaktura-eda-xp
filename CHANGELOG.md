@@ -54,6 +54,10 @@ this changelog highlights the changes relevant for overview and operations.
   use where the action is the same, otherwise the commit the floating tag pointed to on 2026-10-28. Java is fixed to
   `17.0.19+10` and `setup-java` moves from v4 to v6.0.1, both as in `pr-checks.yml`.
 
+### Tests
+- **The golden-file guard passes on Windows** (eegfaktura-dev tracking 261030-mm1): it listed the golden files with
+  `\` separators there and reported every one as orphan; the relative names now always use `/`.
+
 ## [1.2.0] – 2026-10-26
 
 ### Changed
