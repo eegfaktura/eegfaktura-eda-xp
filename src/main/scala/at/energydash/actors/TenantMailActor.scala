@@ -9,6 +9,7 @@ import at.energydash.domain.eda.EdaErrorMessage
 import at.energydash.mailer.EmailService.SendEmailCommand
 import at.energydash.mailer.Fetcher.{ErrorMessage, FetcherContext, MailContent, MailMessage}
 import at.energydash.mailer.{ConfiguredMailer, Fetcher}
+import at.energydash.logging.LogFields
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.ExecutionContext
@@ -44,7 +45,7 @@ class TenantMailActor(tenantConfig: TenantConfig, mailRepo: SlickEmailOutboxRepo
     }
 
     def work(): Behavior[EmailCommand] = {
-      Behaviors.withMdc(Map("tenant" -> tenant)) {
+      Behaviors.withMdc(Map(LogFields.TenantId -> tenant)) {
         Behaviors.receiveMessage {
           case req: FetchEmailCommand =>
             req.fetchEmail(req.subject, distributeMail(req))

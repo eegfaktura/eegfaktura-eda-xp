@@ -12,6 +12,7 @@ import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
 import at.energydash.domain.enums.EbMsProcessType
 import at.energydash.mailer.EmailService
 import at.energydash.mailer.EmailService.SendEmailCommand
+import at.energydash.logging.LogFields
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration, MILLISECONDS}
@@ -35,7 +36,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
   val interval: FiniteDuration = Config.interval(tenant.domain.getOrElse(""))
 
   private def setup(): Behavior[EdaCommand] = {
-    Behaviors.withMdc(Map("tenant" -> tenant.tenant))(
+    Behaviors.withMdc(Map(LogFields.TenantId -> tenant.tenant))(
       Behaviors.setup { context => {
         context.log.info("Setup Tenant Worker")
         context.log.info(s"Interval: ${interval.toMillis}")
