@@ -7,6 +7,7 @@ import at.energydash.config.Config
 import at.energydash.mailer.ConfiguredMailer
 import courier.{Envelope, Mailer, Multipart}
 
+import java.net.SocketTimeoutException
 import java.nio.charset.Charset
 import javax.mail.Session
 import javax.mail.internet.{InternetAddress, MimeBodyPart}
@@ -48,10 +49,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
 
     shippingInlineHtmlEmail(ConfiguredMailer.createMailerFromSession(session), inlineMail).transformWith {
       case Success(rejected) => Future(SendMailReply(200, Some("Email sent"), rejected))
-      case Failure(exception) => {
-        system.log.error(exception.toString)
-        Future(SendMailReply(500, Some(exception.toString)))
-      }
+      case Failure(exception) => Future(failureReply(exception))
     }
   }
 
@@ -70,12 +68,25 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
     val adminMail = AdminMail(from, to, subject, in.body.map(b => b.toStringUtf8), mailAttachment)
     shippingEmail(ConfiguredMailer.createMailerFromSession(session), adminMail).transformWith {
       case Success(rejected) => Future(SendMailReply(200, Some("Email sent"), rejected))
-      case Failure(exception) => {
-        system.log.error(exception.toString)
-        Future(SendMailReply(500, Some(exception.toString)))
-      }
+      case Failure(exception) => Future(failureReply(exception))
     }
   }
+
+  // A connect or read timeout (mail.smtp.connectiontimeout / mail.smtp.timeout) is answered as
+  // 504 "SMTP timeout" so the backend sees a clear failure before its own gRPC deadline. A write
+  // timeout closes the socket and arrives as an ordinary error (500).
+  private def failureReply(exception: Throwable): SendMailReply = {
+    if (isTimeout(exception)) {
+      system.log.error(s"SMTP timeout: ${exception.toString}")
+      SendMailReply(504, Some(s"SMTP timeout: ${exception.toString}"))
+    } else {
+      system.log.error(exception.toString)
+      SendMailReply(500, Some(exception.toString))
+    }
+  }
+
+  private def isTimeout(exception: Throwable): Boolean =
+    Iterator.iterate(exception)(_.getCause).takeWhile(_ != null).take(10).exists(_.isInstanceOf[SocketTimeoutException])
 
   private def shippingInlineHtmlEmail(mailer: Mailer, email: MailInlineMessage)(implicit ec: ExecutionContext): Future[Seq[String]] = {
 

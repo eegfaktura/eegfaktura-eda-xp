@@ -26,6 +26,15 @@ this changelog highlights the changes relevant for overview and operations.
   (eegfaktura-dev tracking 261005-ca1).
 
 ### Fixed
+- **Mails over the gRPC `SendMailService` end after an SMTP timeout instead of hanging** (caller: backend). The
+  admin mail session had no SMTP timeouts, so a relay that accepted the connection but did not answer blocked the
+  send until the backend gave up at its gRPC deadline, and the failure was not visible in eda-xp. Defaults in
+  `reference.conf` (also apply under the mounted `application.conf`), in milliseconds: `mail.smtp.connectiontimeout`
+  10000, `mail.smtp.timeout` (read) 20000, `mail.smtp.writetimeout` 20000; overrides via env
+  `SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`. A connect or read timeout is
+  answered with status 504 and the message `SMTP timeout: …` (before: no answer); a write timeout closes the
+  connection and is answered like every other error with status 500. The backend treats every status other than
+  200 as a failed send. Tenant (EDA MAIL transport) sessions are unchanged.
 - **The tenant provider survives a second update of a mail tenant and is supervised** (eegfaktura-dev tracking
   261005-ca3). A second register/update of a tenant with type MAIL (or an empty type) spawned the new mail worker
   under the name of the old one before it had stopped; the provider failed, ran without supervision and stayed
