@@ -3,6 +3,7 @@ package at.energydash.stream
 import org.apache.pekko.Done
 import org.apache.pekko.stream.connectors.mqtt.scaladsl.MqttSource
 import org.apache.pekko.stream.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
+import org.apache.pekko.stream.KillSwitches
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.stream.testkit.scaladsl.TestSink
 import at.energydash.MqttSourceSpec.fixture
@@ -46,8 +47,9 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
 
       val stream = new MqttRequestStream(edaActorProbe.ref, transformerActorProbe.ref, storeActorProbe.ref)(f.system)
       val (probe, sink) = TestSink[MqttMessage]()(f.system.classicSystem).preMaterialize()
-      val ready = stream.runCommand(mqttSource, sink)
-      whenReady(ready) { _ =>
+      val stop = KillSwitches.shared("request-stream-spec")
+      val ready = stream.runCommand(mqttSource.via(stop.flow), sink)
+      try whenReady(ready) { _ =>
         publish(topic, testMsg)
 
         probe.request(1)
@@ -62,7 +64,7 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
         edaCommand.replyTo ! SendEdaResponse(edaCommand.message)
 
         probe.requestNext().topic shouldBe "eda/response/myeeg-kep/protocol/ec_req_onl"
-      }
+      } finally stop.shutdown() // runCommand restarts its source: the stream must not outlive the case
     }
 
     "Handle Mqtt message for TYPE EMAIL" in withBroker(Map("topic1" -> 0)) { p =>
@@ -88,8 +90,9 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
 
       val stream = new MqttRequestStream(edaActorProbe.ref, transformerActorProbe.ref, storeActorProbe.ref)(f.system)
       val (probe, sink) = TestSink[MqttMessage]()(f.system.classicSystem).preMaterialize()
-      val ready = stream.runCommand(mqttSource, sink)
-      whenReady(ready) { _ =>
+      val stop = KillSwitches.shared("request-stream-spec")
+      val ready = stream.runCommand(mqttSource.via(stop.flow), sink)
+      try whenReady(ready) { _ =>
         publish(topic, testMsg)
 
         probe.request(1)
@@ -106,7 +109,7 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
 
         probe.requestNext().topic shouldBe "eda/response/myeeg/protocol/ec_req_onl"
 
-      }
+      } finally stop.shutdown() // runCommand restarts its source: the stream must not outlive the case
     }
 
     "Handle malformed Mqtt message" in withBroker(Map("topic1" -> 0)) { p =>
@@ -132,8 +135,9 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
 
       val stream = new MqttRequestStream(edaActorProbe.ref, transformerActorProbe.ref, storeActorProbe.ref)(f.system)
       val (probe, sink) = TestSink[MqttMessage]()(f.system.classicSystem).preMaterialize()
-      val ready = stream.runCommand(mqttSource, sink)
-      whenReady(ready) { _ =>
+      val stop = KillSwitches.shared("request-stream-spec")
+      val ready = stream.runCommand(mqttSource.via(stop.flow), sink)
+      try whenReady(ready) { _ =>
         publish(topic, testMsg)
 
         probe.request(1)
@@ -156,7 +160,7 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
         val testResponse = probe.requestNext()
         testResponse.topic shouldBe "eda/response/myeeg/protocol/error"
         testResponse.payload.utf8String shouldBe expectedPayload
-      }
+      } finally stop.shutdown() // runCommand restarts its source: the stream must not outlive the case
     }
 
     "Handle malformed EDA message" in withBroker(Map("topic1" -> 0)) { p =>
@@ -182,8 +186,9 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
 
       val stream = new MqttRequestStream(edaActorProbe.ref, transformerActorProbe.ref, storeActorProbe.ref)(f.system)
       val (probe, sink) = TestSink[MqttMessage]()(f.system.classicSystem).preMaterialize()
-      val ready = stream.runCommand(mqttSource, sink)
-      whenReady(ready) { _ =>
+      val stop = KillSwitches.shared("request-stream-spec")
+      val ready = stream.runCommand(mqttSource.via(stop.flow), sink)
+      try whenReady(ready) { _ =>
         publish(topic, testMsg)
 
         probe.request(1)
@@ -206,7 +211,7 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
         val testResponse = probe.requestNext()
         testResponse.topic shouldBe "eda/response/myeeg/protocol/error"
         testResponse.payload.utf8String shouldBe expectedPayload
-      }
+      } finally stop.shutdown() // runCommand restarts its source: the stream must not outlive the case
     }
 
   }

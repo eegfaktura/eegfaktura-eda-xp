@@ -16,20 +16,25 @@ import at.energydash.testsupport.KnownError.knownError
 import at.energydash.testsupport.{FakePonton, TestBroker, TestDb, Tenants}
 import io.circe.parser.parse
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, BehaviorInterceptor, TypedActorContext}
 import org.apache.pekko.stream.connectors.mqtt.scaladsl.MqttSource
 import org.apache.pekko.stream.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
+import org.apache.pekko.stream.KillSwitches
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.stream.testkit.scaladsl.TestSink
 import org.apache.pekko.util.ByteString
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.Eventually
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-/** M5: failure modes on actor and stream level (rows R1, R2, R4, R6, R7, R10, R11 of m05-robustness.md). */
-class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with EmbeddedDb with BeforeAndAfterEach {
+/** M5: failure modes on actor and stream level (rows R1, R2, R4, R6, R7, R10, R11 of m05-robustness.md; R13-R16 for 261005-ca3). */
+class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with EmbeddedDb with BeforeAndAfterEach with Eventually {
   private lazy val ponton = new FakePonton()(system)
   override def beforeEach(): Unit = { TestDb.reset(); TestDb.seedTenant("RC100401", "KEP"); ponton.reset() }
   override def afterAll(): Unit = { ponton.stop(); super.afterAll() }
@@ -61,7 +66,7 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   }
 
   "R4: a second update of a non-KEP tenant" should {
-    "keep the provider alive and answer ResponseOk [261005-ca3]" taggedAs Slow in knownError("261005-ca3") {
+    "keep the provider alive and answer ResponseOk [261005-ca3]" taggedAs Slow in {
       val provider = spawn(TenantProvider(createTestProbe[MqttCommand]().ref))
       provider ! TenantStart
       Tenants.awaitReady(provider, testKit)
@@ -73,6 +78,76 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       provider ! UpdateTenant(mail, reply.ref)
       reply.expectMessageType[ResponseOk](3.seconds)
       Tenants.awaitReady(provider, testKit) // still answering
+    }
+  }
+
+  "R13: a re-initialisation with a MAIL tenant" should {
+    "stop the old worker and keep the provider alive [261005-ca3]" taggedAs Slow in {
+      TestDb.seedTenant("RC100409", "MAIL")
+      val provider = spawn(TenantProvider(createTestProbe[MqttCommand]().ref))
+      provider ! TenantStart
+      Tenants.awaitReady(provider, testKit)
+      val oldWorker = Await.result(system.classicSystem.actorSelection(provider.path / "worker-RC100409-1")
+        .resolveOne(3.seconds), 5.seconds).toTyped[EdaCommand]
+      val watcher = createTestProbe[EdaCommand]()
+      provider ! TenantStart // the reload spawns a new worker for RC100409 while the first one may still run
+      watcher.expectTerminated(oldWorker, 5.seconds) // a mailbox is never polled by two workers
+      Tenants.awaitReady(provider, testKit)
+    }
+  }
+
+  // the provider as the service runs it fails on Fail (no message of the service fails it any more)
+  private case object Fail extends EdaCommand
+  private def failing(p: ActorRef[MqttCommand]): Behavior[EdaCommand] =
+    Behaviors.intercept(() => new BehaviorInterceptor[EdaCommand, EdaCommand] {
+      override def aroundReceive(ctx: TypedActorContext[EdaCommand], msg: EdaCommand,
+                                 target: BehaviorInterceptor.ReceiveTarget[EdaCommand]): Behavior[EdaCommand] =
+        if (msg == Fail) throw new IllegalStateException("test failure") else target(ctx, msg)
+    })(TenantProvider(p))
+
+  "R14: a request while the supervisor restarts the provider" should {
+    "be answered after the reload [261005-ca3]" taggedAs Slow in {
+      val provider = spawn(TenantProvider.supervised(createTestProbe[MqttCommand]().ref, failing)) // starts itself
+      Tenants.awaitReady(provider, testKit)
+      provider ! Fail
+      val reply = createTestProbe[EdaCommand]()
+      provider ! PassEdaCommand("not-a-tenant", ecp.copy(sender = "not-a-tenant"), reply.ref)
+      reply.expectMessageType[SendResponseError](10.seconds) // restart backoff 1 s, then the reload
+    }
+  }
+
+  "R15: requests that reach the provider during a supervisor restart" should {
+    "not send one whose caller has given up, but send a fresh one [261005-ca3]" taggedAs Slow in {
+      val provider = spawn(TenantProvider.supervised(createTestProbe[MqttCommand]().ref, failing)) // starts itself
+      Tenants.awaitReady(provider, testKit)
+      provider ! Fail
+      // created longer ago than the limit (its caller's ask has timed out), it waits through the restart
+      val stale = createTestProbe[EdaCommand]()
+      provider ! PassEdaCommand("RC100401", ecp, stale.ref,
+        createdAt = System.nanoTime() - (TenantProvider.QueuedRequestLimit + 1.second).toNanos)
+      val fresh = createTestProbe[EdaCommand]()
+      val ecp2 = ecp.copy(messageId = Some("RC100401209901010000000000000002"))
+      provider ! PassEdaCommand("RC100401", ecp2, fresh.ref)
+      stale.expectMessageType[SendResponseError](10.seconds) // restart backoff 1 s, then the reload
+      fresh.expectMessage(3.seconds, SendEdaResponse(ecp2))
+      ponton.requests should have size 1
+    }
+  }
+
+  "R16: an update whose mail worker cannot be started" should {
+    "be answered with an error and keep the provider alive [261005-ca3]" taggedAs Slow in {
+      val provider = spawn(TenantProvider(createTestProbe[MqttCommand]().ref))
+      provider ! TenantStart
+      Tenants.awaitReady(provider, testKit)
+      // a tenant name that is not a valid actor name
+      val bad = TenantConfig("RC/BAD", "MAIL", Some("email.com"), Some("email.com"), Some(143), Some("email.com"), Some(25),
+        Some("u"), Some("p"), Some("STARTTLS"), Some("STARTTLS"), active = true)
+      val added = createTestProbe[EdaCommand]()
+      provider ! AddTenant(bad, added.ref)
+      added.expectMessageType[ResponseError](3.seconds)
+      Tenants.awaitReady(provider, testKit)
+      provider ! TenantStart // the reload leaves the tenant out instead of failing
+      Tenants.awaitReady(provider, testKit)
     }
   }
 
@@ -135,35 +210,70 @@ class RobustnessUnitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       TestBroker.withBroker { _ =>
         val prepare = createTestProbe[PrepareMessageActor.Command[PrepareMessageActor.PrepareMessageResult]]()
         val settings = MqttConnectionSettings(TestBroker.Url, s"r2c-${System.nanoTime()}", new MemoryPersistence)
+        // the stream restarts its source: without the switch it would subscribe again on every later test broker
+        val stop = KillSwitches.shared("r2c")
         val subscribed = new MqttRequestStream(createTestProbe[EdaCommand]().ref, prepare.ref, createTestProbe[EdaCommand]().ref)(system)
-          .runCommand(MqttSource.atMostOnce(settings, MqttSubscriptions("eda/request", MqttQoS.AtLeastOnce), 10),
+          .runCommand(MqttSource.atMostOnce(settings, MqttSubscriptions("eda/request", MqttQoS.AtLeastOnce), 10).via(stop.flow),
             org.apache.pekko.stream.scaladsl.Sink.ignore)
-        Await.result(subscribed, 10.seconds)
         val client = new at.energydash.testsupport.MqttRecorder("none")
         try {
+          Await.result(subscribed, 10.seconds)
           client.publish("eda/request", """{"conversationId":"C","sender":"RC100401","receiver":"AT003000","messageCode":"ANFORDERUNG_ECP"}""")
           prepare.expectMessageType[PrepareMessage](3.seconds)
-        } finally client.close()
+          stop.shutdown() // the stream ends and is not restarted: nothing is taken any more
+          client.publish("eda/request", """{"conversationId":"C","sender":"RC100401","receiver":"AT003000","messageCode":"ANFORDERUNG_ECP"}""")
+          prepare.expectNoMessage(1.second)
+        } finally { stop.shutdown(); client.close() }
       }
     }
   }
 
   "R2: the broker is absent when the request stream starts" should {
-    "process requests once the broker is up [261005-ca2]" taggedAs Slow in knownError("261005-ca2") {
+    "process requests once the broker is up [261005-ca2]" taggedAs Slow in {
       val prepare = createTestProbe[PrepareMessageActor.Command[PrepareMessageActor.PrepareMessageResult]]()
       val settings = MqttConnectionSettings(TestBroker.Url, s"r2-${System.nanoTime()}", new MemoryPersistence)
         .withAutomaticReconnect(true).withCleanSession(false)
       val sink = org.apache.pekko.stream.scaladsl.Sink.ignore // unlimited demand
-      val subscribed = new MqttRequestStream(createTestProbe[EdaCommand]().ref, prepare.ref, createTestProbe[EdaCommand]().ref)(system)
-        .runCommand(MqttSource.atMostOnce(settings, MqttSubscriptions("eda/request", MqttQoS.AtLeastOnce), 10), sink)
-      Await.ready(subscribed, 10.seconds) // no broker: the subscription fails
-      TestBroker.withBroker { _ =>
-        val client = new at.energydash.testsupport.MqttRecorder("none")
-        try {
-          client.publish("eda/request", """{"conversationId":"C","sender":"RC100401","receiver":"AT003000","messageCode":"ANFORDERUNG_ECP"}""")
-          prepare.expectMessageType[PrepareMessage](3.seconds)
-        } finally client.close()
-      }
+      val stop = KillSwitches.shared("r2") // ends the restarting stream with the case
+      try {
+        val subscribed = new MqttRequestStream(createTestProbe[EdaCommand]().ref, prepare.ref, createTestProbe[EdaCommand]().ref)(system)
+          .runCommand(MqttSource.atMostOnce(settings, MqttSubscriptions("eda/request", MqttQoS.AtLeastOnce), 10).via(stop.flow), sink)
+        Await.ready(subscribed, 10.seconds) // no broker: the subscription fails
+        TestBroker.withBroker { _ =>
+          val client = new at.energydash.testsupport.MqttRecorder("none")
+          try {
+            // the stream subscribes on its next restart (backoff): a request published before that is not
+            // delivered (no session on the new broker), so publish until one is processed
+            eventually(timeout(10.seconds), interval(100.millis)) {
+              client.publish("eda/request", """{"conversationId":"C","sender":"RC100401","receiver":"AT003000","messageCode":"ANFORDERUNG_ECP"}""")
+              prepare.expectMessageType[PrepareMessage](500.millis)
+            }
+          } finally client.close()
+        }
+      } finally stop.shutdown()
+    }
+
+    "publish answers once the broker is up, through an MQTT response sink [261005-ca2]" taggedAs Slow in {
+      val prepare = createTestProbe[PrepareMessageActor.Command[PrepareMessageActor.PrepareMessageResult]]()
+      val settings = MqttConnectionSettings(TestBroker.Url, s"r2s-${System.nanoTime()}", new MemoryPersistence)
+        .withAutomaticReconnect(true).withCleanSession(false)
+      val sink = org.apache.pekko.stream.connectors.mqtt.scaladsl.MqttSink(settings.withClientId(s"${settings.clientId}/pong"), MqttQoS.AtLeastOnce)
+      val stop = KillSwitches.shared("r2s") // ends the restarting stream (and with it the sink) with the case
+      try {
+        val subscribed = new MqttRequestStream(createTestProbe[EdaCommand]().ref, prepare.ref, createTestProbe[EdaCommand]().ref)(system)
+          .runCommand(MqttSource.atMostOnce(settings, MqttSubscriptions("eda/request", MqttQoS.AtLeastOnce), 10).via(stop.flow), sink)
+        Await.ready(subscribed, 10.seconds) // no broker: source and sink fail
+        TestBroker.withBroker { _ =>
+          val client = new at.energydash.testsupport.MqttRecorder("eda/response/#")
+          try {
+            // malformed JSON is answered with an error JSON on eda/response/error, through the sink
+            eventually(timeout(10.seconds), interval(100.millis)) {
+              client.publish("eda/request", "{not json")
+              client.next(500.millis).map(_.topic) shouldBe Some("eda/response/error")
+            }
+          } finally client.close()
+        }
+      } finally stop.shutdown()
     }
   }
 }

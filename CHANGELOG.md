@@ -9,6 +9,28 @@ this changelog highlights the changes relevant for overview and operations.
 ## [Unreleased]
 
 ### Fixed
+- **The tenant provider survives a second update of a mail tenant and is supervised** (eegfaktura-dev tracking
+  261005-ca3). A second register/update of a tenant with type MAIL (or an empty type) spawned the new mail worker
+  under the name of the old one before it had stopped; the provider failed, ran without supervision and stayed
+  dead, so every outbound EDA request timed out after 30 s until the pod was restarted. Mail workers now get a
+  unique name (`worker-<tenant>-<n>`); a reload of the tenants stops the running mail workers first, so a mailbox
+  is never polled by two workers; a tenant whose worker cannot be started is logged and left out of the load, and an
+  update for it is answered with an error (before, the update was confirmed and the provider failed afterwards). The
+  provider is restarted with backoff (1 s up to 30 s) after a failure and then loads its tenants
+  again; it starts that load itself when it is created instead of on the supervisor's `Start`. Requests that arrive
+  while it restarts or loads are queued and answered after the load; a request older than 25 s, counted from its
+  creation in the request stream (which waits 30 s for the answer), is answered with an error and not sent, so a
+  request its caller has given up on never reaches Ponton or the mail server later. The 5 s retry after a failed load no longer outlives a restart.
+  Apart from those stale requests, what is sent to Ponton or by mail is unchanged.
+- **The outbound request listener restarts after a failure** (eegfaktura-dev tracking 261005-ca2). When the MQTT
+  broker was unreachable at the first connect, or a subscribe or a publish of an answer failed, the `eda/request`
+  listener stopped and no outbound EDA request was processed again until the pod was restarted, while the pod
+  stayed healthy. The MQTT source and the response sink now restart with backoff (1 s up to 30 s). Not covered:
+  a lost connection is handled by the client's automatic reconnect and does not fail the stream, so after a
+  mosquitto restart without the persisted session the listener reconnects but does not subscribe again
+  (platform#171, still open: restart the xp-adapter after a mosquitto restart). Topics, payloads, QoS, client ids
+  and what is sent to Ponton are unchanged; the source stays at-most-once (a request in flight during a crash is
+  still lost).
 - **CI: the Snyk Code scan fails visibly when it cannot run.** An invalid `SNYK_TOKEN` ended the weekly and
   push scan green without any result (`continue-on-error`); now only „issues found“ keeps the run green (the
   issues go to Code Scanning), an authentication or tool error fails it. The Snyk CLI is pinned to 1.1308.1

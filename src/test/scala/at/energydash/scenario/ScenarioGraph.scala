@@ -55,7 +55,9 @@ final class ScenarioGraph(name: String, journal: String) {
   private val binding = Await.result(Http().newServerAt("127.0.0.1", 0).bind(routes), 10.seconds)
   val baseUrl: String = s"http://127.0.0.1:${binding.localAddress.getPort}"
 
-  def start(): this.type = {
+  // the request stream restarts its source and sink: a graph that fails to start is stopped here, since the
+  // caller never gets it to stop, or its stream would subscribe again on every later test broker
+  def start(): this.type = try {
     tenants ! TenantStart
     Tenants.awaitReady(tenants, kit)
     val stream = MqttRequestStream(tenants, prepare, conversations)
@@ -64,6 +66,8 @@ final class ScenarioGraph(name: String, journal: String) {
       MqttSink(settings.withClientId(s"$client/pong"), MqttQoS.atLeastOnce))
     Await.result(subscribed, 10.seconds)
     this
+  } catch {
+    case e: Throwable => scala.util.Try(stop()); throw e
   }
 
   def stop(): Unit = { Await.ready(binding.unbind(), 10.seconds); kit.shutdownTestKit() }

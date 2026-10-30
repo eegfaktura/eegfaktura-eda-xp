@@ -3,9 +3,9 @@ package at.energydash.stream
 import org.apache.pekko.actor.typed.{ActorRef, ActorSystem}
 import org.apache.pekko.stream.connectors.mqtt.scaladsl.{MqttSink, MqttSource}
 import org.apache.pekko.stream.connectors.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
-import org.apache.pekko.stream.scaladsl.{Flow, Sink, Source}
+import org.apache.pekko.stream.scaladsl.{Flow, RestartSink, RestartSource, Sink, Source}
 import org.apache.pekko.stream.typed.scaladsl.ActorFlow
-import org.apache.pekko.stream.{ActorAttributes, Supervision}
+import org.apache.pekko.stream.{ActorAttributes, RestartSettings, Supervision}
 import org.apache.pekko.util.{ByteString, Timeout}
 import org.apache.pekko.{Done, NotUsed}
 import at.energydash.actors.ConversationEntity.{InitConversation, InitDone}
@@ -21,7 +21,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 
 class MqttRequestStream(tenantService: ActorRef[EdaCommand],
                         messageTransformer: ActorRef[PrepareMessageActor.Command[PrepareMessageActor.PrepareMessageResult]],
@@ -80,7 +80,7 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
       .via(storeMessageFlow)
       .via(
         ActorFlow.ask(parallelism = 1)(tenantService)((msg: EbMsMessage, replyTo: ActorRef[EdaCommand]) =>
-          PassEdaCommand(msg.sender, msg, replyTo))(30.seconds).collect {
+          PassEdaCommand(msg.sender, msg, replyTo, createdAt = System.nanoTime()))(TenantProvider.PassAskTimeout).collect {
           case SendEdaResponse(msg) => msg
           case err: SendResponseError =>
             throw MqttException(MqttMessage(
@@ -113,7 +113,19 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
     }
 
     logger.info("Start EDA command listener")
-    source.throttle(5, 1.second)
+    // 261005-ca2: a failed source or response sink (broker unreachable at the first connect, subscribe or
+    // publish failure) is started again with backoff instead of ending the listener. A lost connection does not
+    // fail the stage (automatic reconnect), so a reconnect without re-subscribe is not covered (platform#171).
+    // The returned Future is the first subscription.
+    val restartSettings = RestartSettings(1.second, 30.seconds, 0.2)
+    val firstSubscription = Promise[Done]()
+    RestartSource.onFailuresWithBackoff(restartSettings) { () =>
+      source.mapMaterializedValue { subscribed =>
+        subscribed.failed.foreach(e => logger.warn(s"EDA command listener: subscription failed, restarting with backoff - ${e.getMessage}"))
+        firstSubscription.tryCompleteWith(subscribed)
+        NotUsed
+      }
+    }.throttle(5, 1.second)
       .map(msg => msg.payload.utf8String)
 //      .map(msg => {
 //        println(s"MSG: $msg")
@@ -125,9 +137,10 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
         logger.debug(s"Answer Message to -> ${msg.topic}")
         msg
       })
-      .to(responseSink)
+      .to(RestartSink.withBackoff(restartSettings)(() => responseSink))
       .withAttributes(ActorAttributes.supervisionStrategy(decider))
       .run()
+    firstSubscription.future
   }
 }
 
