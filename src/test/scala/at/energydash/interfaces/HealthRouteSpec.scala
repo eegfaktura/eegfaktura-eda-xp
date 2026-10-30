@@ -11,7 +11,7 @@ import org.apache.pekko.http.scaladsl.server.Directives._
 import org.apache.pekko.http.scaladsl.unmarshalling.Unmarshal
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 
@@ -27,9 +27,8 @@ class HealthRouteSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
     """slick.pgsql.local.db.url = "jdbc:postgresql://127.0.0.1:1/postgres"""").withFallback(system.settings.config))
 
   /** Binds the Ponton routes and the health routes with `ready`, runs `f` on the base URL, unbinds. */
-  private def withServer[T](ready: () => Future[Unit], timeout: FiniteDuration = HealthRoute.ReadyTimeout,
-                            reuseFor: FiniteDuration = HealthRoute.ReuseFor)(f: String => T): T = {
-    val routes = ponton ~ new HealthRoute(ready, timeout, reuseFor)(system).healthRoutes
+  private def withServer[T](ready: () => Future[Unit], timeout: FiniteDuration = HealthRoute.ReadyTimeout)(f: String => T): T = {
+    val routes = ponton ~ new HealthRoute(ready, timeout)(system).healthRoutes
     val binding = Await.result(Http()(system).newServerAt("127.0.0.1", 0).bind(routes), 10.seconds)
     try f(s"http://127.0.0.1:${binding.localAddress.getPort}") finally Await.ready(binding.unbind(), 10.seconds)
   }
@@ -63,9 +62,9 @@ class HealthRouteSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       val refused = intercept[java.sql.SQLException](java.sql.DriverManager.getConnection(
         s"jdbc:postgresql://127.0.0.1:${TestDb.Port}/postgres", "readyz_full", "x").close())
       refused.getSQLState shouldBe HealthRoute.TooManyConnections
-      withServer(saturated) { base =>
+      try withServer(saturated) { base =>
         call(HttpMethods.GET, s"$base/readyz") shouldBe (StatusCodes.OK, "ok")
-      }
+      } finally TestDb.exec("DROP ROLE readyz_full")
     }
     "answer 503 when the check does not finish within the timeout" in
       withServer(() => Promise[Unit]().future, timeout = 300.millis) { base =>
@@ -75,28 +74,47 @@ class HealthRouteSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       withServer(() => throw new IllegalStateException("driver missing")) { base =>
         call(HttpMethods.GET, s"$base/readyz") shouldBe (StatusCodes.ServiceUnavailable, "unavailable")
       }
-    "run one check for concurrent calls and share its result" in {
+  }
+
+  "The shared readiness check" should {
+    /** A HealthRoute on a clock the test moves (nanoseconds); `ready` counts its starts. */
+    class Fixture(result: () => Future[Unit]) {
+      val clock = new AtomicLong(0L)
       val started = new AtomicInteger()
+      val route = new HealthRoute(() => { started.incrementAndGet(); result() }, now = () => clock.get())(system)
+      def advance(d: FiniteDuration): Unit = clock.addAndGet(d.toNanos)
+    }
+
+    "run one check for concurrent calls and give them its result" in {
       val gate = Promise[Unit]()
-      // no reuse after completion: only the running check is shared; 4 calls fit the client's connection pool
-      withServer(() => { started.incrementAndGet(); gate.future }, reuseFor = Duration.Zero) { base =>
-        val calls = (1 to 4).map(_ => send(HttpRequest(uri = s"$base/readyz")))
-        Thread.sleep(500)
-        gate.success(())
-        Await.result(Future.sequence(calls), 15.seconds).foreach(_ shouldBe (StatusCodes.OK, "ok"))
-        started.get() shouldBe 1
-      }
+      val f = new Fixture(() => gate.future)
+      val first = f.route.shared()
+      f.advance(HealthRoute.ReuseFor * 2) // past reuseFor, but still running
+      val calls = first +: (1 to 4).map(_ => f.route.shared())
+      f.started.get() shouldBe 1
+      gate.success(())
+      Await.result(Future.sequence(calls), 5.seconds)
+      f.started.get() shouldBe 1
     }
     "reuse a result younger than reuseFor and check again after it" in {
-      val started = new AtomicInteger()
-      withServer(() => { started.incrementAndGet(); Future.unit }, reuseFor = 1.second) { base =>
-        call(HttpMethods.GET, s"$base/readyz") shouldBe (StatusCodes.OK, "ok")
-        call(HttpMethods.GET, s"$base/readyz") shouldBe (StatusCodes.OK, "ok")
-        started.get() shouldBe 1
-        Thread.sleep(1100)
-        call(HttpMethods.GET, s"$base/readyz") shouldBe (StatusCodes.OK, "ok")
-        started.get() shouldBe 2
-      }
+      val f = new Fixture(() => Future.unit)
+      Await.result(f.route.shared(), 5.seconds)
+      f.advance(HealthRoute.ReuseFor - 1.milli)
+      Await.result(f.route.shared(), 5.seconds)
+      f.started.get() shouldBe 1
+      f.advance(1.milli)
+      Await.result(f.route.shared(), 5.seconds)
+      f.started.get() shouldBe 2
+    }
+    "start a new check when the running one hangs longer than staleAfter" in {
+      val f = new Fixture(() => Promise[Unit]().future)
+      val hung = f.route.shared()
+      f.advance(HealthRoute.StaleAfter - 1.milli)
+      f.route.shared() shouldBe theSameInstanceAs(hung)
+      f.started.get() shouldBe 1
+      f.advance(1.milli)
+      f.route.shared() should not be theSameInstanceAs(hung)
+      f.started.get() shouldBe 2
     }
   }
 

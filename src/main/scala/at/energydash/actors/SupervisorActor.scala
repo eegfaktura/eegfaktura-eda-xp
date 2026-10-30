@@ -1,7 +1,7 @@
 package at.energydash.actors
 
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior}
+import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior, DispatcherSelector}
 import org.apache.pekko.http.scaladsl.server.Directives._
 import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.http.scaladsl.Http
@@ -74,7 +74,7 @@ object SupervisorActor {
         }
       val fileService = FileService(system, mqttPublisher)
       val adminRoutes = new ServiceRoute(fileService, maxBodyBytes)
-      val healthRoutes = new HealthRoute(HealthRoute.databaseCheck(Config.config)(system.executionContext))
+      val healthRoutes = new HealthRoute(HealthRoute.databaseCheck(Config.config)(system.dispatchers.lookup(DispatcherSelector.blocking())))
       //      val pontonPublisher = ctx.spawn(PontonService(), name = "ponton-service")
 
       def process(): Behavior[Command] =
