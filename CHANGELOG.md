@@ -8,6 +8,23 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Added
+- **Health endpoints `GET /healthz` and `GET /readyz` for Kubernetes probes** on the HTTP port 6090, next to
+  `/pontonxp/…` and `/admin/upload`. `/healthz` answers `ok` without checking anything (liveness, so a database
+  outage never restarts the pod). `/readyz` answers `ok` when the database answers `SELECT 1`, otherwise 503
+  `unavailable`; the route answers after 2 s at the latest. The check opens a connection of its own (not the
+  service's pools) on the blocking-io dispatcher, with 2 s driver timeouts for connect/login and for the query
+  (about 4 s at worst), and closes it again. One check runs at a time; concurrent calls and calls within 1 s share
+  its result, and a check still running after 10 s counts as failed so the next call starts a new one. A refusal
+  as one connection too many (SQLSTATE 53300) counts as ready: the service's pools still have their connections.
+  Failures are logged at warn with the exception and its cause, on a change and at most once a minute while they
+  last. The MQTT connection is not part of it: the client reconnects by itself and its state is not tracked where
+  the route could read it. Both endpoints are unauthenticated, like every route on this port. No readinessProbe
+  for now: a NotReady pod would leave both Services with the same selector — Ponton inbound on 6090/NodePort
+  32369 and the gRPC service `eegfaktura-xp-adapter-grpc` on 9093 (SendMail/RegisterPonton from backend,
+  energystore, admin-backend) — and whether Ponton redelivers after a refused connection is still open
+  (eegfaktura-dev tracking 261005-ca1).
+
 ### Fixed
 - **The tenant provider survives a second update of a mail tenant and is supervised** (eegfaktura-dev tracking
   261005-ca3). A second register/update of a tenant with type MAIL (or an empty type) spawned the new mail worker
@@ -42,6 +59,10 @@ this changelog highlights the changes relevant for overview and operations.
   the push credentials. Now every action is pinned to a commit, the same SHAs `pr-checks.yml` and `security-scan.yml` already
   use where the action is the same, otherwise the commit the floating tag pointed to on 2026-10-28. Java is fixed to
   `17.0.19+10` and `setup-java` moves from v4 to v6.0.1, both as in `pr-checks.yml`.
+
+### Tests
+- **The golden-file guard passes on Windows** (eegfaktura-dev tracking 261030-mm1): it listed the golden files with
+  `\` separators there and reported every one as orphan; the relative names now always use `/`.
 
 ## [1.2.0] – 2026-10-26
 

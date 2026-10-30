@@ -1,11 +1,11 @@
 package at.energydash.actors
 
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior}
+import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior, DispatcherSelector}
 import org.apache.pekko.http.scaladsl.server.Directives._
 import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.http.scaladsl.Http
-import at.energydash.actors.http.{BodySizeLimit, InboundForwarding, PontonRoute, ServiceRoute}
+import at.energydash.actors.http.{BodySizeLimit, HealthRoute, InboundForwarding, PontonRoute, ServiceRoute}
 import at.energydash.config.Config
 import at.energydash.mqtt.MqttSystem
 import at.energydash.service.FileService
@@ -74,6 +74,7 @@ object SupervisorActor {
         }
       val fileService = FileService(system, mqttPublisher)
       val adminRoutes = new ServiceRoute(fileService, maxBodyBytes)
+      val healthRoutes = new HealthRoute(HealthRoute.databaseCheck(Config.config)(system.dispatchers.lookup(DispatcherSelector.blocking())))
       //      val pontonPublisher = ctx.spawn(PontonService(), name = "ponton-service")
 
       def process(): Behavior[Command] =
@@ -84,7 +85,7 @@ object SupervisorActor {
 //            adapter.sendTest()
             mqttRequestStream.startCommand()
 
-            startHttpServer(routes.pontonRoutes ~ adminRoutes.adminRoutes)
+            startHttpServer(routes.pontonRoutes ~ adminRoutes.adminRoutes ~ healthRoutes.healthRoutes)
             startGRPCServer(tenantProvider)
 
 //            val edaMessage = EbMsMessage(

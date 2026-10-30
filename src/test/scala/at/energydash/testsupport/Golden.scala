@@ -37,7 +37,7 @@ object Golden extends Assertions {
   /** Every golden file, as relative paths (guard: no orphans). */
   def all: Set[String] = {
     def walk(f: File): Seq[File] = if (f.isDirectory) f.listFiles().toSeq.flatMap(walk) else Seq(f)
-    if (!Root.isDirectory) Set.empty else walk(Root).map(f => Root.toPath.relativize(f.toPath).toString).toSet
+    if (!Root.isDirectory) Set.empty else walk(Root).map(f => Root.toPath.relativize(f.toPath).toString.replace(File.separatorChar, '/')).toSet
   }
 
   private def firstDiff(expected: String, actual: String): String = {

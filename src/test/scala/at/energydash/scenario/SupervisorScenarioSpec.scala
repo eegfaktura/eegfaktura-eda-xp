@@ -85,6 +85,14 @@ class SupervisorScenarioSpec extends ScalaTestWithActorTestKit with AnyWordSpecL
       val (_, receiver) = Fixtures.routing(doc)
       await(s"eda/response/${receiver.toLowerCase}/protocol/cr_msg")
     }
+    "answer GET /healthz and /readyz on the HTTP port, the database being up" in {
+      awaitBound()
+      Seq("/healthz", "/readyz").foreach { path =>
+        val res = Await.result(Http()(system).singleRequest(HttpRequest(uri = s"$base$path")), 15.seconds)
+        res.discardEntityBytes()(Materializer(system))
+        withClue(path)(res.status shouldBe StatusCodes.OK)
+      }
+    }
     "answer the gRPC register call on 127.0.0.1:19093" in {
       awaitBound()
       val client = RegisterPontonServiceClient(GrpcClientSettings.connectToServiceAt("127.0.0.1", 19093)(system).withTls(false))(system)
