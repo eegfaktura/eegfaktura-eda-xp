@@ -128,12 +128,12 @@ Every line goes through one encoder (`src/main/resources/logback.xml`, `at.energ
   when run from source): a plain line for reading in a terminal.
 - `LOG_LEVEL` — `trace`, `debug`, `info` (default), `warn`, `error`; `SLICK_LOG_LEVEL` the same for the `slick`
   loggers only. An unknown value stops the start (exit code 2); an empty value means the default.
-- `SERVICE_VERSION` — set by the image build (release for a tag, else the commit); `dev` otherwise.
+- `SERVICE_VERSION` — set by the image build (the tag, else the commit, which a retagged image keeps); `dev` otherwise.
 - Access line (`event.action=http.access`, logger `at.energydash.access`): one line per request on port 6090 with
   method, route, status, `event.outcome`, `event.duration` (ns), `request.id` (`X-Request-Id`, also returned),
   `client.id=ponton` on `/pontonxp/*`, and `tenant.id`/`eda.conversation_id` once the message is parsed. Never an
   IP, user agent, query or body. `/healthz` and `/readyz` are not logged.
-- Never logged: EDA XML, MQTT payloads, mail bodies/attachments, e-mail addresses.
+- Never logged: EDA XML, MQTT payloads, mail bodies/attachments, e-mail addresses of members.
 
 Exposed ports: **6090** (HTTP), **9093** (gRPC). Volumes: `/conf`, `/storage/prod`.
 

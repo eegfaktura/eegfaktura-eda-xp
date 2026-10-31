@@ -40,13 +40,13 @@ this changelog highlights the changes relevant for overview and operations.
     the start** (exit code 2, message on stderr); an empty value means the default, as in the other services.
   - `SLICK_LOG_LEVEL`: same values, now only for the `slick` loggers. Before, it set the root level of the whole
     service (a second `<root>` in `logback.xml`, tracking 261008-ca6); prod and pilot do not set it.
-  - `SERVICE_VERSION` → `service.version`: set in the image by the build (the release for a tag build, the commit
-    for any other CI build); `dev` otherwise.
+  - `SERVICE_VERSION` → `service.version`: set in the image by the build (the tag for a tag build, the commit for
+    any other CI build, which a retagged release image keeps); `dev` otherwise.
   No new dependency: the encoder is our own (`at.energydash.logging`), on logback-classic and jackson-core already
   in the build.
 - **One access line per HTTP request on port 6090** (`event.action=http.access`, logger `at.energydash.access`):
   `http.request.method`, `http.route` (the route path, e.g. `/pontonxp/message`; missing for unknown paths, the
-  message then shows `-`), `http.response.status_code`, `event.outcome` (`success`; `failure` for ≥ 400),
+  message then shows `-`), `http.response.status_code`, `event.outcome` (`success`; `refused` for 401/403; `failure` for other ≥ 400),
   `event.duration` in nanoseconds, `request.id`, `client.id` (`ponton` on `/pontonxp/*`; this port has no token, so
   the route's fixed caller; none on `/admin/upload`), and once an inbound message is parsed `tenant.id` (its
   receiver) and `eda.conversation_id`. No IP, user agent, query or body (no user tracking, decided 2026-10-29);
@@ -62,7 +62,7 @@ this changelog highlights the changes relevant for overview and operations.
   document scalaxb puts into its message (also in the publisher's error line; the exception is no longer attached).
 - **No SOAP body, headers, mail attachment or whole EDA message at debug** (tracking 261008-ca6): the KEP client and
   the mail worker log sizes, message code and conversation id instead.
-- **No e-mail addresses in the send-mail log**: the gRPC `SendMailService` (mails of the backend to members) logged
+- **No e-mail addresses in the send-mail log** (tracking 261031-mm1): the gRPC `SendMailService` (mails of the backend to members) logged
   recipient and cc at info and javax.mail's error text with the address; now the subject only, and the error with
   the addresses replaced by `<address>`.
 - A `println` of a document build error went to stdout next to the logged error; removed.

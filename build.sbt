@@ -77,13 +77,13 @@ lazy val dockerSettings = Seq(
     case ExecCmd("ENTRYPOINT", _) => true
     case cmd => false
   },
-  // LOG_FORMAT/SERVICE_VERSION: JSON log lines in the image, service.version = the release for a tag build,
-  // the commit for any other CI build, the sbt version for a local image build
+  // LOG_FORMAT/SERVICE_VERSION: JSON log lines in the image, service.version = the tag for a tag build, the commit
+  // for any other CI build (a retagged image keeps it), the sbt version for a local image build
   dockerEnvVars := Map("TZ" -> "Europe/Vienna", "JAVA_OPTS" -> "-Xmx4g", "LOG_FORMAT" -> "json",
     "SERVICE_VERSION" -> {
       val v = (ThisBuild / version).value.stripPrefix("v")
-      if (sys.env.getOrElse("GITHUB_REF", "").startsWith("refs/tags/")) v
-      else sys.env.get("GITHUB_SHA").filter(_.nonEmpty).getOrElse(v)
+      val tag = sys.env.get("GITHUB_REF_NAME").filter(_ => sys.env.getOrElse("GITHUB_REF", "").startsWith("refs/tags/"))
+      tag.map(_.stripPrefix("v")).orElse(sys.env.get("GITHUB_SHA").filter(_.nonEmpty)).getOrElse(v)
     }),
   dockerCommands ++= Seq(
     Cmd("LABEL", s"""version="${ThisBuild / version}""""),
