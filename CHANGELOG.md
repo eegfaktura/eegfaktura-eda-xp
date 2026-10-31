@@ -63,8 +63,9 @@ this changelog highlights the changes relevant for overview and operations.
 - **No SOAP body, headers, mail attachment or whole EDA message at debug** (tracking 261008-ca6): the KEP client and
   the mail worker log sizes, message code and conversation id instead.
 - Security relevant, details not published: tracking 261031-mm2 and 261031-mm3. The send-mail log now has neither the
-  subject nor a rejected recipient, and a request that cannot be decoded is logged with the JSON path only; the MQTT
-  error message and the gRPC reply are unchanged.
+  subject nor a rejected recipient, and a request that cannot be decoded is logged with the JSON path only; for a
+  request that cannot be decoded the MQTT error message is unchanged, and so is the gRPC reply. The MQTT text
+  `Domain missing for sending mail.` now names the tenant only.
 - **No e-mail addresses in the send-mail log** (tracking 261031-mm1): the gRPC `SendMailService` (mails of the backend to members) logged
   recipient and cc at info and javax.mail's error text with the address; now neither, and the error with
   the addresses replaced by `<address>`.

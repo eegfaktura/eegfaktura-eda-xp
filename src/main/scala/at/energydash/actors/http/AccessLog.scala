@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * caller of the route (`ponton` for `/pontonxp/…`), `tenant.id` and `eda.conversation_id` are set by the route once
  * it has parsed the message ([[AccessLog.Context]]). No user, IP, user agent, query or body (no user tracking,
  * 2026-10-29). The probe paths are not logged. On a request timeout the line has the 503 the caller gets, even if the
- * route finishes later. A connection the client drops before the response gets no line.
+ * route finishes later. If the client drops the connection, the line has what the route or the timeout produced.
  */
 object AccessLog {
   val RequestIdHeader = "X-Request-Id"
