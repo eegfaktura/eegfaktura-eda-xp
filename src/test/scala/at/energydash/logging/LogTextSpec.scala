@@ -28,6 +28,15 @@ class LogTextSpec extends AnyWordSpec with Matchers {
     }
   }
 
+  "carriesDocument" should {
+    "find a parser failure, also as a cause, and nothing else" in {
+      LogText.carriesDocument(new RuntimeException(failure)) shouldBe true
+      LogText.carriesDocument(new RuntimeException("wrapped", new RuntimeException(failure))) shouldBe true
+      LogText.carriesDocument(new MatchError("X")) shouldBe false
+      LogText.carriesDocument(new RuntimeException(null: String)) shouldBe false
+    }
+  }
+
   "withoutEmailAddresses" should {
     "replace every address" in {
       LogText.withoutEmailAddresses("Invalid Addresses: member@email.com, <cc@email.com>") shouldBe "Invalid Addresses: <address>, <<address>>"

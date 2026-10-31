@@ -111,8 +111,9 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
           // MessageCode): keep the 500 so Ponton holds it and redelivers it after a fix
           // (team decision, platform#111 ca11). Only unknown document types are
           // acknowledged above, because eda-xp can never process them.
-          // no exception attached: scalaxb puts the whole document into its message (261005-ca14)
-          logger.error(s"Error while parsing message from edaAdapter: ${LogText.errorText(ex)}")
+          // no exception attached when it holds the document: scalaxb's message does (261005-ca14)
+          val text = s"Error while parsing message from edaAdapter: ${LogText.errorText(ex)}"
+          if (LogText.carriesDocument(ex)) logger.error(text) else logger.error(text, ex)
           mqttPublisher ! MqttPublishError("NotSpecified", ex.getMessage)
           complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
         }

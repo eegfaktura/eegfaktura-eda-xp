@@ -19,6 +19,10 @@ object LogText {
       case i => "Error while parsing the document:" + message.substring(i + 1)
     }
 
+  /** `true` when the error or one of its causes has the document in its message (scalaxb's `ParserFailure`). */
+  def carriesDocument(ex: Throwable): Boolean =
+    Iterator.iterate(ex)(_.getCause).takeWhile(_ != null).take(16).exists(e => Option(e.getMessage).exists(_.startsWith(ParserFailurePrefix)))
+
   def errorText(ex: Throwable): String = s"${ex.getClass.getName}: ${errorText(ex.getMessage)}"
 
   private val EmailAddress = """[^\s<>"'`(),;:]+@[^\s<>"'`(),;:]+""".r
