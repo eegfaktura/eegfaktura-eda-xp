@@ -8,6 +8,8 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.3.0] – 2026-10-31
+
 ### Added
 - **Health endpoints `GET /healthz` and `GET /readyz` for Kubernetes probes** on the HTTP port 6090, next to
   `/pontonxp/…` and `/admin/upload`. `/healthz` answers `ok` without checking anything (liveness, so a database
