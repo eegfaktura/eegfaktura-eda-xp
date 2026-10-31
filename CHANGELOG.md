@@ -40,8 +40,9 @@ this changelog highlights the changes relevant for overview and operations.
     the start** (exit code 2, message on stderr); an empty value means the default, as in the other services.
   - `SLICK_LOG_LEVEL`: same values, now only for the `slick` loggers. Before, it set the root level of the whole
     service (a second `<root>` in `logback.xml`, tracking 261008-ca6); prod and pilot do not set it.
-  - `SERVICE_VERSION` → `service.version`: set in the image by the build (the tag for a tag build, the commit for
-    any other CI build, which a retagged release image keeps); `dev` otherwise.
+  - `SERVICE_VERSION` → `service.version`: set in the image by the build (the version without `v` for a tag build, the commit
+    for any other CI build, which a retagged release image keeps; the sbt version for a local image build); `dev` when
+    run from source.
   No new dependency: the encoder is our own (`at.energydash.logging`), on logback-classic and jackson-core already
   in the build.
 - **One access line per HTTP request on port 6090** (`event.action=http.access`, logger `at.energydash.access`):
@@ -116,6 +117,8 @@ this changelog highlights the changes relevant for overview and operations.
   - A write timeout makes JavaMail close the connection; it is answered like every other error with `500`.
   - Before, none of these cases got an answer before the backend's deadline. A backend without #132 treats every
     status other than 200, including 202, as a failed send.
+  - **Rollout: this release before backend 1.14.0.** With an old eda-xp, which has no SMTP timeouts, a relay hanging
+    before DATA runs into the backend's 30 s and reads as "vermutlich verschickt", although nothing was delivered.
 
 ### Security
 - **CI: the release workflow pins its actions by commit SHA** (eegfaktura-dev tracking W-261028-mm6). `rolling-release.yml`
