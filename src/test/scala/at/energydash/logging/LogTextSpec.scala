@@ -23,8 +23,25 @@ class LogTextSpec extends AnyWordSpec with Matchers {
       LogText.errorText("Connection refused") shouldBe "Connection refused"
       LogText.errorText(null: String) shouldBe ""
     }
+    "use the last marker, so a document with the marker text stays out" in {
+      val text = LogText.errorText("""Error while parsing <a>AT00: parser error secret</a>: parser error "bad" while parsing /a""")
+      text shouldBe """Error while parsing the document: parser error "bad" while parsing /a"""
+    }
     "name the exception class" in {
       LogText.errorText(new IllegalStateException(failure)) should startWith("java.lang.IllegalStateException: Error while parsing the document: parser error")
+    }
+  }
+
+  "decodeError" should {
+    val meter = "AT0030000000000000000000000526178"
+    "name the path and not the value of a decoding failure" in {
+      val error = io.circe.parser.decode[Map[String, List[String]]](s"""{"meterList":{"meteringPoint":"$meter"}}""").swap.toOption.get
+      error.getMessage should include(meter)
+      LogText.decodeError(error) shouldBe "Request cannot be decoded at .meterList"
+    }
+    "not quote text that is no JSON" in {
+      val error = io.circe.parser.decode[List[String]](s"$meter}").swap.toOption.get
+      LogText.decodeError(error) shouldBe "Request is not valid JSON"
     }
   }
 

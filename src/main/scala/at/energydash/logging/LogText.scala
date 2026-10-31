@@ -1,5 +1,7 @@
 package at.energydash.logging
 
+import io.circe.{CursorOp, DecodingFailure, ParsingFailure}
+
 /** Error texts that are safe for the log (never-log rule: no EDA payloads). */
 object LogText {
 
@@ -14,7 +16,7 @@ object LogText {
   def errorText(message: String): String =
     if (message == null) ""
     else if (!message.startsWith(ParserFailurePrefix)) message
-    else message.indexOf(ParserErrorMarker) match {
+    else message.lastIndexOf(ParserErrorMarker) match {
       case -1 => "Error while parsing the document (content not logged)"
       case i => "Error while parsing the document:" + message.substring(i + 1)
     }
@@ -24,6 +26,12 @@ object LogText {
     Iterator.iterate(ex)(_.getCause).takeWhile(_ != null).take(16).exists(e => Option(e.getMessage).exists(_.startsWith(ParserFailurePrefix)))
 
   def errorText(ex: Throwable): String = s"${ex.getClass.getName}: ${errorText(ex.getMessage)}"
+
+  /** A failed JSON decode without the value: circe's message quotes the offending value (a metering point, say). */
+  def decodeError(error: io.circe.Error): String = error match {
+    case failure: DecodingFailure => s"Request cannot be decoded at ${CursorOp.opsToPath(failure.history)}"
+    case _: ParsingFailure => "Request is not valid JSON"
+  }
 
   private val EmailAddress = """[^\s<>"'`(),;:]+@[^\s<>"'`(),;:]+""".r
 

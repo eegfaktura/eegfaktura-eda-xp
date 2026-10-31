@@ -13,7 +13,7 @@ import at.energydash.actors._
 import at.energydash.config.Config
 import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
 import at.energydash.domain.{DefaultEbMsMessage, EbMsMessage}
-import at.energydash.logging.LogFields
+import at.energydash.logging.{LogFields, LogText}
 import at.energydash.mqtt.path.MqttPaths
 import io.circe.generic.auto._
 import io.circe.parser.decode
@@ -45,7 +45,7 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
       case Right(m) => m
       case Left(error) => throw MqttException(
         MqttMessage(s"${Config.errorTopic}",
-          ByteString(DefaultEbMsMessage.Error("Parse Payload", Some(error.getMessage)).asJson.toString())), error.getMessage)
+          ByteString(DefaultEbMsMessage.Error("Parse Payload", Some(error.getMessage)).asJson.toString())), LogText.decodeError(error))
     })
   }
 
