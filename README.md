@@ -134,7 +134,7 @@ Every line goes through one encoder (`src/main/resources/logback.xml`, `at.energ
   when run from source): a plain line for reading in a terminal.
 - `LOG_LEVEL` — `trace`, `debug`, `info` (default), `warn`, `error`; `SLICK_LOG_LEVEL` the same for the `slick`
   loggers only. An unknown value stops the start (exit code 2); an empty value means the default.
-- `SERVICE_VERSION` — set by the image build (the tag, else the commit, which a retagged image keeps); `dev` otherwise.
+- `SERVICE_VERSION` — set by the image build (the version without `v` for a tag build, else the commit, which a retagged image keeps); `dev` from source.
 - Access line (`event.action=http.access`, logger `at.energydash.access`): one line per request on port 6090 with
   method, route, status, `event.outcome`, `event.duration` (ns), `request.id` (`X-Request-Id`, also returned),
   `client.id=ponton` on `/pontonxp/*`, and `tenant.id`/`eda.conversation_id` once the message is parsed. Never an
