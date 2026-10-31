@@ -5,7 +5,7 @@ import com.typesafe.config.Config
 import courier.Mailer
 
 import java.util.Properties
-import javax.mail.{PasswordAuthentication, Session}
+import javax.mail.{PasswordAuthentication, Provider, Session}
 
 object ConfiguredMailer {
 
@@ -63,6 +63,15 @@ object ConfiguredMailer {
 
     properties.putAll(map.asJava)
     properties.put("mail.from", AppConfig.adminMailFrom)
+    // SMTP timeouts as HOCON durations ("20000" = milliseconds, or "20s"); JavaMail itself would read "20s"
+    // as no timeout. An invalid value fails at start-up.
+    Seq("connectiontimeout", "timeout", "writetimeout").foreach { key =>
+      val path = s"javaxmail.mail.smtp.$key"
+      if (config.hasPath(path)) properties.put(s"mail.smtp.$key", config.getDuration(path).toMillis.toString)
+    }
+    // QUIT is still sent, but its reply is not awaited: the mail is accepted at that point, and a relay
+    // that does not answer QUIT must not turn a delivered mail into a timeout.
+    properties.put("mail.smtp.quitwait", "false")
 
     def authenticatorFromConfig(config: Config) = {
       new javax.mail.Authenticator() {
@@ -73,7 +82,10 @@ object ConfiguredMailer {
     val configAuthenticator = config.getOptionConfigured("authenticator", authenticatorFromConfig)
 
     //Then make the session
-    configAuthenticator.fold(Session.getInstance(properties))(
+    val session = configAuthenticator.fold(Session.getInstance(properties))(
       authenticator => Session.getInstance(properties, authenticator))
+    // smtp: tells a timeout after the complete message (unconfirmed) from one before it (not sent).
+    session.setProvider(new Provider(Provider.Type.TRANSPORT, "smtp", classOf[UnconfirmedAwareSmtpTransport].getName, "eegfaktura", null))
+    session
   }
 }

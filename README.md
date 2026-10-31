@@ -112,10 +112,16 @@ docker run -p 6090:6090 -p 9093:9093 \
   as ERROR `refused as too large`, and Ponton redelivers.
   Inbound Ponton messages above 16 MiB are logged at INFO with their size (search key `ponton-message-size`).
 - `epmsmail.*` — IMAP/SMTP accounts for EDA-over-email
+- `epmsmail.admin.javaxmail.mail.smtp.{connectiontimeout,timeout,writetimeout}` (10 s / 20 s / 20 s; env
+  `SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`; milliseconds or with unit,
+  e.g. `20s`; an invalid value stops the start) — SMTP timeouts of the gRPC `SendMailService`. Its reply status
+  (contract with the backend): 200 sent; 202 `SMTP unconfirmed: …` — the message was sent completely but the relay's
+  reply to it did not arrive in time, so it was most likely delivered (do not resend); 504 `SMTP timeout: …` —
+  timeout before the message was sent (connect, greeting, a command), nothing delivered; 500 any other error.
 - `slick.pgsql.local.db.*` / `flyway.*` — PostgreSQL connection + migrations
 
 Environment variables (names only): `SMTP_ADMIN_SERVER_HOST`, `SMTP_ADMIN_SERVER_PORT`,
-`EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `MAX_BODY_SIZE`, `TZ`, `JAVA_OPTS`,
+`SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`, `EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `MAX_BODY_SIZE`, `TZ`, `JAVA_OPTS`,
 `LOG_FORMAT`, `LOG_LEVEL`, `SLICK_LOG_LEVEL`, `SERVICE_VERSION`.
 
 ### Logging

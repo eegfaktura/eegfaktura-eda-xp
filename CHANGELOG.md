@@ -56,6 +56,15 @@ this changelog highlights the changes relevant for overview and operations.
   `X-Request-Id` and a valid `traceparent` along.
 
 ### Fixed
+- **Mails over the gRPC `SendMailService` end after an SMTP timeout instead of hanging** (caller: backend). The
+  admin mail session had no SMTP timeouts, so a relay that accepted the connection but did not answer blocked the
+  send until the backend gave up at its gRPC deadline, and the failure was not visible in eda-xp. Defaults in
+  `reference.conf` (also apply under the mounted `application.conf`): `mail.smtp.connectiontimeout` 10 s,
+  `mail.smtp.timeout` (read) 20 s, `mail.smtp.writetimeout` 20 s; overrides via env
+  `SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`, in milliseconds or with a unit
+  (`20s`); an invalid value stops the start. The admin session no longer waits for the reply to QUIT
+  (`mail.smtp.quitwait=false`): the mail is accepted at that point, and a relay that does not answer QUIT no longer
+  turns a delivered mail into a timeout. Tenant (EDA MAIL transport) sessions are unchanged.
 - **No EDA payloads in the log** (eegfaktura-dev tracking 261005-ca14): `/pontonxp/notification` and `/status` log
   the body size instead of the body (up to 500 characters before); the MQTT request stream's error lines no longer
   append the whole request (metering point, ecId); a parse error of an inbound message is logged without the
@@ -96,6 +105,17 @@ this changelog highlights the changes relevant for overview and operations.
   push scan green without any result (`continue-on-error`); now only „issues found“ keeps the run green (the
   issues go to Code Scanning), an authentication or tool error fails it. The Snyk CLI is pinned to 1.1308.1
   instead of the latest version.
+
+### Contract
+- **gRPC `SendMailService` reply status on SMTP timeouts** (caller: backend, mapped in
+  [eegfaktura-backend#132](https://github.com/eegfaktura/eegfaktura-backend/pull/132)); proto unchanged:
+  - `202`, message `SMTP unconfirmed: …` — the message was sent completely, but the relay's reply to its end did not
+    arrive in time: most likely delivered, must not be resent (a resend would be a duplicate).
+  - `504`, message `SMTP timeout: …` — timeout before the message was sent (connect, greeting, a command up to
+    DATA): nothing delivered, a failure.
+  - A write timeout makes JavaMail close the connection; it is answered like every other error with `500`.
+  - Before, none of these cases got an answer before the backend's deadline. A backend without #132 treats every
+    status other than 200, including 202, as a failed send.
 
 ### Security
 - **CI: the release workflow pins its actions by commit SHA** (eegfaktura-dev tracking W-261028-mm6). `rolling-release.yml`

@@ -5,9 +5,10 @@ import org.apache.pekko.util.{ByteString, Timeout}
 import at.energydash.admin.mail.{SendMailReply, SendMailRequest, SendMailService, SendMailWithInlineAttachmentsRequest}
 import at.energydash.config.Config
 import at.energydash.logging.LogText
-import at.energydash.mailer.ConfiguredMailer
+import at.energydash.mailer.{ConfiguredMailer, UnconfirmedDeliveryException}
 import courier.{Envelope, Mailer, Multipart}
 
+import java.net.SocketTimeoutException
 import java.nio.charset.Charset
 import javax.mail.Session
 import javax.mail.internet.{InternetAddress, MimeBodyPart}
@@ -51,10 +52,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
 
     shippingInlineHtmlEmail(ConfiguredMailer.createMailerFromSession(session), inlineMail).transformWith {
       case Success(rejected) => Future(SendMailReply(200, Some("Email sent"), rejected))
-      case Failure(exception) => {
-        logFailure(exception)
-        Future(SendMailReply(500, Some(exception.toString)))
-      }
+      case Failure(exception) => Future(failureReply(exception))
     }
   }
 
@@ -73,17 +71,35 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
     val adminMail = AdminMail(from, to, subject, in.body.map(b => b.toStringUtf8), mailAttachment)
     shippingEmail(ConfiguredMailer.createMailerFromSession(session), adminMail).transformWith {
       case Success(rejected) => Future(SendMailReply(200, Some("Email sent"), rejected))
-      case Failure(exception) => {
-        logFailure(exception)
-        Future(SendMailReply(500, Some(exception.toString)))
-      }
+      case Failure(exception) => Future(failureReply(exception))
+    }
+  }
+
+  // A timeout waiting for the reply to the complete message (after ".") is answered as 202
+  // "SMTP unconfirmed": the relay most likely accepted the mail, a resend would be a duplicate
+  // (contract with the backend). A connect or read timeout before that (mail.smtp.connectiontimeout
+  // / mail.smtp.timeout) is answered as 504 "SMTP timeout": nothing was sent. A write timeout
+  // closes the socket and arrives as an ordinary error (500).
+  private def failureReply(exception: Throwable): SendMailReply = {
+    if (causes(exception).exists(_.isInstanceOf[UnconfirmedDeliveryException])) {
+      system.log.warn(s"SMTP unconfirmed: ${logText(exception)}")
+      SendMailReply(202, Some(s"SMTP unconfirmed: ${exception.toString}"))
+    } else if (causes(exception).exists(_.isInstanceOf[SocketTimeoutException])) {
+      system.log.error(s"SMTP timeout: ${logText(exception)}")
+      SendMailReply(504, Some(s"SMTP timeout: ${exception.toString}"))
+    } else {
+      system.log.error(logText(exception))
+      SendMailReply(500, Some(exception.toString))
     }
   }
 
   // not the recipients: a rejected one can be a name or a phone number; the reply keeps them for the caller
-  private def logFailure(exception: Throwable): Unit =
-    if (Option(exception.getMessage).exists(_.startsWith(NoValidRecipient))) system.log.error(NoValidRecipient)
-    else system.log.error(LogText.withoutEmailAddresses(exception.toString))
+  private def logText(exception: Throwable): String =
+    if (Option(exception.getMessage).exists(_.startsWith(NoValidRecipient))) NoValidRecipient
+    else LogText.withoutEmailAddresses(exception.toString)
+
+  private def causes(exception: Throwable): Iterator[Throwable] =
+    Iterator.iterate(exception)(_.getCause).takeWhile(_ != null).take(10)
 
   private def shippingInlineHtmlEmail(mailer: Mailer, email: MailInlineMessage)(implicit ec: ExecutionContext): Future[Seq[String]] = {
 
