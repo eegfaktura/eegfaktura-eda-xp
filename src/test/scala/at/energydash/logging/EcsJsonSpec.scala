@@ -86,15 +86,20 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
   }
 
   "LogSettings" should {
-    "accept the five levels and two formats in any case, and unset variables" in {
+    "accept the five levels and two formats in any case, and unset or empty variables" in {
       LogSettings.check(Map("LOG_LEVEL" -> "TRACE", "SLICK_LOG_LEVEL" -> "warn", "LOG_FORMAT" -> "Json")) shouldBe Nil
       LogSettings.check(Map.empty) shouldBe Nil
+      LogSettings.check(Map("LOG_LEVEL" -> "", "SLICK_LOG_LEVEL" -> " ", "LOG_FORMAT" -> "")) shouldBe Nil
     }
-    "refuse an unknown or empty value" in {
+    "refuse an unknown value" in {
       LogSettings.check(Map("LOG_LEVEL" -> "verbose")) should have size 1
-      LogSettings.check(Map("LOG_LEVEL" -> "")) should have size 1
       LogSettings.check(Map("SLICK_LOG_LEVEL" -> "warning")) should have size 1
       LogSettings.check(Map("LOG_FORMAT" -> "ecs")).head should include("LOG_FORMAT")
+    }
+    "give the default for an empty variable, not for an unset or filled one" in {
+      LogSettings.defaultsForEmpty(Map("LOG_LEVEL" -> "", "SLICK_LOG_LEVEL" -> " ", "LOG_FORMAT" -> "")) shouldBe
+        Map("LOG_LEVEL" -> "info", "SLICK_LOG_LEVEL" -> "info", "LOG_FORMAT" -> "json")
+      LogSettings.defaultsForEmpty(Map("LOG_LEVEL" -> "warn")) shouldBe Map.empty
     }
     "take SERVICE_VERSION, else dev" in {
       LogSettings.serviceVersion(Map("SERVICE_VERSION" -> "0.2.22")) shouldBe "0.2.22"
@@ -119,6 +124,17 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
       console.getEncoder shouldBe a[LogEncoder]
       root.iteratorForAppenders().asScala.toList should have size 1
       ctx.stop()
+    }
+    "prefer a system property to the environment, so an empty LOG_LEVEL gets the default" in {
+      System.setProperty("LOG_LEVEL", "error")
+      try {
+        val ctx = new LoggerContext()
+        val configurator = new JoranConfigurator()
+        configurator.setContext(ctx)
+        configurator.doConfigure(getClass.getResource("/logback.xml"))
+        ctx.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).getLevel shouldBe Level.ERROR
+        ctx.stop()
+      } finally System.clearProperty("LOG_LEVEL")
     }
   }
 }

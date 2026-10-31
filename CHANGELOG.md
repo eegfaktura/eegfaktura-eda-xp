@@ -36,8 +36,8 @@ this changelog highlights the changes relevant for overview and operations.
   dropped. Parse rules on the old text format no longer match. The mail actors' MDC key `tenant` is now `tenant.id`.
   New and changed environment variables:
   - `LOG_FORMAT`: `json` (set in the image) or `text` (default when run from source with `sbt run`).
-  - `LOG_LEVEL`: `trace`, `debug`, `info` (default), `warn`, `error` — the root level. **An unknown or empty value
-    stops the start** (exit code 2, message on stderr).
+  - `LOG_LEVEL`: `trace`, `debug`, `info` (default), `warn`, `error` — the root level. **An unknown value stops
+    the start** (exit code 2, message on stderr); an empty value means the default, as in the other services.
   - `SLICK_LOG_LEVEL`: same values, now only for the `slick` loggers. Before, it set the root level of the whole
     service (a second `<root>` in `logback.xml`, tracking 261008-ca6); prod and pilot do not set it.
   - `SERVICE_VERSION` → `service.version`: set in the image by the build (the release for a tag build, the commit
