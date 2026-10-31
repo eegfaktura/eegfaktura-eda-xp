@@ -67,7 +67,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
                       mailActor ! SendEmailCommand(email, domain, replyTo)
                       timers.startSingleTimer(Refresh, 1.minute)
                     case _ =>
-                      replyTo ! SendResponseError(tenant.tenant, message.receiver, s"Domain missing for sending mail. ${tenant}", "Send Mail")
+                      replyTo ! SendResponseError(tenant.tenant, message.receiver, s"Domain missing for sending mail. ${tenant.tenant}", "Send Mail")
                   }
                 //                case Failure(exception) =>
                 //                  replyTo ! SendResponseError(tenant.tenant, message.receiver, s"Error sending EDA message. ${exception}", "Send Mail")

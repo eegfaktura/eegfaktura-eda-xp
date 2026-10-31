@@ -85,6 +85,14 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
     }
   }
 
+  "TenantConfig" should {
+    "keep user and password out of its text" in {
+      val config = at.energydash.domain.dao.TenantConfig("RC100001", "MAIL", None, None, None, None, None,
+        Some("mailbox-user"), Some("mailbox-secret"), None, None, active = true)
+      config.toString shouldBe "TenantConfig(RC100001, MAIL, active=true)"
+    }
+  }
+
   "LogSettings" should {
     "accept the five levels and two formats in any case, and unset or empty variables" in {
       LogSettings.check(Map("LOG_LEVEL" -> "TRACE", "SLICK_LOG_LEVEL" -> "warn", "LOG_FORMAT" -> "Json")) shouldBe Nil
