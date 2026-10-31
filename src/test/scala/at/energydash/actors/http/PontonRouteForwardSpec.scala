@@ -6,6 +6,7 @@ import org.apache.pekko.http.scaladsl.Http
 import org.apache.pekko.http.scaladsl.model._
 import org.apache.pekko.http.scaladsl.model.headers.RawHeader
 import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.server.Route
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -46,9 +47,9 @@ class PontonRouteForwardSpec extends ScalaTestWithActorTestKit with AnyWordSpecL
     finally Await.ready(binding.unbind(), 5.seconds)
   }
 
-  private def withAdapter[T](targets: Map[String, Uri], probe: TestProbe[MqttCommand])(test: Uri => T): T = {
+  private def withAdapter[T](targets: Map[String, Uri], probe: TestProbe[MqttCommand], wrap: Route => Route = identity)(test: Uri => T): T = {
     val routes = new PontonRoute(probe.ref, targets, forwardTimeout = 1.second, maxBodyBytes = BodySizeLimit.maxBytes(system.settings.config))
-    val binding = Await.result(Http().newServerAt("127.0.0.1", 0).bind(routes.pontonRoutes), 5.seconds)
+    val binding = Await.result(Http().newServerAt("127.0.0.1", 0).bind(wrap(routes.pontonRoutes)), 5.seconds)
     try test(Uri(s"http://127.0.0.1:${binding.localAddress.getPort}/pontonxp/message"))
     finally Await.ready(binding.unbind(), 5.seconds)
   }
@@ -61,6 +62,19 @@ class PontonRouteForwardSpec extends ScalaTestWithActorTestKit with AnyWordSpecL
   }
 
   "the message route" should {
+    "take the request id and a valid traceparent along to the target" in {
+      val probe = createTestProbe[MqttCommand]()
+      val traceParent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+      withTarget(StatusCodes.NoContent) { target =>
+        withAdapter(Map("RC100181" -> target.uri), probe, AccessLog(Set("/pontonxp/message"))(_)) { uri =>
+          send(uri, Seq(RawHeader("X-Request-Id", "abc-123"), RawHeader("traceparent", traceParent))) shouldBe StatusCodes.NoContent
+          val got = target.received.asScala.toList
+          got should have size 1
+          got.head.headers.find(_.is("x-request-id")).map(_.value) shouldBe Some("abc-123")
+          got.head.headers.find(_.is("traceparent")).map(_.value) shouldBe Some(traceParent)
+        }
+      }
+    }
     "forward a listed receiver unchanged and not publish it here" in {
       val probe = createTestProbe[MqttCommand]()
       withTarget(StatusCodes.NoContent) { target =>
