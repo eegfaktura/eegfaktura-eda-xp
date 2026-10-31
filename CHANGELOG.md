@@ -25,7 +25,51 @@ this changelog highlights the changes relevant for overview and operations.
   energystore, admin-backend) — and whether Ponton redelivers after a refused connection is still open
   (eegfaktura-dev tracking 261005-ca1).
 
+### Changed
+- **Logs are JSON now — this changes what operators and Dynatrace receive from eda-xp** (logging concept
+  W-261008-ca2, alignment 2026-10-30). In the image every log line is one JSON object on stdout with flat ECS names,
+  the same as the other services: `@timestamp` (UTC, ms), `log.level` (lower case), `log.logger`, `service.name`
+  (`eegfaktura-eda-xp`), `service.version`, `message`, errors as `error.type`/`error.message`/`error.stack_trace` in
+  the same record, and where known `request.id`, `trace.id`/`span.id`, `tenant.id`, `client.id`,
+  `eda.conversation_id` (the EDA ConversationId of the message a line handles: inbound Ponton messages, errors of
+  the MQTT request stream). Only these fields are written; other MDC entries (e.g. Pekko's `pekkoSource`) are
+  dropped. Parse rules on the old text format no longer match. The mail actors' MDC key `tenant` is now `tenant.id`.
+  New and changed environment variables:
+  - `LOG_FORMAT`: `json` (set in the image) or `text` (default when run from source with `sbt run`).
+  - `LOG_LEVEL`: `trace`, `debug`, `info` (default), `warn`, `error` — the root level. **An unknown value stops
+    the start** (exit code 2, message on stderr); an empty value means the default, as in the other services.
+  - `SLICK_LOG_LEVEL`: same values, now only for the `slick` loggers. Before, it set the root level of the whole
+    service (a second `<root>` in `logback.xml`, tracking 261008-ca6); prod and pilot do not set it.
+  - `SERVICE_VERSION` → `service.version`: set in the image by the build (the tag for a tag build, the commit for
+    any other CI build, which a retagged release image keeps); `dev` otherwise.
+  No new dependency: the encoder is our own (`at.energydash.logging`), on logback-classic and jackson-core already
+  in the build.
+- **One access line per HTTP request on port 6090** (`event.action=http.access`, logger `at.energydash.access`):
+  `http.request.method`, `http.route` (the route path, e.g. `/pontonxp/message`; missing for unknown paths, the
+  message then shows `-`), `http.response.status_code`, `event.outcome` (`success`; `refused` for 401/403; `failure` for other ≥ 400),
+  `event.duration` in nanoseconds, `request.id`, `client.id` (`ponton` on `/pontonxp/*`; this port has no token, so
+  the route's fixed caller; none on `/admin/upload`), and once an inbound message is parsed `tenant.id` (its
+  receiver) and `eda.conversation_id`. No IP, user agent, query or body (no user tracking, decided 2026-10-29);
+  eda-xp had no access log before. `/healthz` and `/readyz` are not logged. `X-Request-Id` is taken over when it
+  matches `[A-Za-z0-9._:-]{1,128}`, otherwise generated (32 hex), and returned as response header (also to Ponton,
+  which ignores it); `traceparent` only when valid. A message forwarded to another zone (`app.forward`) takes
+  `X-Request-Id` and a valid `traceparent` along.
+
 ### Fixed
+- **No EDA payloads in the log** (eegfaktura-dev tracking 261005-ca14): `/pontonxp/notification` and `/status` log
+  the body size instead of the body (up to 500 characters before); the MQTT request stream's error lines no longer
+  append the whole request (metering point, ecId); a parse error of an inbound message is logged without the
+  document scalaxb puts into its message (also in the publisher's error line; the exception is no longer attached).
+- **No SOAP body, headers, mail attachment or whole EDA message at debug** (tracking 261008-ca6): the KEP client and
+  the mail worker log sizes, message code and conversation id instead.
+- Security relevant, details not published: tracking 261031-mm2 and 261031-mm3. The send-mail log now has neither the
+  subject nor a rejected recipient, and a request that cannot be decoded is logged with the JSON path only; for a
+  request that cannot be decoded the MQTT error message is unchanged, and so is the gRPC reply. The MQTT text
+  `Domain missing for sending mail.` now names the tenant only.
+- **No e-mail addresses in the send-mail log** (tracking 261031-mm1): the gRPC `SendMailService` (mails of the backend to members) logged
+  recipient and cc at info and javax.mail's error text with the address; now neither, and the error with
+  the addresses replaced by `<address>`.
+- A `println` of a document build error went to stdout next to the logged error; removed.
 - **The tenant provider survives a second update of a mail tenant and is supervised** (eegfaktura-dev tracking
   261005-ca3). A second register/update of a tenant with type MAIL (or an empty type) spawned the new mail worker
   under the name of the old one before it had stopped; the provider failed, ran without supervision and stayed

@@ -70,6 +70,9 @@ class ServiceRoute(fileService: FileService, maxBodyBytes: Long)(implicit val sy
 }
 
 object ServiceRoute {
+  /** The paths of [[ServiceRoute.adminRoutes]], for the access line. */
+  val Templates: Set[String] = Set("/admin/upload")
+
   /** Time to receive an upload completely; the server's request-timeout (20 s default) still applies. */
   val UploadReadTimeout: FiniteDuration = 60.seconds
 }

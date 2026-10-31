@@ -2,8 +2,9 @@ package at.energydash
 
 import org.apache.pekko.actor.typed.ActorSystem
 import at.energydash.actors.{Start, SupervisorActor}
+import at.energydash.logging.LogStartup
 
-object XpAdapter extends App {
+object XpAdapter extends LogStartup with App {
 
   MigrationRunner.migrate()
 

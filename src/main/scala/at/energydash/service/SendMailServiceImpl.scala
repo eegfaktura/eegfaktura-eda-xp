@@ -4,6 +4,7 @@ import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
 import org.apache.pekko.util.{ByteString, Timeout}
 import at.energydash.admin.mail.{SendMailReply, SendMailRequest, SendMailService, SendMailWithInlineAttachmentsRequest}
 import at.energydash.config.Config
+import at.energydash.logging.LogText
 import at.energydash.mailer.ConfiguredMailer
 import courier.{Envelope, Mailer, Multipart}
 
@@ -27,11 +28,13 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
 
   import system._
 
+  private val NoValidRecipient = "no valid recipient address"
+
   /**
    * Send Mail with inline images/pdfs
    */
   override def sendMailWithInlineAttachment(in: SendMailWithInlineAttachmentsRequest): Future[SendMailReply] = {
-    system.log.info(s"Send Inline Mail: To:${in.recipient} CC:${in.cc} - ${in.subject}")
+    system.log.info("Send Inline Mail")
     val from = Config.adminMailFrom
     val inlineMail = MailInlineMessage(
       from = from, to = in.recipient, in.cc, subject = in.subject,
@@ -49,14 +52,14 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
     shippingInlineHtmlEmail(ConfiguredMailer.createMailerFromSession(session), inlineMail).transformWith {
       case Success(rejected) => Future(SendMailReply(200, Some("Email sent"), rejected))
       case Failure(exception) => {
-        system.log.error(exception.toString)
+        logFailure(exception)
         Future(SendMailReply(500, Some(exception.toString)))
       }
     }
   }
 
   override def sendMail(in: SendMailRequest): Future[SendMailReply] = {
-    system.log.info(s"Send Mail: ${in.subject}")
+    system.log.info("Send Mail")
 
     val subject = in.subject
     val to = in.recipient
@@ -71,11 +74,16 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
     shippingEmail(ConfiguredMailer.createMailerFromSession(session), adminMail).transformWith {
       case Success(rejected) => Future(SendMailReply(200, Some("Email sent"), rejected))
       case Failure(exception) => {
-        system.log.error(exception.toString)
+        logFailure(exception)
         Future(SendMailReply(500, Some(exception.toString)))
       }
     }
   }
+
+  // not the recipients: a rejected one can be a name or a phone number; the reply keeps them for the caller
+  private def logFailure(exception: Throwable): Unit =
+    if (Option(exception.getMessage).exists(_.startsWith(NoValidRecipient))) system.log.error(NoValidRecipient)
+    else system.log.error(LogText.withoutEmailAddresses(exception.toString))
 
   private def shippingInlineHtmlEmail(mailer: Mailer, email: MailInlineMessage)(implicit ec: ExecutionContext): Future[Seq[String]] = {
 
@@ -96,7 +104,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
   }
 
   private def shippingEmail(mailer: Mailer, email: AdminMail)(implicit ex: ExecutionContext): Future[Seq[String]] = {
-    system.log.info(s"About to send Email ${email.from} to ${email.to}")
+    system.log.info("About to send Email")
 
     val mailContent = (email.body, email.attachment) match {
       case (Some(html), Some(a)) =>
@@ -123,7 +131,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
     val rejected = rejectedTo ++ rejectedCc
 
     if (validTo.isEmpty) {
-      Future.failed(new IllegalArgumentException(s"no valid recipient address (rejected: ${rejected.mkString(";")})"))
+      Future.failed(new IllegalArgumentException(s"$NoValidRecipient (rejected: ${rejected.mkString(";")})"))
     } else {
       val withTo = validTo.foldLeft(Envelope.from(new InternetAddress(s"${email.from}")))((e, to) => e.to(new InternetAddress(to)))
       val withCc = validCc.foldLeft(withTo)((e, cc) => e.cc(new InternetAddress(cc)))
