@@ -12,6 +12,7 @@ import at.energydash.actors.PrepareMessageActor.{PrepareMessage, Prepared}
 import at.energydash.actors._
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.enums.EbMsMessageType
+import at.energydash.testsupport.LogCapture
 import at.energydash.{EmbeddedDb, MqttBaseSpec}
 import io.circe.generic.auto._
 import io.circe.syntax.{EncoderOps, _}
@@ -188,30 +189,36 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
       val (probe, sink) = TestSink[MqttMessage]()(f.system.classicSystem).preMaterialize()
       val stop = KillSwitches.shared("request-stream-spec")
       val ready = stream.runCommand(mqttSource.via(stop.flow), sink)
-      try whenReady(ready) { _ =>
-        publish(topic, testMsg)
+      // 261005-ca14: the error line names the error, never the request (metering point, ecId)
+      val (_, events) = LogCapture("at.energydash.stream.MqttRequestStream") {
+        try whenReady(ready) { _ =>
+          publish(topic, testMsg)
 
-        probe.request(1)
-        val msg = transformerActorProbe.expectMessageType[PrepareMessage]
-        msg.replyTo ! Prepared(msg.message)
+          probe.request(1)
+          val msg = transformerActorProbe.expectMessageType[PrepareMessage]
+          msg.replyTo ! Prepared(msg.message)
 
-        val s = storeActorProbe.expectMessageType[InitConversation]
-        s.replyTo ! InitDone(s.message)
+          val s = storeActorProbe.expectMessageType[InitConversation]
+          s.replyTo ! InitDone(s.message)
 
-        val edaCommand = edaActorProbe.expectMessageType[PassEdaCommand]
-        edaCommand.replyTo ! SendResponseError("myeeg", "netz linz", "Local address contains control or whitespace", "Send Mail")
+          val edaCommand = edaActorProbe.expectMessageType[PassEdaCommand]
+          edaCommand.replyTo ! SendResponseError("myeeg", "netz linz", "Local address contains control or whitespace", "Send Mail")
 
 
-        val expectedPayload = EbMsMessage(
-          conversationId = "0", sender = "myeeg", receiver = "netz linz",
-          messageCode = EbMsMessageType.ERROR_MESSAGE,
-          errorMessage = Some("Local address contains control or whitespace"),
-          reason=Some("Send Mail")).asJson.toString
+          val expectedPayload = EbMsMessage(
+            conversationId = "0", sender = "myeeg", receiver = "netz linz",
+            messageCode = EbMsMessageType.ERROR_MESSAGE,
+            errorMessage = Some("Local address contains control or whitespace"),
+            reason=Some("Send Mail")).asJson.toString
 
-        val testResponse = probe.requestNext()
-        testResponse.topic shouldBe "eda/response/myeeg/protocol/error"
-        testResponse.payload.utf8String shouldBe expectedPayload
-      } finally stop.shutdown() // runCommand restarts its source: the stream must not outlive the case
+          val testResponse = probe.requestNext()
+          testResponse.topic shouldBe "eda/response/myeeg/protocol/error"
+          testResponse.payload.utf8String shouldBe expectedPayload
+        } finally stop.shutdown() // runCommand restarts its source: the stream must not outlive the case
+      }
+      val logged = LogCapture.messages(events)
+      logged.exists(_.contains("Local address contains control or whitespace")) shouldBe true
+      logged.exists(m => m.contains("AT0030000000000000000000000526178") || m.contains("RC103536000000973930")) shouldBe false
     }
 
   }

@@ -24,7 +24,6 @@ object MessageHelper {
     implicit def toOptionSE(t: Try[EdaXMLMessage[_]]): Option[EdaXMLMessage[_]] = t match {
       case Success(s) => Some(s)
       case Failure(ex) =>
-        println(s"SEPP############### $ex")
         logger.error(ex.getMessage, ex)
         None
     }

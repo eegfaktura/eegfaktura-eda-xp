@@ -3,7 +3,7 @@ package at.energydash.interfaces
 import at.energydash.actors.MqttPublisher.{MqttCommand, MqttPublish, MqttPublishError}
 import at.energydash.actors.http.{BodySizeLimit, PontonRoute}
 import at.energydash.testsupport.KnownError.knownError
-import at.energydash.testsupport.{Fixtures, ProtocolCatalog}
+import at.energydash.testsupport.{Fixtures, LogCapture, ProtocolCatalog}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
 import org.apache.pekko.http.scaladsl.Http
 import org.apache.pekko.http.scaladsl.model._
@@ -56,8 +56,15 @@ class PontonRouteSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
 
     "answer 500 for an element outside the envelope's choice (v3 EDASendError, pinned)" in {
       val doc = Fixtures.xml("v3/eda-xml/in/EDASendError.xml")
-      post("message", Fixtures.inboundEnvelope(doc, "AT003000", "RC100401", "ERROR")).status shouldBe StatusCodes.InternalServerError
-      publisher.expectMessageType[MqttPublishError]
+      val (_, events) = LogCapture("at.energydash.actors.http.PontonRoute") {
+        post("message", Fixtures.inboundEnvelope(doc, "AT003000", "RC100401", "ERROR")).status shouldBe StatusCodes.InternalServerError
+        publisher.expectMessageType[MqttPublishError]
+      }
+      // 261005-ca14: the parse error is logged without the document
+      val errors = events.filter(_.getLevel.toString == "ERROR")
+      LogCapture.messages(errors).exists(_.startsWith("Error while parsing message from edaAdapter: ")) shouldBe true
+      LogCapture.messages(errors).exists(_.contains("<")) shouldBe false
+      errors.forall(_.getThrowableProxy == null) shouldBe true
     }
 
     // 261005-ca11: a document the envelope admits but the parser does not map (CPRequest) ends in a 500
@@ -87,6 +94,16 @@ class PontonRouteSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       post("notification", "<Notification/>").status shouldBe StatusCodes.OK
       post("status", "<Status/>").status shouldBe StatusCodes.OK
       publisher.expectNoMessage(300.millis)
+    }
+    // 261005-ca14: the body is never logged, only its size
+    "log the size of the body, not its content" in {
+      val (_, events) = LogCapture("at.energydash.actors.http.PontonRoute") {
+        post("notification", "<Notification>secret-notification</Notification>").status shouldBe StatusCodes.OK
+        post("status", "<Status>secret-status</Status>").status shouldBe StatusCodes.OK
+      }
+      val logged = LogCapture.messages(events)
+      logged should contain allOf ("Notification from EDA received (48 bytes)", "Status from EDA received (30 bytes)")
+      logged.exists(_.contains("secret")) shouldBe false
     }
     "accept a 2 MB body (no size limit, 261005-ca12 — recorded)" in {
       post("notification", "<a>" + ("x" * (2 * 1024 * 1024)) + "</a>").status shouldBe StatusCodes.OK
