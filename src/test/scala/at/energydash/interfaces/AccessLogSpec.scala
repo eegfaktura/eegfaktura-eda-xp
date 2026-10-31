@@ -12,11 +12,12 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.http.scaladsl.Http
 import org.apache.pekko.http.scaladsl.model._
 import org.apache.pekko.http.scaladsl.model.headers.{RawHeader, `User-Agent`}
+import org.apache.pekko.http.scaladsl.server.Directives
 import org.apache.pekko.stream.Materializer
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.jdk.CollectionConverters._
 
 /** The access line of port 6090, through the routes the supervisor binds (SupervisorActor.httpRoutes). */
@@ -44,7 +45,34 @@ class AccessLogSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
 
   private def xml(body: String) = HttpEntity(ContentTypes.`text/xml(UTF-8)`, body)
 
+  /** The response and the access lines of one request to `route`, with a request timeout of 200 ms. */
+  private def timedOut(route: => Future[HttpResponse]): (HttpResponse, List[ILoggingEvent]) = {
+    implicit val ec: ExecutionContext = system.executionContext
+    val bound = Await.result(Http()(system).newServerAt("127.0.0.1", 0).bind(AccessLog(Set("/pontonxp/message")) {
+      Directives.withRequestTimeout(200.millis)(Directives.complete(route))
+    }), 10.seconds)
+    try LogCapture("at.energydash.access") {
+      val res = Await.result(Http()(system).singleRequest(
+        HttpRequest(HttpMethods.POST, s"http://127.0.0.1:${bound.localAddress.getPort}/pontonxp/message")), 10.seconds)
+      res.discardEntityBytes()(Materializer(system))
+      Thread.sleep(800) // a route that finishes after the timeout must not add a second line
+      res
+    } finally Await.ready(bound.unbind(), 10.seconds)
+  }
+
   "The access line" should {
+    "have the 503 the caller gets when the request times out, also if the route finishes later" in {
+      val (res, events) = timedOut(org.apache.pekko.pattern.after(500.millis)(Future.successful(HttpResponse(StatusCodes.NoContent))))
+      res.status shouldBe StatusCodes.ServiceUnavailable
+      res.headers.exists(_.is("x-request-id")) shouldBe true
+      LogCapture.messages(events) shouldBe List("POST /pontonxp/message 503")
+      fields(events.head)("event.outcome") shouldBe "failure"
+    }
+    "be written for a route that never finishes" in {
+      val (res, events) = timedOut(Promise[HttpResponse]().future)
+      res.status shouldBe StatusCodes.ServiceUnavailable
+      LogCapture.messages(events) shouldBe List("POST /pontonxp/message 503")
+    }
     "name route, status, outcome, client, tenant and conversation of an inbound message" in {
       val doc = Fixtures.xml("v3/eda-xml/in/CMNotification-01.12-ANTWORT_ECON-99.xml")
       val (sender, receiver) = Fixtures.routing(doc)
