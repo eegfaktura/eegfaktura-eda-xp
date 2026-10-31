@@ -109,6 +109,9 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
         Map("LOG_LEVEL" -> "info", "SLICK_LOG_LEVEL" -> "info", "LOG_FORMAT" -> "json")
       LogSettings.defaultsForEmpty(Map("LOG_LEVEL" -> "warn")) shouldBe Map.empty
     }
+    "start with the settings of this environment" in {
+      noException should be thrownBy new LogStartup {}
+    }
     "take SERVICE_VERSION, else dev" in {
       LogSettings.serviceVersion(Map("SERVICE_VERSION" -> "0.2.22")) shouldBe "0.2.22"
       LogSettings.serviceVersion(Map("SERVICE_VERSION" -> " ")) shouldBe "dev"

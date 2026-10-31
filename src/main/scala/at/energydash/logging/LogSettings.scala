@@ -4,7 +4,7 @@ import java.util.Locale
 
 /**
  * The environment of the logging module (logging concept W-261008-ca2, point 1). `logback.xml` reads the same
- * variables; [[stopOnInvalid]] and [[fillEmpty]] run first in `XpAdapter`, because logback itself takes an unknown
+ * variables; [[stopOnInvalid]] and [[fillEmpty]] run first through [[LogStartup]], because logback itself takes an unknown
  * level as DEBUG and an empty one as not given (the root logger then stays at DEBUG). An empty variable means the
  * default, as in the other services.
  *  - `LOG_FORMAT`: `json` (set in the image) or `text` (default when run from source).
@@ -12,6 +12,12 @@ import java.util.Locale
  *  - `SLICK_LOG_LEVEL`: the same values, for the `slick` loggers only (default `info`).
  *  - `SERVICE_VERSION`: `service.version` of every JSON line (set in the image), default `dev`.
  */
+/** Mixed in first by the main object, so the settings are checked and filled before the first logger exists. */
+trait LogStartup {
+  LogSettings.stopOnInvalid()
+  LogSettings.fillEmpty()
+}
+
 object LogSettings {
   val ServiceName = "eegfaktura-eda-xp"
   val Levels: Seq[String] = Seq("trace", "debug", "info", "warn", "error")
