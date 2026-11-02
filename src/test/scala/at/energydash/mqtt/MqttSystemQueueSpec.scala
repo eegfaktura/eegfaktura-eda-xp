@@ -18,19 +18,23 @@ class MqttSystemQueueSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
 
   "a connected MqttSystem" should {
     "accept messages while the buffer has room and refuse new ones when it is full" in {
-      // a client that takes one message and never finishes it: the buffer (2) fills up
+      // a client that takes one message and never finishes it: the buffer (2) fills up after that
+      val taken = Promise[Unit]()
       val stalled = Promise[Unit]()
-      val queue = Source.queue[MqttMessageCmd](2).toMat(Sink.foreachAsync(1)(_ => stalled.future))(Keep.left).run()
+      val queue = Source.queue[MqttMessageCmd](2).toMat(Sink.foreachAsync(1) { _ =>
+        taken.trySuccess(())
+        stalled.future
+      })(Keep.left).run()
       val mqttSystem = testKit.spawn(MqttSystem.connected(queue))
-      val handovers = (1 to 6).map { _ =>
+      def send(): Handover = {
         val h = new Handover
         mqttSystem ! EdaEventReceived(EdaInboundMessage("cr_msg", msg), None, Some(h))
         h
       }
-      val results = Await.result(Future.sequence(handovers.map(_.future.map(_ => "accepted").recover { case e => e.getMessage })), 5.seconds)
-      results.takeWhile(_ == "accepted").size should (be >= 2 and be <= 3)
-      results.dropWhile(_ == "accepted") should not be empty
-      results.dropWhile(_ == "accepted").foreach(_ shouldBe "MQTT publish buffer full")
+      Await.result(send().future, 3.seconds)
+      Await.result(taken.future, 3.seconds) // from here nothing leaves the buffer
+      val results = (1 to 4).map(_ => send()).map(h => Await.result(h.future.map(_ => "accepted").recover { case e => e.getMessage }, 3.seconds))
+      results shouldBe Seq("accepted", "accepted", "MQTT publish buffer full", "MQTT publish buffer full")
       stalled.success(())
     }
 
