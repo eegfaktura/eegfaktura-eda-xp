@@ -13,6 +13,33 @@ this changelog highlights the changes relevant for overview and operations.
   Java objects. eda-xp does not use Java serialization on external input, so the code path was not reachable; the update
   removes the finding.
 
+### Changed
+- **Behaviour change towards Ponton:** an inbound message on `/pontonxp/message` that is processed in
+  this zone is answered `500` instead of `204` when it cannot be published to MQTT. Until now it was
+  answered `204` and lost silently when MQTT was not connected (start, or the restart backoff of 4 s to
+  1 min after a client stream failure, e.g. a publish in flight when the broker connection drops), the
+  aggregator lookup in the eda-xp database failed or timed out, a merge error replaced the message, or the
+  publish buffer was full (the oldest buffered message was dropped; now the new one is refused). This
+  also applies to unknown document types, which otherwise still get `204` + error topic. Each such `500`
+  has an empty body and one ERROR line with conversation id and cause ("not handed to MQTT …; Ponton
+  will redeliver"). The route gives up at the latest after 10 s and always before the server's
+  request-timeout, so a message answered `500` is never published later and Ponton's redelivery creates no
+  duplicate. A message refused by a merge error or aggregator failure still publishes the `error`
+  notification (not when the aggregator does not answer within 5 s): during an eda-xp database outage the backend gets one error entry per Ponton
+  retry. A message handed to the publishing stream is answered `204` as before, without waiting for the
+  broker, also while the client reconnects to a restarted broker. **Known limit:** a message already in the buffer
+  when the client stream fails is lost after its `204`, as before (tracking 261102-mm1). Messages without a Ponton request
+  (mail, file upload, commands) that MQTT does not take are now logged at ERROR instead of dropped
+  silently. Unparseable messages, forwarding, topics and payloads are unchanged. **Operators:** see the
+  runbook in the README (search `not handed to MQTT`, check the Ponton message monitor for FAILED inbound
+  messages of that window and resend); Ponton's automatic redelivery after a `500` is not verified yet
+  (261005-ca1).
+
+### Fixed
+- **A failed database lookup in the aggregator publishes its error notification and logs its cause.** The handler logged
+  through the actor context on a stream thread, which throws: no `error` notification, and an ERROR line about the actor
+  context instead of the cause. Same fix for a failed merge in `ConversationEntity`, which sent no reply at all.
+
 ## [1.3.0] – 2026-10-31
 
 ### Added

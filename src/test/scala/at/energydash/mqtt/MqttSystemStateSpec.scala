@@ -64,7 +64,8 @@ class MqttSystemStateSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
       val ref = spawn(MqttSystem(Config.getMqttConfig()))
       ref ! Terminate
       ref ! TerminatedOk
-      stopped(ref)
+      // no broker: the client fails at once and the messages wait out the restart backoff (from 4 s, doubling)
+      createTestProbe().expectTerminated(ref, 15.seconds)
     }
   }
 

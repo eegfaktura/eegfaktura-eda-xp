@@ -1,5 +1,6 @@
 package at.energydash.interfaces
 
+import at.energydash.actors.http.AckingPublisher
 import at.energydash.actors.MqttPublisher.{MqttCommand, MqttPublish}
 import at.energydash.actors.SupervisorActor
 import at.energydash.actors.http.{AccessLog, BodySizeLimit, HealthRoute, PontonRoute, ServiceRoute}
@@ -25,7 +26,7 @@ class AccessLogSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
   private val publisher = createTestProbe[MqttCommand]()
   private val maxBytes = BodySizeLimit.maxBytes(system.settings.config)
   private val routes = SupervisorActor.httpRoutes(
-    new PontonRoute(publisher.ref, maxBodyBytes = maxBytes)(system),
+    new PontonRoute(testKit.spawn(AckingPublisher(publisher.ref)), maxBodyBytes = maxBytes)(system),
     new ServiceRoute(FileService(system, publisher.ref)(Materializer(system)), maxBytes)(system),
     new HealthRoute(() => Future.unit)(system))
   private val binding = Await.result(Http()(system).newServerAt("127.0.0.1", 0).bind(routes), 10.seconds)

@@ -44,7 +44,7 @@ class BodySizeLimitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
   }
 
   private def ponton(probe: TestProbe[MqttCommand], targets: Map[String, Uri] = Map.empty, maxBytes: Long = limit): Route =
-    new PontonRoute(probe.ref, targets, forwardTimeout = 1.second, maxBodyBytes = maxBytes).pontonRoutes
+    new PontonRoute(testKit.spawn(AckingPublisher(probe.ref)), targets, forwardTimeout = 1.second, maxBodyBytes = maxBytes).pontonRoutes
 
   /** Upload handler that, like FileServiceImpl, publishes each part as soon as it has read it. */
   private def uploads(probe: TestProbe[MqttCommand]): FileService = {
