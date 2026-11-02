@@ -22,7 +22,8 @@ this changelog highlights the changes relevant for overview and operations.
   duplicate. A message refused by a merge error or aggregator failure still publishes the `error`
   notification as before: during an eda-xp database outage the backend gets one error entry per Ponton
   retry. A message handed to the publishing stream is answered `204` as before, without waiting for the
-  broker, also while the client reconnects to a restarted broker. Messages without a Ponton request
+  broker, also while the client reconnects to a restarted broker. **Known limit:** a message already in the buffer
+  when the client stream fails is lost after its `204`, as before (tracking 261102-mm1). Messages without a Ponton request
   (mail, file upload, commands) that MQTT does not take are now logged at ERROR instead of dropped
   silently. Unparseable messages, forwarding, topics and payloads are unchanged. **Operators:** see the
   runbook in the README (search `not handed to MQTT`, check the Ponton message monitor for FAILED inbound
