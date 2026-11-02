@@ -1,6 +1,8 @@
 package at.energydash.logging
 
+import ch.qos.logback.classic.LoggerContext
 import org.slf4j.bridge.SLF4JBridgeHandler
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.Locale
 
@@ -13,6 +15,7 @@ import java.util.Locale
  *  - `LOG_LEVEL`: `trace`, `debug`, `info` (default), `warn`, `error` — the root level.
  *  - `SLICK_LOG_LEVEL`: the same values, for the `slick` loggers only (default `info`).
  *  - `SERVICE_VERSION`: `service.version` of every JSON line (set in the image), default `dev`.
+ *  - `DEPLOYMENT_ENVIRONMENT`: `deployment.environment` of every JSON line; the field is left out when unset or empty.
  */
 /** Mixed in first by the main object, so the settings are checked and filled before the first logger exists. */
 trait LogStartup {
@@ -25,6 +28,8 @@ object LogSettings {
   val ServiceName = "eegfaktura-eda-xp"
   val Levels: Seq[String] = Seq("trace", "debug", "info", "warn", "error")
   val Formats: Seq[String] = Seq("json", "text")
+  /** At info in `logback.xml`, so the start-up line is written at any `LOG_LEVEL`. */
+  val StartLogger = "at.energydash.start"
 
   private val DefaultsForEmpty = Map("LOG_LEVEL" -> "info", "SLICK_LOG_LEVEL" -> "info", "LOG_FORMAT" -> "json")
 
@@ -62,6 +67,17 @@ object LogSettings {
     }
 
   def serviceVersion(env: Map[String, String]): String = env.get("SERVICE_VERSION").map(_.trim).filter(_.nonEmpty).getOrElse("dev")
+
+  def deploymentEnvironment(env: Map[String, String]): Option[String] = env.get("DEPLOYMENT_ENVIRONMENT").map(_.trim).filter(_.nonEmpty)
+
+  /** The one start-up line: version and effective log levels, nothing else of the configuration. */
+  def logStart(): Unit = {
+    val levels = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
+    def level(name: String) = levels.getLogger(name).getEffectiveLevel.toString.toLowerCase(Locale.ROOT)
+    LoggerFactory.getLogger(StartLogger).atInfo().addKeyValue(LogFields.EventAction, "service.start")
+      .setMessage(s"Service start: version ${serviceVersion(sys.env)}, log level ${level(Logger.ROOT_LOGGER_NAME)}, slick log level ${level("slick")}")
+      .log()
+  }
 
   /** Ends the start (exit code 2, message on stderr) when a logging variable has an unknown value. */
   def stopOnInvalid(): Unit = {

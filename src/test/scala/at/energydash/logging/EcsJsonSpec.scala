@@ -68,6 +68,43 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
     }
   }
 
+  "deployment.environment (dev#45 L14)" should {
+    "be on the line when it is set" in {
+      val line = EcsJson.line(event(Level.INFO, "m"), "eegfaktura-eda-xp", "1.2.3", Some("pilot"))
+      mapper.readTree(line).get("deployment.environment").asText shouldBe "pilot"
+    }
+    "be left out when it is not set" in {
+      json(event(Level.INFO, "m")).keySet should not contain "deployment.environment"
+    }
+    "come from DEPLOYMENT_ENVIRONMENT, an empty value counting as unset" in {
+      LogSettings.deploymentEnvironment(Map("DEPLOYMENT_ENVIRONMENT" -> " prod ")) shouldBe Some("prod")
+      LogSettings.deploymentEnvironment(Map("DEPLOYMENT_ENVIRONMENT" -> " ")) shouldBe None
+      LogSettings.deploymentEnvironment(Map.empty) shouldBe None
+    }
+  }
+
+  "The start-up line (dev#45 L14)" should {
+    "name version and effective log levels, and nothing else" in {
+      val (_, events) = LogCapture(LogSettings.StartLogger)(LogSettings.logStart())
+      events should have size 1
+      events.head.getFormattedMessage should fullyMatch regex
+        "Service start: version \\S+, log level (trace|debug|info|warn|error), slick log level (trace|debug|info|warn|error)"
+      events.head.getKeyValuePairs.asScala.map(kv => kv.key -> kv.value) shouldBe Seq("event.action" -> "service.start")
+    }
+    "be written at any LOG_LEVEL" in {
+      System.setProperty("LOG_LEVEL", "error")
+      try {
+        val ctx = new LoggerContext()
+        val configurator = new JoranConfigurator()
+        configurator.setContext(ctx)
+        configurator.doConfigure(getClass.getResource("/logback.xml"))
+        ctx.getLogger(LogSettings.StartLogger).isInfoEnabled shouldBe true
+        ctx.getLogger("at.energydash.Other").isInfoEnabled shouldBe false
+        ctx.stop()
+      } finally System.clearProperty("LOG_LEVEL")
+    }
+  }
+
   "A logged exception" should {
     val document = "<v320:Message><Meter>AT0030000000000000000000000526178</Meter></v320:Message>"
     val failure = s"""Error while parsing $document: parser error "bad" while parsing /{ns}Message"""

@@ -15,6 +15,7 @@ import scala.jdk.CollectionConverters._
 /**
  * One log line as one JSON object with flat ECS names, the same shape as the other eegfaktura services:
  * `@timestamp` (UTC, milliseconds), `log.level` (lower case), `log.logger`, `service.name`, `service.version`,
+ * `deployment.environment` when it is set,
  * the [[LogFields.Allowed]] fields from the MDC and the key-value pairs (anything else is dropped),
  * `error.type`/`error.message`/`error.stack_trace` for an attached exception, and `message`. Message and error text
  * pass [[LogText]], so an exception of a library or of pekko cannot bring a document into the log either.
@@ -23,7 +24,7 @@ object EcsJson {
   private val factory = new JsonFactory()
   private val Millis = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC)
 
-  def line(event: ILoggingEvent, serviceName: String, serviceVersion: String): String = {
+  def line(event: ILoggingEvent, serviceName: String, serviceVersion: String, deploymentEnvironment: Option[String] = None): String = {
     val fields = scala.collection.mutable.LinkedHashMap.empty[String, Any]
     Option(event.getMDCPropertyMap).foreach(_.asScala.foreach { case (k, v) =>
       if (LogFields.Allowed(k) && v != null) fields(k) = v
@@ -40,6 +41,7 @@ object EcsJson {
     g.writeStringField("log.logger", event.getLoggerName)
     g.writeStringField("service.name", serviceName)
     g.writeStringField("service.version", serviceVersion)
+    deploymentEnvironment.foreach(g.writeStringField("deployment.environment", _))
     fields.foreach {
       case (k, n: Number) if LogFields.Numeric(k) => g.writeNumberField(k, n.longValue)
       case (k, v) if LogFields.Numeric(k) && v.toString.toLongOption.isDefined => g.writeNumberField(k, v.toString.toLong)
@@ -72,6 +74,7 @@ class LogEncoder extends EncoderBase[ILoggingEvent] {
   private var format = "json"
   private var text: Option[PatternLayout] = None
   private val serviceVersion = LogSettings.serviceVersion(sys.env)
+  private val deploymentEnvironment = LogSettings.deploymentEnvironment(sys.env)
 
   def setFormat(value: String): Unit = format = value
 
@@ -95,7 +98,7 @@ class LogEncoder extends EncoderBase[ILoggingEvent] {
   override def footerBytes(): Array[Byte] = null
 
   override def encode(event: ILoggingEvent): Array[Byte] =
-    text.fold(EcsJson.line(event, LogSettings.ServiceName, serviceVersion)) { layout =>
+    text.fold(EcsJson.line(event, LogSettings.ServiceName, serviceVersion, deploymentEnvironment)) { layout =>
       LogText.errorText(layout.doLayout(event)) + Option(event.getThrowableProxy).fold("")(EcsJson.stackTrace)
     }.getBytes(StandardCharsets.UTF_8)
 }

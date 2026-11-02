@@ -13,6 +13,7 @@
     </appender>
 
     <logger name="slick" level="${SLICK_LOG_LEVEL:-info}"/>
+    <logger name="at.energydash.start" level="info"/>
 
     <root level="${LOG_LEVEL:-info}">
         <appender-ref ref="CONSOLE"/>
