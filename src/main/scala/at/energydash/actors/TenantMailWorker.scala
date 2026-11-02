@@ -59,7 +59,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
               prepareEmail(message) match {
                 case Some(email) => /*m match {*/
                   //                case Success(email) =>
-                  context.log.debug(s"Forward mail to Mail Actor ${email.toEmail}")
+                  context.log.debug(s"Forward mail to Mail Actor: conversation ${email.data.conversationId}")
                   context.log.debug(s"Mail Attachment: ${email.attachment.length} bytes")
 
                   tenant.domain match {

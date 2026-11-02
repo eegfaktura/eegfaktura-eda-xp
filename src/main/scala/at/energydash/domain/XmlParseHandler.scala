@@ -32,7 +32,7 @@ object XmlParseHandler {
             (x.scope.getURI(x.prefix) == SOAP_ENVELOPE_URI) =>
           // TODO: much advance failure handling
           // val fault = scalaxb.fromXML[soapenvelope12.Fault](x)
-          logger.error(s"Error in Body Message: ${x}")
+          logger.error(s"SOAP fault in response body, code ${faultCode(x)} (fault text not logged)")
           Nil
         case _ =>
           envelope.Body.any.collect {
@@ -41,6 +41,10 @@ object XmlParseHandler {
       }
     }
   }
+
+  /** The fault code (`Code/Value`, a QName of the SOAP vocabulary); never the reason or detail of the fault. */
+  private def faultCode(fault: scala.xml.Elem): String =
+    Some((fault \ "Code" \ "Value").text.trim).filter(_.matches("[A-Za-z0-9_.:-]{1,64}")).getOrElse("unknown")
 
   def responseInbound(envelope: Envelope)(implicit ec: ExecutionContext) : Future[InboundDocument] = {
     responseBodyXml(envelope).map(n => scalaxb.fromXML[InboundDocument](n.head))
