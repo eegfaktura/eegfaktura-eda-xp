@@ -14,7 +14,7 @@ import org.apache.pekko.util.Timeout
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish, MqttPublishError}
 import at.energydash.domain.{EbMsMessage, XmlParseHandler}
 import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
-import at.energydash.logging.LogText
+import at.energydash.logging.{LogFields, LogText}
 import at.energydash.mqtt.MqttProtocol.Handover
 import org.slf4j.{Logger, LoggerFactory}
 import soapenvelope11.Envelope
@@ -120,7 +120,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
         scalaxb.fromXML[Envelope](response.head)
       }.flatMap(e => XmlParseHandler.reponseEbMsMessage(e))) {
         case Success(x) =>
-          context.foreach { c => c.tenant = Some(x.receiver); c.conversationId = Some(x.conversationId) }
+          context.foreach { c => c.tenant = LogFields.tenantId(x.receiver); c.conversationId = Some(x.conversationId) }
           val notification = PontonRoute.notificationFor(x)
           withContext(context) {
             logSize(size, s"message code ${x.messageCode}, conversation ${x.conversationId}")
@@ -216,11 +216,11 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                     InboundForwarding.decide(forwardTargets, receiver, alreadyForwarded) match {
                       case InboundForwarding.Local => processLocally(response, size)
                       case InboundForwarding.Loop(rc, target) =>
-                        context.foreach(_.tenant = Some(rc))
+                        context.foreach(_.tenant = LogFields.tenantId(rc))
                         withContext(context)(logger.error(s"Inbound message for $rc arrived already forwarded, but $rc is forwarded again to $target here; refusing it to avoid a loop"))
                         complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                       case InboundForwarding.Forward(rc, target) =>
-                        context.foreach(_.tenant = Some(rc))
+                        context.foreach(_.tenant = LogFields.tenantId(rc))
                         withContext(context)(logSize(size, s"forwarded for $rc"))
                         // No MqttPublishError on failure: this zone's backend does not own the
                         // community any more; the error stays in this log and Ponton redelivers.

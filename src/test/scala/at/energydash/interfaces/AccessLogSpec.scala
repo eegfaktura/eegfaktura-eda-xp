@@ -188,6 +188,18 @@ class AccessLogSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
         events.head.getThrowableProxy should not be null
       } finally Await.ready(other.unbind(), 10.seconds)
     }
+    "carry a receiver from the message only in the shape of a tenant" in {
+      val doc = Fixtures.text("v3/eda-xml/in/CMNotification-01.12-ANTWORT_ECON-99.xml")
+      val (sender, receiver) = Fixtures.routing(Fixtures.xml("v3/eda-xml/in/CMNotification-01.12-ANTWORT_ECON-99.xml"))
+      def tenantOf(value: String): Option[String] = {
+        val body = Fixtures.inboundEnvelope(scala.xml.XML.loadString(doc.replace(receiver, value)), sender, value, "ANTWORT_ECON")
+        val (_, events) = send(HttpRequest(HttpMethods.POST, s"$base/pontonxp/message", entity = xml(body)))
+        publisher.expectMessageType[MqttPublish]
+        fields(events.head).get(LogFields.TenantId)
+      }
+      tenantOf("GC123456-001") shouldBe Some("GC123456-001")
+      tenantOf("max at example") shouldBe None
+    }
     "carry the request id on a line of a parsing Future" in {
       val fault = """<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"><soapenv:Body>""" +
         """<env:Fault xmlns:env="http://www.w3.org/2003/05/soap-envelope"><env:Code><env:Value>env:Sender</env:Value></env:Code></env:Fault>""" +

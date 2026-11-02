@@ -105,6 +105,20 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
     }
   }
 
+  "LogFields.tenantId" should {
+    "pass a tenant, in upper case, and a GEA tenant" in {
+      LogFields.tenantId("RC100401") shouldBe Some("RC100401")
+      LogFields.tenantId("rc100401") shouldBe Some("RC100401")
+      LogFields.tenantId("GC123456-001") shouldBe Some("GC123456-001")
+      LogFields.tenantId("A" * 64) shouldBe Some("A" * 64)
+    }
+    "refuse anything else" in {
+      Seq("", " RC100401", "-RC1", "_RC1", "RC 1", "max@example.com", "RC1\n", "A" * 65, null).foreach { value =>
+        withClue(value)(LogFields.tenantId(value) shouldBe None)
+      }
+    }
+  }
+
   "A logged exception" should {
     val document = "<v320:Message><Meter>AT0030000000000000000000000526178</Meter></v320:Message>"
     val failure = s"""Error while parsing $document: parser error "bad" while parsing /{ns}Message"""

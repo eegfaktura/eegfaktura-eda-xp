@@ -29,6 +29,15 @@ object LogFields {
   /** Written as JSON numbers. */
   val Numeric: Set[String] = Set(EventDuration, HttpStatus)
 
+  private val ValidTenant = "[A-Z0-9][A-Z0-9_-]{0,63}".r
+
+  /**
+   * The `tenant.id` of a value that comes from outside (the rule of all services): upper case, and none when it does
+   * not have the shape of a tenant.
+   */
+  def tenantId(value: String): Option[String] =
+    Option(value).map(_.toUpperCase(java.util.Locale.ROOT)).filter(ValidTenant.matches)
+
   /** The fields of this thread's MDC, for [[withMdc]] in code that goes on on another thread (a stream stage). */
   def current(): Seq[(String, Option[String])] = Allowed.toSeq.map(k => k -> Option(MDC.get(k)))
 
