@@ -1,7 +1,7 @@
 package at.energydash.logging
 
 import ch.qos.logback.classic.PatternLayout
-import ch.qos.logback.classic.spi.{ILoggingEvent, ThrowableProxyUtil}
+import ch.qos.logback.classic.spi.{ILoggingEvent, IThrowableProxy, ThrowableProxyUtil}
 import ch.qos.logback.core.encoder.EncoderBase
 import com.fasterxml.jackson.core.JsonFactory
 
@@ -16,7 +16,8 @@ import scala.jdk.CollectionConverters._
  * One log line as one JSON object with flat ECS names, the same shape as the other eegfaktura services:
  * `@timestamp` (UTC, milliseconds), `log.level` (lower case), `log.logger`, `service.name`, `service.version`,
  * the [[LogFields.Allowed]] fields from the MDC and the key-value pairs (anything else is dropped),
- * `error.type`/`error.message`/`error.stack_trace` for an attached exception, and `message`.
+ * `error.type`/`error.message`/`error.stack_trace` for an attached exception, and `message`. Message and error text
+ * pass [[LogText]], so an exception of a library or of pekko cannot bring a document into the log either.
  */
 object EcsJson {
   private val factory = new JsonFactory()
@@ -46,14 +47,20 @@ object EcsJson {
     }
     Option(event.getThrowableProxy).foreach { t =>
       g.writeStringField("error.type", t.getClassName)
-      g.writeStringField("error.message", Option(t.getMessage).getOrElse(""))
-      g.writeStringField("error.stack_trace", ThrowableProxyUtil.asString(t))
+      g.writeStringField("error.message", LogText.exceptionText(t.getClassName, t.getMessage))
+      g.writeStringField("error.stack_trace", stackTrace(t))
     }
-    g.writeStringField("message", Option(event.getFormattedMessage).getOrElse(""))
+    g.writeStringField("message", LogText.errorText(event.getFormattedMessage))
     g.writeEndObject()
     g.close()
     out.append('\n').toString
   }
+
+  /** The stack with the message of the exception and of each cause through [[LogText.exceptionText]]. */
+  def stackTrace(t: IThrowableProxy): String =
+    Iterator.iterate(t)(_.getCause).takeWhile(_ != null).take(16)
+      .flatMap(p => Option(p.getMessage).filter(_.nonEmpty).map(m => m -> LogText.exceptionText(p.getClassName, m)))
+      .foldLeft(ThrowableProxyUtil.asString(t)) { case (stack, (message, safe)) => stack.replace(message, safe) }
 }
 
 /**
@@ -88,13 +95,14 @@ class LogEncoder extends EncoderBase[ILoggingEvent] {
   override def footerBytes(): Array[Byte] = null
 
   override def encode(event: ILoggingEvent): Array[Byte] =
-    text.fold(EcsJson.line(event, LogSettings.ServiceName, serviceVersion))(_.doLayout(event))
-      .getBytes(StandardCharsets.UTF_8)
+    text.fold(EcsJson.line(event, LogSettings.ServiceName, serviceVersion)) { layout =>
+      LogText.errorText(layout.doLayout(event)) + Option(event.getThrowableProxy).fold("")(EcsJson.stackTrace)
+    }.getBytes(StandardCharsets.UTF_8)
 }
 
 object LogEncoder {
   /** Local runs: time, level, logger, message, request/tenant/conversation and the key-value pairs. */
   val TextPattern: String =
     "%date{ISO8601} %-5level %logger{0} - %msg request.id=%X{request.id:-} tenant.id=%X{tenant.id:-} " +
-      "eda.conversation_id=%X{eda.conversation_id:-} %kvp%n"
+      "eda.conversation_id=%X{eda.conversation_id:-} %kvp%n%nopex"
 }

@@ -102,7 +102,8 @@ class Fetcher {
           deleteEmail(m, inbox)
       }
       case Failure(e) =>
-        logger.error(s"Extract Message: $e")
+        // the exception can hold the whole document: only its type here, LogText masks the attached one
+        logger.error(s"Extract Message failed for mail ${m.getMessageNumber}: ${e.getClass.getName} (content not logged)", e)
         deleteEmail(m, inbox)
     })
     inbox.close(true)
@@ -241,11 +242,11 @@ class Fetcher {
     val pattern = """\[([A-Za-z_-]*)(_(\d+\.\d+)){0,1} MessageId=(.*)\]""".r
     try {
       val pattern(protocol, _, version, messageId) = subject
-      logger.info(s"Mail Subject (${subject}): Protocol: ${protocol} Version: ${version}")
+      logger.info(s"Mail Subject: Protocol: ${protocol} Version: ${version} MessageId: ${messageId}")
       if (protocol.isEmpty || messageId.isEmpty) None else Some(protocol, version, messageId)
     } catch {
       case e: MatchError =>
-        logger.error(s"Error Subject (${subject}): ${e.getMessage()}")
+        logger.error("Error Subject: not an EDA subject (subject not logged)", e)
         Some("ERROR", "", "")
       case _: Throwable =>
         None
@@ -283,7 +284,7 @@ class Fetcher {
       logger.info(s"Delete Email with id ${id}")
     } catch {
       case e: Exception => {
-        logger.error(s"174 Error deleting Mail: $e - ${e.getMessage}")
+        logger.error("174 Error deleting Mail", e)
       }
     }
   }
@@ -300,7 +301,7 @@ class Fetcher {
       logger.info(s"Delete Email with id ${id}")
     } catch {
       case e: Exception => {
-        logger.error(s"194 Error deleting Mail: $e - ${e.getMessage}")
+        logger.error("194 Error deleting Mail", e)
       }
     } finally {
       inbox.close(true)

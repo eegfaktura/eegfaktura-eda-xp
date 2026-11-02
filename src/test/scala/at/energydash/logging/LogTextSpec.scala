@@ -27,8 +27,22 @@ class LogTextSpec extends AnyWordSpec with Matchers {
       val text = LogText.errorText("""Error while parsing <a>AT00: parser error secret</a>: parser error "bad" while parsing /a""")
       text shouldBe """Error while parsing the document: parser error "bad" while parsing /a"""
     }
+    "drop the document when other text comes first" in {
+      LogText.errorText(s"Recover: $failure") should startWith("Recover: Error while parsing the document: parser error")
+      LogText.errorText(s"Error: $failure").count(_ == '<') shouldBe 0
+    }
     "name the exception class" in {
       LogText.errorText(new IllegalStateException(failure)) should startWith("java.lang.IllegalStateException: Error while parsing the document: parser error")
+    }
+  }
+
+  "exceptionText" should {
+    "drop the document, e-mail addresses and the text of a MatchError" in {
+      LogText.exceptionText("java.lang.RuntimeException", failure) should not include "AT00"
+      LogText.exceptionText("javax.mail.SendFailedException", "Invalid: member@email.com") shouldBe "Invalid: <address>"
+      LogText.exceptionText("scala.MatchError", "<doc>AT00</doc> (of class scala.xml.Elem)") shouldBe "(content not logged)"
+      LogText.errorText(new MatchError("<doc>AT00</doc>")) shouldBe "scala.MatchError: (content not logged)"
+      LogText.exceptionText("java.lang.RuntimeException", null) shouldBe ""
     }
   }
 

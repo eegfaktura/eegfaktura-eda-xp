@@ -67,6 +67,37 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
     }
   }
 
+  "A logged exception" should {
+    val document = "<v320:Message><Meter>AT0030000000000000000000000526178</Meter></v320:Message>"
+    val failure = s"""Error while parsing $document: parser error "bad" while parsing /{ns}Message"""
+
+    "not bring a document or an address into message, error.message or the stack, also as a cause" in {
+      val fields = json(event(Level.ERROR, s"Recover: $failure",
+        error = Some(new RuntimeException("mail to max@example.com failed", new IllegalStateException(failure)))))
+      fields("message") shouldBe """Recover: Error while parsing the document: parser error "bad" while parsing /{ns}Message"""
+      fields("error.message") shouldBe "mail to <address> failed"
+      val stack = fields("error.stack_trace").toString
+      stack should include("Caused by: java.lang.IllegalStateException: Error while parsing the document: parser error")
+      stack should include("EcsJsonSpec")
+      Seq("AT003", "<v320", "max@example.com").foreach(s => fields.values.mkString should not include s)
+    }
+    "not write the value of a MatchError" in {
+      val fields = json(event(Level.ERROR, "failed", error = Some(new MatchError(document))))
+      fields("error.type") shouldBe "scala.MatchError"
+      fields.values.mkString should not include "AT003"
+    }
+    "not bring a document into the text format, with the stack once" in {
+      val enc = new LogEncoder()
+      enc.setContext(context)
+      enc.setFormat("text")
+      enc.start()
+      val line = new String(enc.encode(event(Level.ERROR, "failed", error = Some(new IllegalStateException(failure)))), "UTF-8")
+      line should not include "AT003"
+      "IllegalStateException".r.findAllIn(line).size shouldBe 1
+      line should include("EcsJsonSpec")
+    }
+  }
+
   "LogEncoder" should {
     def encoder(format: String) = {
       val enc = new LogEncoder()

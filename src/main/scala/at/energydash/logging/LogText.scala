@@ -11,21 +11,30 @@ object LogText {
   /**
    * The message of an error without document content. scalaxb's `ParserFailure` names the whole XML element it
    * failed on (`Error while parsing <…the document…>: parser error "…" while parsing /path`); only the part after
-   * the element is kept. Any other message is returned as is.
+   * the element is kept, also when other text comes first. Any other message is returned as is.
    */
   def errorText(message: String): String =
     if (message == null) ""
-    else if (!message.startsWith(ParserFailurePrefix)) message
-    else message.lastIndexOf(ParserErrorMarker) match {
-      case -1 => "Error while parsing the document (content not logged)"
-      case i => "Error while parsing the document:" + message.substring(i + 1)
+    else message.indexOf(ParserFailurePrefix) match {
+      case -1 => message
+      case start => message.substring(0, start) + (message.lastIndexOf(ParserErrorMarker) match {
+        case i if i > start => "Error while parsing the document:" + message.substring(i + 1)
+        case _ => "Error while parsing the document (content not logged)"
+      })
     }
 
   /** `true` when the error or one of its causes has the document in its message (scalaxb's `ParserFailure`). */
   def carriesDocument(ex: Throwable): Boolean =
-    Iterator.iterate(ex)(_.getCause).takeWhile(_ != null).take(16).exists(e => Option(e.getMessage).exists(_.startsWith(ParserFailurePrefix)))
+    Iterator.iterate(ex)(_.getCause).takeWhile(_ != null).take(16).exists(e => Option(e.getMessage).exists(_.contains(ParserFailurePrefix)))
 
-  def errorText(ex: Throwable): String = s"${ex.getClass.getName}: ${errorText(ex.getMessage)}"
+  /**
+   * The message of an exception of the class `className` for the log: without a document ([[errorText]]) and without
+   * e-mail addresses. A `MatchError` has the text of the value it failed on, which can be the whole document: dropped.
+   */
+  def exceptionText(className: String, message: String): String =
+    if (className == classOf[MatchError].getName) "(content not logged)" else withoutEmailAddresses(errorText(message))
+
+  def errorText(ex: Throwable): String = s"${ex.getClass.getName}: ${exceptionText(ex.getClass.getName, ex.getMessage)}"
 
   /** A failed JSON decode without the value: circe's message quotes the offending value (a metering point, say). */
   def decodeError(error: io.circe.Error): String = error match {
