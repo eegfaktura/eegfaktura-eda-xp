@@ -100,6 +100,17 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       Mailbox.clearAll()
     }
 
+    "log the message id of a subject only if it has the shape of one, and return it as before" in {
+      val fetcher = at.energydash.mailer.Fetcher()
+      val odd = "Max Mustermann, max@example.com"
+      val (parsed, events) = LogCapture("at.energydash.mailer.Fetcher") {
+        (fetcher.parseSubject("[CR_MSG_03.03 MessageId=RC100130.2023-1]"), fetcher.parseSubject(s"[CR_MSG_03.03 MessageId=$odd]"))
+      }
+      parsed shouldBe ((Some(("CR_MSG", "03.03", "RC100130.2023-1")), Some(("CR_MSG", "03.03", odd))))
+      LogCapture.messages(events) shouldBe List("Mail Subject: Protocol: CR_MSG Version: 03.03 MessageId: RC100130.2023-1",
+        "Mail Subject: Protocol: CR_MSG Version: 03.03 MessageId: (not a message id, not logged)")
+    }
+
     // dev#45 L5
     "log no address when sending a mail" in {
       val data = at.energydash.domain.EbMsMessage(conversationId = "C4711", sender = "RC100001", receiver = "AT003000",

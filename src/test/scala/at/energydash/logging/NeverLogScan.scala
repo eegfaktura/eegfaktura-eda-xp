@@ -12,7 +12,7 @@ object NeverLogScan {
   val Allowed: Map[String, String] = Map(
     // ids (metering point numbers may be logged too, decision W-261008-ca2)
     "conversationId" -> "EDA conversation id",
-    "messageId" -> "EDA or Ponton message id",
+    "loggableId(messageId)" -> "Fetcher: a value of the shape of an id, or a fixed text",
     "id" -> "Message-ID header of a mail",
     "rc" -> "RC number of a community",
     "tenant" -> "tenant id, an RC number",

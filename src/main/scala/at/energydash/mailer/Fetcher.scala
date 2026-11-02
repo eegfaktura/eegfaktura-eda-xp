@@ -242,7 +242,7 @@ class Fetcher {
     val pattern = """\[([A-Za-z_-]*)(_(\d+\.\d+)){0,1} MessageId=(.*)\]""".r
     try {
       val pattern(protocol, _, version, messageId) = subject
-      logger.info(s"Mail Subject: Protocol: ${protocol} Version: ${version} MessageId: ${messageId}")
+      logger.info(s"Mail Subject: Protocol: ${protocol} Version: ${version} MessageId: ${loggableId(messageId)}")
       if (protocol.isEmpty || messageId.isEmpty) None else Some(protocol, version, messageId)
     } catch {
       case e: MatchError =>
@@ -313,6 +313,12 @@ class Fetcher {
 object Fetcher {
 
   def apply() = new Fetcher()
+
+  private val MessageIdShape = "[A-Za-z0-9._:-]{1,128}".r
+
+  /** The message id of a subject for the log: it is the raw rest of the subject, which can be any text. */
+  def loggableId(messageId: String): String =
+    if (MessageIdShape.matches(messageId)) messageId else "(not a message id, not logged)"
 
   val UNSEENTERM = new FlagTerm(new Flags(Flags.Flag.SEEN), false)
   val SEENTERM = new FlagTerm(new Flags(Flags.Flag.SEEN), true)
