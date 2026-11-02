@@ -75,6 +75,7 @@ object LogSettings {
     val levels = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
     def level(name: String) = levels.getLogger(name).getEffectiveLevel.toString.toLowerCase(Locale.ROOT)
     LoggerFactory.getLogger(StartLogger).atInfo().addKeyValue(LogFields.EventAction, "service.start")
+      .addKeyValue(LogFields.LogEffectiveLevel, level(Logger.ROOT_LOGGER_NAME))
       .setMessage(s"Service start: version ${serviceVersion(sys.env)}, log level ${level(Logger.ROOT_LOGGER_NAME)}, slick log level ${level("slick")}")
       .log()
   }

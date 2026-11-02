@@ -21,7 +21,9 @@ object LogFields {
   /** The EDA ConversationId of the message a line handles. */
   val ConversationId = "eda.conversation_id"
 
-  val Allowed: Set[String] = Set(EventAction, EventOutcome, EventDuration, HttpMethod, HttpRoute, HttpStatus,
+  val LogEffectiveLevel = "log.effective_level"
+
+  val Allowed: Set[String] = Set(LogEffectiveLevel, EventAction, EventOutcome, EventDuration, HttpMethod, HttpRoute, HttpStatus,
     RequestId, TraceId, SpanId, TenantId, ClientId, ConversationId)
 
   /** Written as JSON numbers. */
