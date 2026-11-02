@@ -119,6 +119,20 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
       stack should include("EcsJsonSpec")
       Seq("AT003", "<v320", "max@example.com").foreach(s => fields.values.mkString should not include s)
     }
+    "not leave an address or a MatchError value in message" in {
+      val address = new RuntimeException("550 no mailbox max@example.com")
+      json(event(Level.ERROR, s"Recover: ${address.getMessage}", error = Some(address)))("message") shouldBe
+        "Recover: 550 no mailbox <address>"
+      json(event(Level.ERROR, "SMTP said max@example.com"))("message") shouldBe "SMTP said <address>"
+      val unmatched = new MatchError(document)
+      val fields = json(event(Level.ERROR, s"Error Stream handling - ${unmatched.getMessage}", error = Some(unmatched)))
+      fields("message") shouldBe "Error Stream handling - (content not logged)"
+    }
+    "keep the operator text of a message that was not handed to MQTT" in {
+      val text = "Inbound message (conversation RC1, message code ANTWORT_ECON) not handed to MQTT after 12 ms: " +
+        "java.lang.IllegalStateException: MQTT client not connected; Ponton will redeliver"
+      json(event(Level.ERROR, text, error = Some(new IllegalStateException("MQTT client not connected"))))("message") shouldBe text
+    }
     "not bring a document or an address in through a suppressed exception" in {
       val error = new RuntimeException("failed")
       val suppressed = new IllegalStateException(failure, new RuntimeException("mail to max@example.com failed"))

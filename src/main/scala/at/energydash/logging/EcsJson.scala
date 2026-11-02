@@ -52,7 +52,7 @@ object EcsJson {
       g.writeStringField("error.message", LogText.exceptionText(t.getClassName, t.getMessage))
       g.writeStringField("error.stack_trace", stackTrace(t))
     }
-    g.writeStringField("message", LogText.errorText(event.getFormattedMessage))
+    g.writeStringField("message", safeMessage(event))
     g.writeEndObject()
     g.close()
     out.append('\n').toString
@@ -67,6 +67,15 @@ object EcsJson {
   private def masked(t: IThrowableProxy, text: String): String =
     chain(t).flatMap(p => Option(p.getMessage).filter(_.nonEmpty).map(m => m -> LogText.exceptionText(p.getClassName, m)))
       .foldLeft(text) { case (masking, (message, safe)) => masking.replace(message, safe) }
+
+  /**
+   * The message of the event with the mask of the exception text, which also covers a value only the attached
+   * exception identifies (the text of a `MatchError` that a line quotes through `getMessage`).
+   */
+  def safeMessage(event: ILoggingEvent): String = {
+    val message = Option(event.getFormattedMessage).getOrElse("")
+    LogText.withoutEmailAddresses(LogText.errorText(Option(event.getThrowableProxy).fold(message)(masked(_, message))))
+  }
 
   /** The stack with every message of the exception masked. */
   def stackTrace(t: IThrowableProxy): String = masked(t, ThrowableProxyUtil.asString(t))
