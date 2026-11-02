@@ -4,6 +4,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import at.energydash.EmbeddedDb
 import at.energydash.actors.ConversationEntity.{MergeError, MergeNotification}
+import at.energydash.actors.http.PontonRoute
 import at.energydash.actors.MqttPublisher.{AggregateNotification, EdaNotification, MqttCommand, MqttPublish, MqttPublishError}
 import at.energydash.testsupport.TestDb
 import at.energydash.domain.EbMsMessage
@@ -137,6 +138,17 @@ class MqttPublisherSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike w
       publisher ! MqttPublish(notification :: Nil, Some(handover))
       (the[IllegalStateException] thrownBy Await.result(handover.future, 8.seconds)).getMessage should startWith("aggregator did not answer")
       mqttSystem.expectNoMessage(300.millis)
+    }
+
+    // A replaced message and an unknown document type are told apart by the protocol alone, and the two only differ in
+    // case: if they were aligned, every unknown document would be answered 500 and redelivered for ever.
+    "keep the hand-over for an unknown document type, it is no replaced message" in {
+      PontonRoute.ErrorProtocol should not equal EbMsAggregator.ReplacedProtocol
+      val mqttSystem = createTestProbe[MqttCmd]()
+      val publisher = testKit.spawn(MqttPublisher(mqttSystem.ref, testKit.spawn(echo)))
+      val handover = new Handover
+      publisher ! MqttPublish(notification.copy(protocol = PontonRoute.ErrorProtocol) :: Nil, Some(handover))
+      mqttSystem.expectMessageType[EdaEventReceived].handover shouldBe Some(handover)
     }
 
     "fail when a MergeError replaces the message, which still goes to the error topic as before" in {

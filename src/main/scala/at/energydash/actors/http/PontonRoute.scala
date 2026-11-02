@@ -39,13 +39,15 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
 
   var logger: Logger = LoggerFactory.getLogger(this.getClass)
 
+  /** pekko.http.server.request-timeout; None when `infinite` (a valid value without a Duration). */
+  private val requestTimeout: Option[FiniteDuration] =
+    Try(system.settings.config.getDuration("pekko.http.server.request-timeout").toMillis.millis).toOption
+
   logger.debug("Start Ponton Routes ...")
   if (forwardTargets.nonEmpty) {
     logger.info(s"Inbound messages forwarded to another zone for: ${forwardTargets.map { case (rc, uri) => s"$rc -> $uri" }.mkString(", ")} (read within $readTimeout, answer within $forwardTimeout)")
-    // `infinite` is a valid request-timeout and has no Duration: then nothing to warn about
-    val serverTimeout = Try(system.settings.config.getDuration("pekko.http.server.request-timeout").toMillis.millis).toOption
-    if (serverTimeout.exists(readTimeout + forwardTimeout >= _))
-      logger.warn(s"app.forward-read-timeout + app.forward-timeout ($readTimeout + $forwardTimeout) reach pekko.http.server.request-timeout (${serverTimeout.get}): the server's 503 can answer before the forward result")
+    if (requestTimeout.exists(readTimeout + forwardTimeout >= _))
+      logger.warn(s"app.forward-read-timeout + app.forward-timeout ($readTimeout + $forwardTimeout) reach pekko.http.server.request-timeout (${requestTimeout.get}): the server's 503 can answer before the forward result")
   }
 
   /**
@@ -103,10 +105,6 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
     mqttPublisher ! MqttPublish(notification :: Nil, Some(handover))
     handover.future
   }
-
-  /** pekko.http.server.request-timeout; None when `infinite`. */
-  private val requestTimeout: Option[FiniteDuration] =
-    Try(system.settings.config.getDuration("pekko.http.server.request-timeout").toMillis.millis).toOption
 
   /** Runs `body` with the request id, tenant and conversation the access context knows so far in the MDC. */
   private def withContext[T](context: Option[AccessLog.Context])(body: => T): T =

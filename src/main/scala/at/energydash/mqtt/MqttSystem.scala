@@ -153,6 +153,7 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
           ev.handover match {
             case Some(h) =>
               if (h.claim()) offer(ev).fold(reason => h.refused(new IllegalStateException(reason)), _ => h.accepted())
+              else context.log.debug(s"Message of conversation ${ev.ev.message.conversationId} not taken: the sender gave up")
             case None =>
               offer(ev).left.foreach(notPublished(ev, _))
           }
