@@ -206,6 +206,9 @@ lazy val root = (project in file("."))
       "grpc-protobuf-lite", "grpc-stub", "grpc-util",
     ).map("io.grpc" % _ % grpcVersion),
 
+    // guava comes in through gRPC; 33.7.2 fixes CVE-2026-102554
+    dependencyOverrides += "com.google.guava" % "guava" % "33.7.2-jre",
+
     // jackson-module-scala refuses a databind of another minor version: all modules move together
     dependencyOverrides ++= Seq(
       "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
