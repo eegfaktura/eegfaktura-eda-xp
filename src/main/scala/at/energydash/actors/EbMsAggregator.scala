@@ -40,6 +40,7 @@ object EbMsAggregator {
       implicit val timeout: Timeout = Timeout(5.seconds)
 
       val eegRepo = new SlickEegMasterRepository(Db.getConfig)
+      val log = ctx.log // ctx.log itself only works on the actor thread, not in the stream below
 
       Behaviors.receiveMessage {
         case AggregateNotification(tenant, notifications, replyTo) =>
@@ -67,7 +68,7 @@ object EbMsAggregator {
             }
             .recover {
               case e =>
-                ctx.log.error(s"Recover Aggregator: ${e.getMessage}")
+                log.error(s"Recover Aggregator: ${e.getMessage}")
                 EdaNotification(ReplacedProtocol, DefaultEbMsMessage.Error(e.getMessage))
             }
             .runWith(Sink.collection[MqttPublisher.EdaNotification, List[MqttPublisher.EdaNotification]])

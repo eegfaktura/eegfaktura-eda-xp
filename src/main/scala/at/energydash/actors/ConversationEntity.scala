@@ -85,7 +85,7 @@ object ConversationEntity {
           merge(message) onComplete {
             case Success(m) => replyTo ! ConversationMerged(m)
             case Failure(e) =>
-              context.log.error(e.getMessage)
+              logger.error(e.getMessage)
               replyTo ! MergeError(e.getMessage)
           }
           Behaviors.same

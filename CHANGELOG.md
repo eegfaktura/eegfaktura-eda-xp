@@ -25,7 +25,7 @@ this changelog highlights the changes relevant for overview and operations.
   will redeliver"). The route gives up at the latest after 10 s and always before the server's
   request-timeout, so a message answered `500` is never published later and Ponton's redelivery creates no
   duplicate. A message refused by a merge error or aggregator failure still publishes the `error`
-  notification as before: during an eda-xp database outage the backend gets one error entry per Ponton
+  notification (not when the aggregator does not answer within 5 s): during an eda-xp database outage the backend gets one error entry per Ponton
   retry. A message handed to the publishing stream is answered `204` as before, without waiting for the
   broker, also while the client reconnects to a restarted broker. **Known limit:** a message already in the buffer
   when the client stream fails is lost after its `204`, as before (tracking 261102-mm1). Messages without a Ponton request
@@ -34,6 +34,11 @@ this changelog highlights the changes relevant for overview and operations.
   runbook in the README (search `not handed to MQTT`, check the Ponton message monitor for FAILED inbound
   messages of that window and resend); Ponton's automatic redelivery after a `500` is not verified yet
   (261005-ca1).
+
+### Fixed
+- **A failed database lookup in the aggregator publishes its error notification and logs its cause.** The handler logged
+  through the actor context on a stream thread, which throws: no `error` notification, and an ERROR line about the actor
+  context instead of the cause. Same fix for a failed merge in `ConversationEntity`, which sent no reply at all.
 
 ## [1.3.0] – 2026-10-31
 
