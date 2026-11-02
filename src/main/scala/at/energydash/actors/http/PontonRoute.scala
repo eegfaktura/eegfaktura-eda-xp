@@ -136,7 +136,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
               complete(HttpResponse(StatusCodes.NoContent))
             case Failure(ex) =>
               val ms = (System.nanoTime() - started) / 1000000
-              withContext(context)(logger.error(s"Inbound message (conversation ${x.conversationId}, message code ${x.messageCode}) not handed to MQTT after $ms ms: ${LogText.errorText(ex)}; Ponton will redeliver"))
+              withContext(context)(logger.error(s"Inbound message (conversation ${x.conversationId}, message code ${x.messageCode}) not handed to MQTT after $ms ms: ${LogText.errorText(ex)}; Ponton will redeliver", ex))
               complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
           }
         case Failure(ex) => withContext(context) {
@@ -171,7 +171,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                   logger.info(s"Notification from EDA received (${d.data.length} bytes)")
                   complete(HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                 case Failure(f) =>
-                  logger.error(f.getMessage)
+                  logger.error("Notification from EDA not read", f)
                   complete(HttpResponse(StatusCodes.BadRequest, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
               }
             }
@@ -190,7 +190,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                   logger.info(s"Status from EDA received (${d.data.length} bytes)")
                   complete(HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                 case Failure(e) =>
-                  logger.error(e.toString)
+                  logger.error("Status from EDA not read", e)
                   complete(HttpResponse(StatusCodes.BadRequest, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
               }
             }
@@ -240,7 +240,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                               logger.error(s"Inbound message for $rc not accepted by $target: $status in $ms ms; Ponton will redeliver")
                               complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                             case Failure(ex) =>
-                              logger.error(s"Inbound message for $rc could not be forwarded to $target after $ms ms: ${ex.getMessage}; Ponton will redeliver")
+                              logger.error(s"Inbound message for $rc could not be forwarded to $target after $ms ms: ${ex.getMessage}; Ponton will redeliver", ex)
                               complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                           } }
                         }

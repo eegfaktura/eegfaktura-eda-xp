@@ -219,6 +219,8 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
       val logged = LogCapture.messages(events)
       logged.exists(_.contains("Local address contains control or whitespace")) shouldBe true
       logged.exists(m => m.contains("AT0030000000000000000000000526178") || m.contains("RC103536000000973930")) shouldBe false
+      // dev#45 L13: the error line has the exception, for error.type and the stack
+      events.filter(_.getLevel.toString == "ERROR").forall(_.getThrowableProxy != null) shouldBe true
     }
 
   }

@@ -54,7 +54,7 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
       Some(protocol, version)
     } catch {
       case e: MatchError =>
-        logger.error(s"Error ProcessInfo: ${e.getMessage()}")
+        logger.error("Error ProcessInfo: not a process name", e)
         Some("ERROR", "")
       case _: Throwable =>
         None

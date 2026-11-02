@@ -55,7 +55,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
           a ! GracefulShutdown
         } catch {
           case e: Exception =>
-            logger.warn(s"Error sending shutdown to tenant actor: ${e.getMessage}")
+            logger.warn(s"Error sending shutdown to tenant actor: ${e.getMessage}", e)
         }
       }
 
@@ -290,7 +290,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
                   )
                 case Left(e) =>
                   logger.error(
-                    s"Failed to parse MQTT message for tenant ${tenantConfig.tenant}: ${e.message}"
+                    s"Failed to parse MQTT message for tenant ${tenantConfig.tenant}", e
                   )
               }
 

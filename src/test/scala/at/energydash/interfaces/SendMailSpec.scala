@@ -68,6 +68,8 @@ class SendMailSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       val logged = LogCapture.messages(events)
       logged should contain("no valid recipient address")
       logged.exists(l => l.contains("Mustermann") || l.contains("0664")) shouldBe false
+      // the exception of this check lists the rejected recipients: it stays off the line (dev#45 L13)
+      events.forall(_.getThrowableProxy == null) shouldBe true
     }
     "answer an error for an invalid recipient (shape pinned)" in {
       val reply = Await.result(service.sendMail(SendMailRequest(sender = "x", recipient = "not an address",

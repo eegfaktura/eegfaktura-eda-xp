@@ -68,7 +68,7 @@ object EbMsAggregator {
             }
             .recover {
               case e =>
-                log.error(s"Recover Aggregator: ${e.getMessage}")
+                log.error(s"Recover Aggregator: ${e.getMessage}", e)
                 EdaNotification(ReplacedProtocol, DefaultEbMsMessage.Error(e.getMessage))
             }
             .runWith(Sink.collection[MqttPublisher.EdaNotification, List[MqttPublisher.EdaNotification]])

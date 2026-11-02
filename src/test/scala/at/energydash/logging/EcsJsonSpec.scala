@@ -6,6 +6,7 @@ import ch.qos.logback.classic.{Level, LoggerContext}
 import ch.qos.logback.core.ConsoleAppender
 import ch.qos.logback.core.status.{Status, StatusUtil}
 import com.fasterxml.jackson.databind.ObjectMapper
+import at.energydash.testsupport.LogCapture
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.slf4j.event.KeyValuePair
@@ -121,6 +122,23 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
       val config = at.energydash.domain.dao.TenantConfig("RC100001", "MAIL", None, None, None, None, None,
         Some("mailbox-user"), Some("mailbox-secret"), None, None, active = true)
       config.toString shouldBe "TenantConfig(RC100001, MAIL, active=true)"
+    }
+  }
+
+  "java.util.logging" should {
+    "come out through SLF4J as a JSON line, with the exception (dev#45 L13)" in {
+      LogSettings.bridgeJavaUtilLogging()
+      LogSettings.bridgeJavaUtilLogging() // once only, or each line would come twice
+      val jul = java.util.logging.Logger.getLogger("io.grpc.Test")
+      val (_, events) = LogCapture("io.grpc.Test") {
+        jul.log(java.util.logging.Level.WARNING, "channel broken", new IllegalStateException("boom"))
+      }
+      events should have size 1
+      val fields = mapper.readValue(EcsJson.line(events.head, "eegfaktura-eda-xp", "dev"), classOf[java.util.Map[String, Any]]).asScala
+      fields("log.logger") shouldBe "io.grpc.Test"
+      fields("log.level") shouldBe "warn"
+      fields("message") shouldBe "channel broken"
+      fields("error.type") shouldBe "java.lang.IllegalStateException"
     }
   }
 

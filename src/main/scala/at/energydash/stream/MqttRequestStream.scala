@@ -101,10 +101,10 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
       .via(responseFlow)
       .recover {
         case me: MqttException =>
-          withRequest(input)(logger.error(s"Error Stream handling - ${me.getMessage}"))
+          withRequest(input)(logger.error(s"Error Stream handling - ${me.getMessage}", me))
           me.errorMsg
         case e =>
-          withRequest(input)(logger.error(s"Recover: ${e.getMessage}"))
+          withRequest(input)(logger.error(s"Recover: ${e.getMessage}", e))
           MqttMessage("eda/response/error", ByteString(e.getMessage))
       }.runWith(Sink.head[MqttMessage])
   }
@@ -114,7 +114,7 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
   def runCommand(source: Source[MqttMessage, Future[Done]], responseSink: Sink[MqttMessage, _]): Future[Done] = {
     val decider: Supervision.Decider = {
       case e: MqttException => {
-        logger.error(s"Supervision Decider - Resume $e")
+        logger.error("Supervision Decider - Resume", e)
         Supervision.Resume
       }
       case _: RuntimeException => Supervision.Resume
@@ -130,7 +130,7 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
     val firstSubscription = Promise[Done]()
     RestartSource.onFailuresWithBackoff(restartSettings) { () =>
       source.mapMaterializedValue { subscribed =>
-        subscribed.failed.foreach(e => logger.warn(s"EDA command listener: subscription failed, restarting with backoff - ${e.getMessage}"))
+        subscribed.failed.foreach(e => logger.warn(s"EDA command listener: subscription failed, restarting with backoff - ${e.getMessage}", e))
         firstSubscription.tryCompleteWith(subscribed)
         NotUsed
       }

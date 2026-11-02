@@ -111,7 +111,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
   private def prepareEmail(data: EbMsMessage) =
     MessageHelper.getEdaMessageByType(data).flatMap(_.toByte.fold(
       e => {
-        logger.error(s"Parse message to XML. ${data.messageCode} - Error: $e")
+        logger.error(s"Parse message to XML failed: ${data.messageCode}, conversation ${data.conversationId}", e)
         None
       },
       attachment => {

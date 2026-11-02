@@ -1,5 +1,7 @@
 package at.energydash.logging
 
+import org.slf4j.bridge.SLF4JBridgeHandler
+
 import java.util.Locale
 
 /**
@@ -16,6 +18,7 @@ import java.util.Locale
 trait LogStartup {
   LogSettings.stopOnInvalid()
   LogSettings.fillEmpty()
+  LogSettings.bridgeJavaUtilLogging()
 }
 
 object LogSettings {
@@ -50,6 +53,13 @@ object LogSettings {
 
   /** Before the first logger: logback reads a system property ahead of the environment. */
   def fillEmpty(): Unit = defaultsForEmpty(sys.env).foreach { case (name, value) => System.setProperty(name, value) }
+
+  /** java.util.logging (gRPC, pgjdbc, paho) goes through SLF4J and the encoder, otherwise it prints plain text to stderr. */
+  def bridgeJavaUtilLogging(): Unit =
+    if (!SLF4JBridgeHandler.isInstalled) {
+      SLF4JBridgeHandler.removeHandlersForRootLogger()
+      SLF4JBridgeHandler.install()
+    }
 
   def serviceVersion(env: Map[String, String]): String = env.get("SERVICE_VERSION").map(_.trim).filter(_.nonEmpty).getOrElse("dev")
 
