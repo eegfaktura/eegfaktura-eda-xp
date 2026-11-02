@@ -10,6 +10,7 @@ import org.apache.pekko.stream.scaladsl.Sink
 import org.apache.pekko.util.{ByteString, Timeout}
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish}
 import at.energydash.domain.{DefaultEbMsMessage, XmlParseHandler}
+import at.energydash.logging.LogFields
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.Future
@@ -62,9 +63,10 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
   }
 
   def handleUpload(formData: Multipart.FormData, ecId: Option[String]): Future[Done] = {
+    val request = LogFields.current() // the stages run on other threads
     formData.parts
       .map(part => FileInfo(part))
-      .map(info => Tuple2(info, parseProcessName(info.processName)))
+      .map(info => Tuple2(info, LogFields.withMdc(request: _*)(parseProcessName(info.processName))))
       .mapAsync(1) {
         case (info, Some(process)) => bodyPart2Xml(info.bodyPart).map(xml => {
           (process._1, XmlParseHandler.mapXmlToEbms(
@@ -75,7 +77,7 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
 //          }
         })
         case (info, None) =>
-          log.error(s"File not valid ${info.processName}")
+          LogFields.withMdc(request: _*)(log.error(s"File not valid ${info.processName}"))
           Future(("Error", DefaultEbMsMessage.Error("FileUpload", Some("Wrong File"))))
       }
       .map {

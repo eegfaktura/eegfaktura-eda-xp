@@ -14,7 +14,7 @@ import org.apache.pekko.util.Timeout
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish, MqttPublishError}
 import at.energydash.domain.{EbMsMessage, XmlParseHandler}
 import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
-import at.energydash.logging.{LogFields, LogText}
+import at.energydash.logging.LogText
 import at.energydash.mqtt.MqttProtocol.Handover
 import org.slf4j.{Logger, LoggerFactory}
 import soapenvelope11.Envelope
@@ -108,15 +108,13 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
 
   /** Runs `body` with the request id, tenant and conversation the access context knows so far in the MDC. */
   private def withContext[T](context: Option[AccessLog.Context])(body: => T): T =
-    LogFields.withMdc(
-      LogFields.RequestId -> context.map(_.requestId),
-      LogFields.TenantId -> context.flatMap(_.tenant),
-      LogFields.ConversationId -> context.flatMap(_.conversationId))(body)
+    context.fold(body)(AccessLog.withContext(_)(body))
 
   /** Runs once the body is read: that is also when the request-timeout of the server starts. */
   private def processLocally(response: NodeSeq, size: Option[Long]): Route = {
     val started = System.nanoTime()
-    optionalAttribute(AccessLog.ContextKey) { context =>
+    (optionalAttribute(AccessLog.ContextKey) & extractExecutionContext) { (context, requestExecutor) =>
+      implicit val ec: ExecutionContext = requestExecutor // parsing logs too: with the request's context
       onComplete(Future {
         logger.debug(s"Receive message from edaAdapter. Length ${response.head.length}")
         scalaxb.fromXML[Envelope](response.head)

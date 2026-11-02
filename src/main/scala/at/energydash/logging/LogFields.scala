@@ -27,6 +27,9 @@ object LogFields {
   /** Written as JSON numbers. */
   val Numeric: Set[String] = Set(EventDuration, HttpStatus)
 
+  /** The fields of this thread's MDC, for [[withMdc]] in code that goes on on another thread (a stream stage). */
+  def current(): Seq[(String, Option[String])] = Allowed.toSeq.map(k => k -> Option(MDC.get(k)))
+
   /**
    * Runs `body` with the given fields in the MDC (only those with a non-empty value) and restores the previous
    * values afterwards. For synchronous code: the MDC belongs to the thread.

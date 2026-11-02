@@ -10,6 +10,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
+import scala.concurrent.ExecutionContextExecutor
 
 /**
  * One access line per HTTP request on port 6090 (logging concept point 6, `event.action=http.access`), written when
@@ -19,6 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * it has parsed the message ([[AccessLog.Context]]). No user, IP, user agent, query or body (no user tracking,
  * 2026-10-29). The probe paths are not logged. On a request timeout the line has the 503 the caller gets, even if the
  * route finishes later. If the client drops the connection, the line has what the route or the timeout produced.
+ * The lines the routes write carry `request.id`, and `tenant.id` once it is known, through the MDC ([[withContext]]).
  */
 object AccessLog {
   val RequestIdHeader = "X-Request-Id"
@@ -40,6 +42,19 @@ object AccessLog {
   }
 
   val ContextKey: AttributeKey[Context] = AttributeKey[Context]("eda-xp-access-context")
+
+  /** Runs `body` with what `context` knows so far in the MDC, so every line of the request can be joined. */
+  def withContext[T](context: Context)(body: => T): T =
+    withMdc(RequestId -> Some(context.requestId), TenantId -> context.tenant, ConversationId -> context.conversationId)(body)
+
+  /**
+   * The MDC belongs to the thread: the route's callbacks run with [[withContext]] through this executor. It reads
+   * the context per task, so a callback sees the tenant the route has learned in the meantime.
+   */
+  private final class ContextExecutor(underlying: ExecutionContextExecutor, context: Context) extends ExecutionContextExecutor {
+    override def execute(task: Runnable): Unit = underlying.execute(() => withContext(context)(task.run()))
+    override def reportFailure(cause: Throwable): Unit = underlying.reportFailure(cause)
+  }
 
   /** The incoming id when it is 1–128 characters of `[A-Za-z0-9._:-]`, else a new one (uuid4, 32 hex). */
   def requestId(incoming: Option[String]): String =
@@ -75,13 +90,15 @@ object AccessLog {
         log(request.method.value, route, StatusCodes.ServiceUnavailable.intValue, System.nanoTime() - started, context)
         HttpResponse(StatusCodes.ServiceUnavailable, entity = TimeoutText).addHeader(RawHeader(RequestIdHeader, context.requestId))
       }
-      mapRequest(_.addAttribute(ContextKey, context)) {
-        withRequestTimeoutResponse(timeoutResponse) {
-          respondWithHeader(RawHeader(RequestIdHeader, context.requestId)) {
-            mapResponse { response =>
-              log(request.method.value, route, response.status.intValue, System.nanoTime() - started, context)
-              response
-            }(Route.seal(inner))
+      extractExecutionContext { executor =>
+        (mapRequest(_.addAttribute(ContextKey, context)) & withExecutionContext(new ContextExecutor(executor, context))) {
+          withRequestTimeoutResponse(timeoutResponse) {
+            respondWithHeader(RawHeader(RequestIdHeader, context.requestId)) {
+              mapResponse { response =>
+                log(request.method.value, route, response.status.intValue, System.nanoTime() - started, context)
+                response
+              }(Route.seal(requestContext => withContext(context)(inner(requestContext))))
+            }
           }
         }
       }
