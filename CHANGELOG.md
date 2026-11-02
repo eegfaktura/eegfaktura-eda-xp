@@ -8,6 +8,32 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+Logging only (dev#45): topics, payloads, the answer to Ponton and mails do not change.
+
+### Added
+- **`deployment.environment` on every JSON line**, from the new variable `DEPLOYMENT_ENVIRONMENT`; left out when unset.
+  **Operators:** set it per zone (`dev`, `pilot`, `prod`) in the deployment.
+- **One start-up line** (`event.action=service.start`, logger `at.energydash.start`) with version and effective log
+  levels, written at any `LOG_LEVEL`.
+- **`jul-to-slf4j`:** java.util.logging (gRPC, pgjdbc, paho) goes through the encoder instead of printing plain text
+  to stderr. Levels: what JUL passes (info and above); `LOG_LEVEL=debug` does not switch on JUL's fine levels.
+- **A never-log test** (`NeverLogSpec`) reads every log call of the source and fails on a value outside its positive
+  list, on `getMessage` without the exception and on personal names.
+
+### Changed
+- **`request.id` and `tenant.id` on the lines of an HTTP request** on port 6090, not only on the access line
+  (`tenant.id` once the message is parsed). HTTP only: nothing travels over MQTT or gRPC. Lines of the actors a message
+  passes after the route (`MqttPublisher`, `EbMsAggregator`, `ConversationEntity`, `MqttSystem`) do not carry them.
+- **Error lines carry the exception** (`error.type`, `error.message`, `error.stack_trace`) instead of its message alone.
+  Message and error text pass one mask in the encoder.
+- Some log texts changed; a saved search on them needs adapting: `Cannot merge conversation …`, `Notification from EDA
+  not read`, `Status from EDA not read`, `Parse message to XML failed: …`, `Extract Message failed for mail …`,
+  `Error Subject: not an EDA subject …`, `Error ProcessInfo: not a process name`, `SOAP fault in response body …`,
+  `Send Mail: …`, `Sent Mail: …`, `About to send Email …`.
+
+### Security
+- Security relevant log lines fixed (dev#45 L4, L5); details not published.
+
 ## [1.4.0] – 2026-11-02
 
 ### Security

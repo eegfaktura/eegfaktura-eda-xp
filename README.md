@@ -143,7 +143,7 @@ docker run -p 6090:6090 -p 9093:9093 \
 
 Environment variables (names only): `SMTP_ADMIN_SERVER_HOST`, `SMTP_ADMIN_SERVER_PORT`,
 `SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`, `EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `MAX_BODY_SIZE`, `TZ`, `JAVA_OPTS`,
-`LOG_FORMAT`, `LOG_LEVEL`, `SLICK_LOG_LEVEL`, `SERVICE_VERSION`.
+`LOG_FORMAT`, `LOG_LEVEL`, `SLICK_LOG_LEVEL`, `SERVICE_VERSION`, `DEPLOYMENT_ENVIRONMENT`.
 
 ### Logging
 
@@ -156,11 +156,18 @@ Every line goes through one encoder (`src/main/resources/logback.xml`, `at.energ
 - `LOG_LEVEL` — `trace`, `debug`, `info` (default), `warn`, `error`; `SLICK_LOG_LEVEL` the same for the `slick`
   loggers only. An unknown value stops the start (exit code 2); an empty value means the default.
 - `SERVICE_VERSION` — set by the image build (the version without `v` for a tag build, else the commit, which a retagged image keeps); `dev` from source.
+- `DEPLOYMENT_ENVIRONMENT` — `deployment.environment` of every JSON line (`dev`, `pilot`, `prod`); the field is left
+  out when unset or empty.
+- Start-up line (`event.action=service.start`): version and effective log levels, at any `LOG_LEVEL`.
+- java.util.logging (gRPC, pgjdbc, paho) goes through the same encoder.
+- Lines of an HTTP request on port 6090 carry its `request.id`, and `tenant.id` once the message is parsed; not the
+  lines of the actors behind the route.
 - Access line (`event.action=http.access`, logger `at.energydash.access`): one line per request on port 6090 with
   method, route, status, `event.outcome`, `event.duration` (ns), `request.id` (`X-Request-Id`, also returned),
   `client.id=ponton` on `/pontonxp/*`, and `tenant.id`/`eda.conversation_id` once the message is parsed. Never an
   IP, user agent, query or body. `/healthz` and `/readyz` are not logged.
-- Never logged: EDA XML, MQTT payloads, mail bodies/attachments, e-mail addresses of members.
+- Never logged: EDA XML, MQTT payloads, mail bodies/attachments, e-mail addresses of members. `NeverLogSpec` reads
+  every log call: a new value in a log line needs an entry with a reason in its positive list.
 
 Exposed ports: **6090** (HTTP), **9093** (gRPC). Volumes: `/conf`, `/storage/prod`.
 
