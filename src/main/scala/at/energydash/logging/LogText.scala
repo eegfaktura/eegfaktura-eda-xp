@@ -42,9 +42,33 @@ object LogText {
     case _: ParsingFailure => "Request is not valid JSON"
   }
 
-  private val EmailAddress = """[^\s<>"'`(),;:]+@[^\s<>"'`(),;:]+""".r
+  private val Separators = " \t\n\u000B\f\r<>\"'`(),;:"
 
-  /** The text with every e-mail address replaced by `<address>` (javax.mail names the address in its errors). */
+  /**
+   * The text with every e-mail address replaced by `<address>` (javax.mail names the address in its errors): a run of
+   * characters between separators that has an `@` inside it, not at either end. One pass, no regex: every exception
+   * text comes through here on a dispatcher thread.
+   */
   def withoutEmailAddresses(text: String): String =
-    if (text == null) "" else EmailAddress.replaceAllIn(text, "<address>")
+    if (text == null) ""
+    else if (text.indexOf('@') < 0) text
+    else {
+      def separator(c: Char) = Separators.indexOf(c.toInt) >= 0
+      val out = new java.lang.StringBuilder(text.length)
+      var start = 0
+      while (start < text.length) {
+        var end = start + 1
+        if (separator(text(start))) out.append(text(start))
+        else {
+          var address = false
+          while (end < text.length && !separator(text(end))) {
+            if (text(end) == '@' && end + 1 < text.length && !separator(text(end + 1))) address = true
+            end += 1
+          }
+          if (address) out.append("<address>") else out.append(text, start, end)
+        }
+        start = end
+      }
+      out.toString
+    }
 }

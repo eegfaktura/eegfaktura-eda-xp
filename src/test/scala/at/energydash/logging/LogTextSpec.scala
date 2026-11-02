@@ -74,5 +74,30 @@ class LogTextSpec extends AnyWordSpec with Matchers {
       LogText.withoutEmailAddresses("no address here") shouldBe "no address here"
       LogText.withoutEmailAddresses(null) shouldBe ""
     }
+    "mask what the regular expression it replaces masked" in {
+      val before = """[^\s<>"'`(),;:]+@[^\s<>"'`(),;:]+""".r
+      def old(text: String) = before.replaceAllIn(text, "<address>")
+      Seq("a@b", "@b", "a@", "@", "a@@", "@@b", "a@b@c", "@a@", "a@b,c@d", "<a@b>", "x a@b.c y", "a:b@c", "a@b:c", "a@\nb").foreach { text =>
+        withClue(text)(LogText.withoutEmailAddresses(text) shouldBe old(text))
+      }
+      val random = new scala.util.Random(45)
+      (1 to 20000).foreach { _ =>
+        val text = Seq.fill(random.nextInt(14))("ab@@ <,:\t\"".charAt(random.nextInt(10))).mkString
+        withClue(text)(LogText.withoutEmailAddresses(text) shouldBe old(text))
+      }
+    }
+    "take a time linear in the length" in {
+      def seconds(text: String): Double = {
+        val started = System.nanoTime()
+        LogText.withoutEmailAddresses(text)
+        (System.nanoTime() - started) / 1e9
+      }
+      val megabyte = 1024 * 1024
+      seconds("a" * megabyte) should be < 2.0
+      seconds("a" * megabyte + "@") should be < 2.0
+      seconds("a@" * (megabyte / 2)) should be < 2.0
+      seconds("@ " * (megabyte / 2)) should be < 2.0
+      seconds("a " * (megabyte / 2) + "@") should be < 2.0
+    }
   }
 }
