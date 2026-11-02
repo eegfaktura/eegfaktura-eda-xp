@@ -1,6 +1,9 @@
 package at.energydash.domain.dao
 
 case class TenantConfig(tenant: String, cType: String, domain: Option[String], host: Option[String], imapPort: Option[Int], smtpHost: Option[String], smtpPort: Option[Int], user: Option[String], passwd: Option[String], imapSecurity: Option[String], smtpSecurity: Option[String], active: Boolean) {
+  // no user or password in a log line or an error text (tracking 261031-mm2)
+  override def toString: String = s"TenantConfig($tenant, $cType, active=$active)"
+
   import java.lang.Boolean._
   def toMap: Map[String, AnyRef] =
     Map[String, AnyRef](

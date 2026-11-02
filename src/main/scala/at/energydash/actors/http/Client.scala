@@ -30,8 +30,7 @@ trait AkkaHttpClients extends HttpClientsAsync { this: AkkaHttpHandler =>
 
   trait AkkaHttpClient extends HttpClient {
     override def request(in: String, address: URI, headers: Map[String, String])(implicit ec: ExecutionContext): Future[String] = {
-      logger.debug(s"content: ${in}")
-      logger.debug(s"headers: ${headers}")
+      logger.debug(s"SOAP request to KEP: ${in.length} characters")
       val r = HttpRequest(
         method = HttpMethods.POST,
 //        uri = Uri("http://10.10.10.51:6060/ponton/eda/webservice/outbound"),

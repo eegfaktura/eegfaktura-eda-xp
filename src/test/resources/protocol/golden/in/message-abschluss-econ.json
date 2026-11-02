@@ -1,0 +1,19 @@
+{
+  "conversationId" : "AT003000202303041506076450000003761",
+  "ecId" : "AT00300000000RC100181000000956509",
+  "messageCode" : "ABSCHLUSS_ECON",
+  "messageCodeVersion" : "01.00",
+  "messageId" : "AT003000202303041606138110133749517",
+  "meterList" : [
+    {
+      "activation" : 1678057200000,
+      "direction" : "CONSUMPTION",
+      "from" : 1678057200000,
+      "meteringPoint" : "AT0030000000000000000000000655856",
+      "share" : 0.0000,
+      "to" : 253402210800000
+    }
+  ],
+  "receiver" : "RC100181",
+  "sender" : "AT003000"
+}

@@ -1,0 +1,7 @@
+{
+  "conversationId" : "CONVERSATION",
+  "errorMessage" : "Unknown or not registered MessageType ERROR_MESSAGE",
+  "messageCode" : "ERROR_MESSAGE",
+  "receiver" : "RCRECEIVER",
+  "sender" : "ATSENDER"
+}

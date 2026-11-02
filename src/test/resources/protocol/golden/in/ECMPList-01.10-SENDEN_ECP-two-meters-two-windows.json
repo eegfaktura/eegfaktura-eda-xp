@@ -1,0 +1,38 @@
+{
+  "conversationId" : "RC900001202607141781008000000000002",
+  "ecId" : "AT00300000000RC900001000000000000",
+  "messageCode" : "SENDEN_ECP",
+  "messageCodeVersion" : "02.00",
+  "messageId" : "AT009999202607141781008000000000101",
+  "meterList" : [
+    {
+      "activation" : 1735686000000,
+      "consentId" : "AT009999000000001",
+      "direction" : "CONSUMPTION",
+      "from" : 1735686000000,
+      "meteringPoint" : "AT0090001000000000000000000000001",
+      "partFact" : 100,
+      "to" : 4102354800000
+    },
+    {
+      "activation" : 1717192800000,
+      "consentId" : "AT009999000000001",
+      "direction" : "CONSUMPTION",
+      "from" : 1717192800000,
+      "meteringPoint" : "AT0090001000000000000000000000001",
+      "partFact" : 100,
+      "to" : 1735599600000
+    },
+    {
+      "activation" : 1735686000000,
+      "consentId" : "AT009999000000501",
+      "direction" : "GENERATION",
+      "from" : 1735686000000,
+      "meteringPoint" : "AT0090001000000000000000000000501",
+      "partFact" : 100,
+      "to" : 4102354800000
+    }
+  ],
+  "receiver" : "RC900001",
+  "sender" : "AT009999"
+}

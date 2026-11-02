@@ -1,0 +1,18 @@
+{
+  "conversationId" : "RC900001202607141781008000000000002",
+  "messageCode" : "ANTWORT_CCMS",
+  "messageCodeVersion" : "01.12",
+  "messageId" : "AT009999202607141781008000000000101",
+  "receiver" : "RC900001",
+  "requestId" : "00000002",
+  "responseData" : [
+    {
+      "ConsentId" : "AT009999000000001",
+      "MeteringPoint" : "AT0090001000000000000000000000001",
+      "ResponseCode" : [
+        176
+      ]
+    }
+  ],
+  "sender" : "AT009999"
+}

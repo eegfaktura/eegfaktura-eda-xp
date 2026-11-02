@@ -1,0 +1,2 @@
+# Protocol golden files are compared byte for byte (Golden.scala); keep them LF on autocrlf checkouts.
+src/test/resources/protocol/golden/** text eol=lf

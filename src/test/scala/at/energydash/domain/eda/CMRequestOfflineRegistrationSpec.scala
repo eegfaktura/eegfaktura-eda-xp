@@ -1,7 +1,7 @@
 package at.energydash.domain.eda
 
 import at.energydash.domain.{EbMsMessage, Meter, XmlParseHandler}
-import at.energydash.domain.eda.MessageHelper.getProcessDate
+import at.energydash.domain.eda.MessageHelper.{getNow, getProcessDate}
 import at.energydash.domain.enums.{EbMsMessageType, MeterDirectionType}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -30,9 +30,8 @@ class CMRequestOfflineRegistrationSpec extends AnyWordSpecLike with Matchers {
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
-      (node \ "ProcessDirectory" \ "ProcessDate").text shouldBe getProcessDate
+      (node \ "ProcessDirectory" \ "ProcessDate").text should (equal(getNow().toString) or equal(getProcessDate)) // tomorrow; today if the run crossed midnight
 
-      println(m.map(_.toRecord).get)
     }
 
     "build 02.10 XML File" in {
@@ -50,7 +49,7 @@ class CMRequestOfflineRegistrationSpec extends AnyWordSpecLike with Matchers {
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
-      (node \ "ProcessDirectory" \ "ProcessDate").text shouldBe getProcessDate
+      (node \ "ProcessDirectory" \ "ProcessDate").text should (equal(getNow().toString) or equal(getProcessDate)) // tomorrow; today if the run crossed midnight
     }
 
     "build version 02.30 from eda message" in {
@@ -78,7 +77,6 @@ class CMRequestOfflineRegistrationSpec extends AnyWordSpecLike with Matchers {
       }
 
       val record = nodeClass.map(_.toRecord).get
-      println(record)
     }
 
     "build from JsonFile" in {
@@ -95,7 +93,6 @@ class CMRequestOfflineRegistrationSpec extends AnyWordSpecLike with Matchers {
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC102728000000972173"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
 
-      println(node)
     }
   }
 
@@ -145,7 +142,6 @@ class CMRequestOfflineRegistrationSpec extends AnyWordSpecLike with Matchers {
       }
       (node \\ "ECPartFact").text shouldBe "90"
       (node \\ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0020000000000000000000020901971"
-      println(node)
     }
   }
 

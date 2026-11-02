@@ -12,6 +12,7 @@ import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
 import at.energydash.domain.enums.EbMsProcessType
 import at.energydash.mailer.EmailService
 import at.energydash.mailer.EmailService.SendEmailCommand
+import at.energydash.logging.LogFields
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration, MILLISECONDS}
@@ -35,7 +36,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
   val interval: FiniteDuration = Config.interval(tenant.domain.getOrElse(""))
 
   private def setup(): Behavior[EdaCommand] = {
-    Behaviors.withMdc(Map("tenant" -> tenant.tenant))(
+    Behaviors.withMdc(Map(LogFields.TenantId -> tenant.tenant))(
       Behaviors.setup { context => {
         context.log.info("Setup Tenant Worker")
         context.log.info(s"Interval: ${interval.toMillis}")
@@ -59,14 +60,14 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
                 case Some(email) => /*m match {*/
                   //                case Success(email) =>
                   context.log.debug(s"Forward mail to Mail Actor ${email.toEmail}")
-                  context.log.debug(s"Mail Attachment ${email.attachment.utf8String}")
+                  context.log.debug(s"Mail Attachment: ${email.attachment.length} bytes")
 
                   tenant.domain match {
                     case Some(domain) =>
                       mailActor ! SendEmailCommand(email, domain, replyTo)
                       timers.startSingleTimer(Refresh, 1.minute)
                     case _ =>
-                      replyTo ! SendResponseError(tenant.tenant, message.receiver, s"Domain missing for sending mail. ${tenant}", "Send Mail")
+                      replyTo ! SendResponseError(tenant.tenant, message.receiver, s"Domain missing for sending mail. ${tenant.tenant}", "Send Mail")
                   }
                 //                case Failure(exception) =>
                 //                  replyTo ! SendResponseError(tenant.tenant, message.receiver, s"Error sending EDA message. ${exception}", "Send Mail")
@@ -119,7 +120,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
         val to = determineReceiver(data)
         val tenant = data.sender.toUpperCase()
 
-        logger.debug(s"Prepare Email Message Flow: $data")
+        logger.debug(s"Prepare Email Message Flow: ${data.messageCode}, conversation ${data.conversationId}")
         Some(EmailService.EmailModel(tenant = tenant, toEmail = to,
           subject = subject, attachment = attachment, data = data))
       }

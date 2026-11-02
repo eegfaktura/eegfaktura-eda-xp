@@ -1,0 +1,25 @@
+package at.energydash.testsupport
+
+import org.scalatest.exceptions.TestPendingException
+import org.scalatest.Assertions
+
+/**
+ * Defect test for a known error: the body asserts the **correct** behaviour.
+ * While the defect exists the body fails and the test is reported as *pending*; once the body passes the
+ * test **fails**, so the marker is removed together with the fix. The id names the maintainers' record
+ * of the error. Keep time-outs inside the body short (≤ 3 s).
+ */
+object KnownError extends Assertions {
+  def knownError(id: String)(body: => Any): Unit = {
+    val fixed =
+      try { body; true }
+      catch {
+        case e @ (_: Exception | _: AssertionError) =>
+          // one line per defect test in the run log: the reason it is still red, for review
+          System.out.println(s"known error $id still red: ${String.valueOf(e.getMessage).linesIterator.take(1).mkString.take(240)}")
+          false
+      }
+    if (fixed) fail(s"known error $id seems fixed — remove the knownError marker")
+    else throw new TestPendingException
+  }
+}

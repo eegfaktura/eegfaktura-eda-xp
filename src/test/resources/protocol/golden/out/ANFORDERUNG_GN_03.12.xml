@@ -1,0 +1,25 @@
+<cprequest:CPRequest 
+xmlns:cprequest="http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12" xmlns:types="http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20">
+  <cprequest:MarketParticipantDirectory DocumentMode="SIMU" Duplicate="false" SchemaVersion="01.12">
+    <types:RoutingHeader>
+      <types:Sender AddressType="ECNumber">
+        <types:MessageAddress>RC100401</types:MessageAddress>
+      </types:Sender>
+      <types:Receiver AddressType="ECNumber">
+        <types:MessageAddress>AT003000</types:MessageAddress>
+      </types:Receiver>
+      <types:DocumentCreationDateTime>@CREATED@</types:DocumentCreationDateTime>
+    </types:RoutingHeader>
+    <types:Sector>01</types:Sector>
+    <cprequest:MessageCode>ANFORDERUNG_GN</cprequest:MessageCode>
+  </cprequest:MarketParticipantDirectory>
+  <cprequest:ProcessDirectory>
+    <types:MessageId>@MESSAGE_ID@</types:MessageId>
+    <types:ConversationId>@CONVERSATION_ID@</types:ConversationId>
+    <types:ProcessDate>@TOMORROW@</types:ProcessDate>
+    <types:MeteringPoint>AT0030000000000000000000000401001</types:MeteringPoint>
+    <cprequest:Extension>
+      <cprequest:AssumptionOfCosts>false</cprequest:AssumptionOfCosts>
+    </cprequest:Extension>
+  </cprequest:ProcessDirectory>
+</cprequest:CPRequest>

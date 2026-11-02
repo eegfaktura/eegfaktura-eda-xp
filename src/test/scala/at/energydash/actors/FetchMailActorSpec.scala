@@ -19,7 +19,7 @@ import scala.io.Source
 import scala.jdk.CollectionConverters._
 import scala.xml.XML
 
-class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
+class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with at.energydash.EmbeddedDb {
 
   implicit def stringToInternetAddress(string:String):InternetAddress = new InternetAddress(string)
   import scala.concurrent.ExecutionContext.Implicits.global

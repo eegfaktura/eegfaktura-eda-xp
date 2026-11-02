@@ -1,0 +1,15 @@
+{
+  "conversationId" : "RC100001202307250000000000000000009",
+  "messageCode" : "ANTWORT_PT",
+  "messageCodeVersion" : "01.13",
+  "messageId" : "AT003000202307251229338650177355911",
+  "receiver" : "RC100001",
+  "responseData" : [
+    {
+      "ResponseCode" : [
+        70
+      ]
+    }
+  ],
+  "sender" : "AT003000"
+}

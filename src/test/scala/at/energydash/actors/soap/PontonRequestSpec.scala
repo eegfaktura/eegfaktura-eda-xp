@@ -41,7 +41,7 @@ class PontonRequestSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike w
       val testService = (new PontonRequest(testKit.system) with MockClientHandler)
       testService.mock
         .expects ( where {
-          (request: HttpRequest) => request.uri == Uri("http://10.10.10.51:6060/ponton/eda/webservice/outbound")
+          (request: HttpRequest) => request.uri == Uri("http://127.0.0.1:16060/ponton/eda/webservice/outbound")
         })
         .returning(Future.successful(HttpResponse(status=StatusCodes.OK, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, NodeSeq.Empty.toString()))))
       val edaMessage = EbMsMessage(

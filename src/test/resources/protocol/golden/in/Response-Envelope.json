@@ -1,0 +1,52 @@
+{
+  "conversationId" : "RC100181202407101720603980000000011",
+  "ecId" : "AT00300000000RC100181000000956509",
+  "messageCode" : "SENDEN_ECP",
+  "messageCodeVersion" : "02.00",
+  "messageId" : "AT003000202407101133014880118306074",
+  "meterList" : [
+    {
+      "activation" : 1663192800000,
+      "consentId" : "AT00300020221001105619036",
+      "direction" : "GENERATION",
+      "from" : 1663192800000,
+      "meteringPoint" : "AT0030000000000000000000030043080",
+      "partFact" : 100,
+      "plantCategory" : "Photovoltaik",
+      "share" : 0.0000,
+      "to" : 253402210800000
+    },
+    {
+      "activation" : 1663192800000,
+      "consentId" : "AT00300020221001105619075",
+      "direction" : "CONSUMPTION",
+      "from" : 1663192800000,
+      "meteringPoint" : "AT0030000000000000000000000351391",
+      "partFact" : 100,
+      "share" : 0.0000,
+      "to" : 253402210800000
+    },
+    {
+      "activation" : 1663192800000,
+      "consentId" : "AT00300020221001105619094",
+      "direction" : "CONSUMPTION",
+      "from" : 1663192800000,
+      "meteringPoint" : "AT0030000000000000000000000379812",
+      "partFact" : 100,
+      "share" : 0.0000,
+      "to" : 253402210800000
+    },
+    {
+      "activation" : 1663192800000,
+      "consentId" : "AT00300020221001105619057",
+      "direction" : "CONSUMPTION",
+      "from" : 1663192800000,
+      "meteringPoint" : "AT0030000000000000000000000381701",
+      "partFact" : 100,
+      "share" : 0.0000,
+      "to" : 253402210800000
+    }
+  ],
+  "receiver" : "RC100181",
+  "sender" : "AT003000"
+}

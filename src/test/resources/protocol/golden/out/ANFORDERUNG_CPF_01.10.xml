@@ -1,0 +1,46 @@
+<ecmplist:ECMPList 
+xmlns:ecmplist="http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p20" xmlns:types="http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20">
+  <ecmplist:MarketParticipantDirectory DocumentMode="SIMU" Duplicate="false" SchemaVersion="01.20">
+    <types:RoutingHeader>
+      <types:Sender AddressType="ECNumber">
+        <types:MessageAddress>RC100401</types:MessageAddress>
+      </types:Sender>
+      <types:Receiver AddressType="ECNumber">
+        <types:MessageAddress>AT003000</types:MessageAddress>
+      </types:Receiver>
+      <types:DocumentCreationDateTime>@CREATED@</types:DocumentCreationDateTime>
+    </types:RoutingHeader>
+    <types:Sector>01</types:Sector>
+    <ecmplist:MessageCode>ANFORDERUNG_CPF</ecmplist:MessageCode>
+  </ecmplist:MarketParticipantDirectory>
+  <ecmplist:ProcessDirectory>
+    <ecmplist:MessageId>@MESSAGE_ID@</ecmplist:MessageId>
+    <ecmplist:ConversationId>@CONVERSATION_ID@</ecmplist:ConversationId>
+    <ecmplist:ProcessDate>@TOMORROW@</ecmplist:ProcessDate>
+    <ecmplist:ECID>AT00300000000RC100401000000000001</ecmplist:ECID>
+    <ecmplist:ECType>RC_L</ecmplist:ECType>
+    <ecmplist:ECDisModel>D</ecmplist:ECDisModel>
+    <ecmplist:MPListData>
+      <ecmplist:MeteringPoint>AT0030000000000000000000000401001</ecmplist:MeteringPoint>
+      <ecmplist:MPTimeData>
+        <ecmplist:DateFrom>@TOMORROW@</ecmplist:DateFrom>
+        <ecmplist:DateTo>2099-12-31</ecmplist:DateTo>
+        <ecmplist:EnergyDirection>CONSUMPTION</ecmplist:EnergyDirection>
+        <ecmplist:ECPartFact>50</ecmplist:ECPartFact>
+        <ecmplist:DataType>EnergyCommunityRegistration</ecmplist:DataType>
+        <ecmplist:DateActivate>2099-01-01</ecmplist:DateActivate>
+      </ecmplist:MPTimeData>
+    </ecmplist:MPListData>
+    <ecmplist:MPListData>
+      <ecmplist:MeteringPoint>AT0030000000000000000000000401002</ecmplist:MeteringPoint>
+      <ecmplist:MPTimeData>
+        <ecmplist:DateFrom>@TOMORROW@</ecmplist:DateFrom>
+        <ecmplist:DateTo>2099-12-31</ecmplist:DateTo>
+        <ecmplist:EnergyDirection>GENERATION</ecmplist:EnergyDirection>
+        <ecmplist:ECPartFact>75</ecmplist:ECPartFact>
+        <ecmplist:DataType>EnergyCommunityRegistration</ecmplist:DataType>
+        <ecmplist:DateActivate>2099-01-01</ecmplist:DateActivate>
+      </ecmplist:MPTimeData>
+    </ecmplist:MPListData>
+  </ecmplist:ProcessDirectory>
+</ecmplist:ECMPList>

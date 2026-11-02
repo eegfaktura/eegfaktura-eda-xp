@@ -8,7 +8,7 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
-### Fixed
+### Changed
 - **Behaviour change towards Ponton:** an inbound message on `/pontonxp/message` that is processed in
   this zone is answered `500` instead of `204` when it cannot be published to MQTT. Until now it was
   answered `204` and lost silently when MQTT was not connected (start, or the restart backoff of 4 s to
@@ -28,6 +28,146 @@ this changelog highlights the changes relevant for overview and operations.
   runbook in the README (search `not handed to MQTT`, check the Ponton message monitor for FAILED inbound
   messages of that window and resend); Ponton's automatic redelivery after a `500` is not verified yet
   (261005-ca1).
+
+## [1.3.0] – 2026-10-31
+
+### Added
+- **Health endpoints `GET /healthz` and `GET /readyz` for Kubernetes probes** on the HTTP port 6090, next to
+  `/pontonxp/…` and `/admin/upload`. `/healthz` answers `ok` without checking anything (liveness, so a database
+  outage never restarts the pod). `/readyz` answers `ok` when the database answers `SELECT 1`, otherwise 503
+  `unavailable`; the route answers after 2 s at the latest. The check opens a connection of its own (not the
+  service's pools) on the blocking-io dispatcher, with 2 s driver timeouts for connect/login and for the query
+  (about 4 s at worst), and closes it again. One check runs at a time; concurrent calls and calls within 1 s share
+  its result, and a check still running after 10 s counts as failed so the next call starts a new one. A refusal
+  as one connection too many (SQLSTATE 53300) counts as ready: the service's pools still have their connections.
+  Failures are logged at warn with the exception and its cause, on a change and at most once a minute while they
+  last. The MQTT connection is not part of it: the client reconnects by itself and its state is not tracked where
+  the route could read it. Both endpoints are unauthenticated, like every route on this port. No readinessProbe
+  for now: a NotReady pod would leave both Services with the same selector — Ponton inbound on 6090/NodePort
+  32369 and the gRPC service `eegfaktura-xp-adapter-grpc` on 9093 (SendMail/RegisterPonton from backend,
+  energystore, admin-backend) — and whether Ponton redelivers after a refused connection is still open
+  (eegfaktura-dev tracking 261005-ca1).
+
+### Changed
+- **Logs are JSON now — this changes what operators and Dynatrace receive from eda-xp** (logging concept
+  W-261008-ca2, alignment 2026-10-30). In the image every log line is one JSON object on stdout with flat ECS names,
+  the same as the other services: `@timestamp` (UTC, ms), `log.level` (lower case), `log.logger`, `service.name`
+  (`eegfaktura-eda-xp`), `service.version`, `message`, errors as `error.type`/`error.message`/`error.stack_trace` in
+  the same record, and where known `request.id`, `trace.id`/`span.id`, `tenant.id`, `client.id`,
+  `eda.conversation_id` (the EDA ConversationId of the message a line handles: inbound Ponton messages, errors of
+  the MQTT request stream). Only these fields are written; other MDC entries (e.g. Pekko's `pekkoSource`) are
+  dropped. Parse rules on the old text format no longer match. The mail actors' MDC key `tenant` is now `tenant.id`.
+  New and changed environment variables:
+  - `LOG_FORMAT`: `json` (set in the image) or `text` (default when run from source with `sbt run`).
+  - `LOG_LEVEL`: `trace`, `debug`, `info` (default), `warn`, `error` — the root level. **An unknown value stops
+    the start** (exit code 2, message on stderr); an empty value means the default, as in the other services.
+  - `SLICK_LOG_LEVEL`: same values, now only for the `slick` loggers. Before, it set the root level of the whole
+    service (a second `<root>` in `logback.xml`, tracking 261008-ca6); prod and pilot do not set it.
+  - `SERVICE_VERSION` → `service.version`: set in the image by the build (the version without `v` for a tag build, the commit
+    for any other CI build, which a retagged release image keeps; the sbt version for a local image build); `dev` when
+    run from source.
+  No new dependency: the encoder is our own (`at.energydash.logging`), on logback-classic and jackson-core already
+  in the build.
+- **One access line per HTTP request on port 6090** (`event.action=http.access`, logger `at.energydash.access`):
+  `http.request.method`, `http.route` (the route path, e.g. `/pontonxp/message`; missing for unknown paths, the
+  message then shows `-`), `http.response.status_code`, `event.outcome` (`success`; `refused` for 401/403; `failure` for other ≥ 400),
+  `event.duration` in nanoseconds, `request.id`, `client.id` (`ponton` on `/pontonxp/*`; this port has no token, so
+  the route's fixed caller; none on `/admin/upload`), and once an inbound message is parsed `tenant.id` (its
+  receiver) and `eda.conversation_id`. No IP, user agent, query or body (no user tracking, decided 2026-10-29);
+  eda-xp had no access log before. `/healthz` and `/readyz` are not logged. `X-Request-Id` is taken over when it
+  matches `[A-Za-z0-9._:-]{1,128}`, otherwise generated (32 hex), and returned as response header (also to Ponton,
+  which ignores it); `traceparent` only when valid. A message forwarded to another zone (`app.forward`) takes
+  `X-Request-Id` and a valid `traceparent` along.
+
+### Fixed
+- **Mails over the gRPC `SendMailService` end after an SMTP timeout instead of hanging** (caller: backend). The
+  admin mail session had no SMTP timeouts, so a relay that accepted the connection but did not answer blocked the
+  send until the backend gave up at its gRPC deadline, and the failure was not visible in eda-xp. Defaults in
+  `reference.conf` (also apply under the mounted `application.conf`): `mail.smtp.connectiontimeout` 10 s,
+  `mail.smtp.timeout` (read) 20 s, `mail.smtp.writetimeout` 20 s; overrides via env
+  `SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`, in milliseconds or with a unit
+  (`20s`); an invalid value stops the start. The admin session no longer waits for the reply to QUIT
+  (`mail.smtp.quitwait=false`): the mail is accepted at that point, and a relay that does not answer QUIT no longer
+  turns a delivered mail into a timeout. Tenant (EDA MAIL transport) sessions are unchanged.
+- **No EDA payloads in the log** (eegfaktura-dev tracking 261005-ca14): `/pontonxp/notification` and `/status` log
+  the body size instead of the body (up to 500 characters before); the MQTT request stream's error lines no longer
+  append the whole request (metering point, ecId); a parse error of an inbound message is logged without the
+  document scalaxb puts into its message (also in the publisher's error line; the exception is no longer attached).
+- **No SOAP body, headers, mail attachment or whole EDA message at debug** (tracking 261008-ca6): the KEP client and
+  the mail worker log sizes, message code and conversation id instead.
+- Security relevant, details not published: tracking 261031-mm2 and 261031-mm3. The send-mail log now has neither the
+  subject nor a rejected recipient, and a request that cannot be decoded is logged with the JSON path only; for a
+  request that cannot be decoded the MQTT error message is unchanged, and so is the gRPC reply. The MQTT text
+  `Domain missing for sending mail.` now names the tenant only.
+- **No e-mail addresses in the send-mail log** (tracking 261031-mm1): the gRPC `SendMailService` (mails of the backend to members) logged
+  recipient and cc at info and javax.mail's error text with the address; now neither, and the error with
+  the addresses replaced by `<address>`.
+- A `println` of a document build error went to stdout next to the logged error; removed.
+- **The tenant provider survives a second update of a mail tenant and is supervised** (eegfaktura-dev tracking
+  261005-ca3). A second register/update of a tenant with type MAIL (or an empty type) spawned the new mail worker
+  under the name of the old one before it had stopped; the provider failed, ran without supervision and stayed
+  dead, so every outbound EDA request timed out after 30 s until the pod was restarted. Mail workers now get a
+  unique name (`worker-<tenant>-<n>`); a reload of the tenants stops the running mail workers first, so a mailbox
+  is never polled by two workers; a tenant whose worker cannot be started is logged and left out of the load, and an
+  update for it is answered with an error (before, the update was confirmed and the provider failed afterwards). The
+  provider is restarted with backoff (1 s up to 30 s) after a failure and then loads its tenants
+  again; it starts that load itself when it is created instead of on the supervisor's `Start`. Requests that arrive
+  while it restarts or loads are queued and answered after the load; a request older than 25 s, counted from its
+  creation in the request stream (which waits 30 s for the answer), is answered with an error and not sent, so a
+  request its caller has given up on never reaches Ponton or the mail server later. The 5 s retry after a failed load no longer outlives a restart.
+  Apart from those stale requests, what is sent to Ponton or by mail is unchanged.
+- **The outbound request listener restarts after a failure** (eegfaktura-dev tracking 261005-ca2). When the MQTT
+  broker was unreachable at the first connect, or a subscribe or a publish of an answer failed, the `eda/request`
+  listener stopped and no outbound EDA request was processed again until the pod was restarted, while the pod
+  stayed healthy. The MQTT source and the response sink now restart with backoff (1 s up to 30 s). Not covered:
+  a lost connection is handled by the client's automatic reconnect and does not fail the stream, so after a
+  mosquitto restart without the persisted session the listener reconnects but does not subscribe again
+  (platform#171, still open: restart the xp-adapter after a mosquitto restart). Topics, payloads, QoS, client ids
+  and what is sent to Ponton are unchanged; the source stays at-most-once (a request in flight during a crash is
+  still lost).
+- **CI: the Snyk Code scan fails visibly when it cannot run.** An invalid `SNYK_TOKEN` ended the weekly and
+  push scan green without any result (`continue-on-error`); now only „issues found“ keeps the run green (the
+  issues go to Code Scanning), an authentication or tool error fails it. The Snyk CLI is pinned to 1.1308.1
+  instead of the latest version.
+
+### Contract
+- **gRPC `SendMailService` reply status on SMTP timeouts** (caller: backend, mapped in
+  [eegfaktura-backend#132](https://github.com/eegfaktura/eegfaktura-backend/pull/132)); proto unchanged:
+  - `202`, message `SMTP unconfirmed: …` — the message was sent completely, but the relay's reply to its end did not
+    arrive in time: most likely delivered, must not be resent (a resend would be a duplicate).
+  - `504`, message `SMTP timeout: …` — timeout before the message was sent (connect, greeting, a command up to
+    DATA): nothing delivered, a failure.
+  - A write timeout makes JavaMail close the connection; it is answered like every other error with `500`.
+  - Before, none of these cases got an answer before the backend's deadline. A backend without #132 treats every
+    status other than 200, including 202, as a failed send.
+  - **Rollout: this release before backend 1.14.0.** With an old eda-xp, which has no SMTP timeouts, a relay hanging
+    before DATA runs into the backend's 30 s and reads as "vermutlich verschickt", although nothing was delivered.
+
+### Security
+- **CI: the release workflow pins its actions by commit SHA** (eegfaktura-dev tracking W-261028-mm6). `rolling-release.yml`
+  builds and pushes the shipped image, but used floating tags (`@v4`, `@v3`, …) and an unpinned Java 17; a moved tag ran in the job that holds
+  the push credentials. Now every action is pinned to a commit, the same SHAs `pr-checks.yml` and `security-scan.yml` already
+  use where the action is the same, otherwise the commit the floating tag pointed to on 2026-10-28. Java is fixed to
+  `17.0.19+10` and `setup-java` moves from v4 to v6.0.1, both as in `pr-checks.yml`.
+
+### Tests
+- **The golden-file guard passes on Windows** (eegfaktura-dev tracking 261030-mm1): it listed the golden files with
+  `\` separators there and reported every one as orphan; the relative names now always use `/`.
+
+## [1.2.0] – 2026-10-26
+
+### Changed
+- **gRPC port: request size limit 16 MB** (`app.grpc-max-content-length`, env `GRPC_MAX_CONTENT_LENGTH`). The gRPC
+  `SendMail` call from the backend will carry inline images and a PDF of mails that communities can edit themselves
+  (up to 6 MB of files, konzept-mail-texte-editierbar). The limit applies only to the gRPC binding; all other routes
+  keep the pekko-http default of 8 MB (security review 22.10.2026), routes with their own `max-body-size` unchanged.
+
+## [1.1.1] – 2026-10-25
+
+### Fixed
+- Ponton notification and status bodies are logged with their first 500 characters and their size instead of in
+  full (`PontonRoute.logBody`). These bodies have no size limit; a large one became one huge INFO line in the pod
+  log and in Dynatrace (found because a 2 MB test body stalled the GitHub runner's log processing).
 - Dependencies with HIGH findings in the security scan (Trivy) raised to fixed patch/minor versions:
   `postgresql` 42.7.3 → 42.7.14, gRPC (`grpc-netty-shaded` and the other `io.grpc` modules, via
   pekko-grpc-runtime) 1.67.1 → 1.75.0, `protobuf-java` declared at 3.25.8 (the pom asked for 3.19.6
@@ -40,6 +180,47 @@ this changelog highlights the changes relevant for overview and operations.
   `sbt makePom` and the scanners resolve the transitive ones from that pom Maven-style. The pom does not
   carry `dependencyOverrides`, so the transitive packages with findings are declared directly
   (platform#182).
+
+### CI
+- `rolling-release.yml`: no image build on a draft pull request — it runs when the pull request is marked ready for review (`ready_for_review`) and on every later push to it; `pr-checks.yml` still checks drafts. Pushes, tags and the deploy dispatch are unchanged.
+- `pr-checks.yml`: a unit job beside the full test suite on every pull request (unit = the suite without the `Slow` tag, a fast signal; full = `test.yml` with coverage and floors).
+
+### Tests
+- **Coverage floors gate the image:** `test.yml` (run by `rolling-release.yml` before the image job since
+  1.1.0) also checks the coverage floors per package; falling below one stops the image like a red test.
+- One command for the suite, `scripts/dev/test.sh` (local sbt or the pinned sbt image); the tests use
+  loopback stand-ins only — the test configuration pointed the Ponton client at a network address before
+  and one spec sent to it.
+- Embedded PostgreSQL once per run, migrated with the **production** migrations (the hand-written test
+  schema is gone); embedded broker without persistence; fixed zone `Europe/Vienna`; nothing written outside `target/`.
+- Defect tests for known errors (`knownError`), coverage with sbt-scoverage and floors, the protocol
+  catalog with golden files (first row: `ANFORDERUNG_ECON` 02.40).
+- Removed the unused test dependencies `slick-testkit` and `h2` and the remaining empty specs.
+- `EXTERNAL_SOURCES.md` added.
+- On 1.0.8: a missing or unknown version label is a `refused` catalog row (no document, ERROR naming the
+  label, nothing sent, an error to the sender); guard 9 pins the Ponton header rule (message type + schema
+  set version; PT, CCMS and GN still send the process code, pinned to their current labels).
+- Tests of the protocol checks: the guards and the row check are functions (`ProtocolChecks`);
+  `ProtocolSelfTestSpec` feeds each a broken catalog or a wrong row and requires it to name the problem
+  (guard 1 could not report rows for a code without a builder before). `--fast` skips the Slow-tagged tests.
+- Adapted to 1.0.8 #35: `ANFORDERUNG_GN` without a label (and with an unknown one) is a `refused` row; the
+  conversation store is asynchronous and keeps the row of a request that is then not sent (unknown tenant,
+  Ponton error) — the tests wait for the row and pin it.
+- Windows checkouts with `core.autocrlf`: `.gitattributes` keeps the protocol golden files LF (they are
+  compared byte for byte and failed with CRLF); S12 (`SupervisorScenarioSpec`) writes the journal path with
+  `/` into its HOCON config (a Windows `\` broke the parse).
+- Test console output cuts a log message after 4000 characters (`logback-test.xml`, `%.-4000msg`): a test posts
+  a 2 MB body that `PontonRoute` logs in full, and that one line stalled the GitHub runner's log processing, so
+  every process writing to the step output blocked and the unit and full suite hung until the job timeout.
+- CI resource monitor (`scripts/dev/ci-monitor.sh`): the unit and the full test step log load, memory, swap,
+  processes, threads, java/postgres processes and sockets on the test broker port every 2 minutes, print the
+  peaks at the end and upload the samples as `ci-monitor-unit` / `ci-monitor-full` even when the job is
+  cancelled (GitHub keeps no log of a cancelled job and reports no CPU or memory per job).
+- `scripts/dev/test.sh` under WSL skips a Windows `sbt` seen through interop (`/mnt/c/...`), which ran in
+  `C:\Windows` and found no build; it uses the pinned image instead. Run as root, the container runs as
+  the checkout's owner (embedded PostgreSQL refuses root and the DB suites aborted). It first hands the
+  sbt cache and `target/` to that owner (earlier root runs left root-owned files there); it stops with
+  exit 2 if the checkout is owned by root or the cache cannot be handed over (cache on `/mnt/<drive>`).
 
 ## [1.1.0] – 2026-10-21
 

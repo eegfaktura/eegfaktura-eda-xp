@@ -1,0 +1,18 @@
+{
+  "conversationId" : "RC100001202307111689063030000000055",
+  "messageCode" : "ZUSTIMMUNG_ECON",
+  "messageCodeVersion" : "01.11",
+  "messageId" : "AT003000202307111011352070179632337",
+  "receiver" : "RC100001",
+  "requestId" : "KUN6ZJS5",
+  "responseData" : [
+    {
+      "ConsentId" : "AT00300020230801110134577KUN6ZJS5",
+      "MeteringPoint" : "AT0030000000000000000000000959561",
+      "ResponseCode" : [
+        175
+      ]
+    }
+  ],
+  "sender" : "AT003000"
+}

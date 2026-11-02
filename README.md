@@ -41,6 +41,27 @@ sbt clean compile   # runs scalaxb XSD codegen + Pekko gRPC protoc codegen
 sbt test
 ```
 
+## Tests
+
+```bash
+bash scripts/dev/test.sh                  # whole suite (local sbt, or the pinned sbt image via docker)
+bash scripts/dev/test.sh --only '*TenantProviderSpec'
+bash scripts/dev/test.sh --fast           # without the Slow-tagged robustness tests (~1.5 min instead of ~3.5)
+bash scripts/dev/test.sh --coverage       # + scoverage report and the coverage floors
+bash scripts/dev/test.sh --update-golden  # rewrite the protocol golden files, then review `git diff`
+```
+
+- Everything a test talks to is a loopback stand-in started by the tests: embedded PostgreSQL (port 54325,
+  migrated with the production migrations), embedded MQTT broker (18831), a fake Ponton messenger (16060).
+  **No test ever sends to a real KEP endpoint.** Configuration: `src/test/resources/application-test.conf`.
+- Files a run writes stay under `target/`; the JVM runs in `Europe/Vienna`.
+- A known defect is tested as `knownError("<id>") { … }`: the test asserts the correct behaviour, is
+  reported as *pending* while the defect exists and fails once it is fixed (remove the marker with the fix).
+- **Protocol catalog** (`src/test/resources/protocol/`): one row per outbound message code and version
+  label; each row is a test (builder chosen, Ponton header, XSD-valid document, golden document). A new
+  process version is tested by adding its row — see "Adding a new EDA process version" below.
+- CI: `.github/workflows/test.yml` runs the suite with coverage before the image is built.
+
 ## Run
 
 Local (requires PostgreSQL and an MQTT broker):
@@ -112,10 +133,34 @@ docker run -p 6090:6090 -p 9093:9093 \
   4. Afterwards check `base.processhistory` for the conversation ids from step 1 (read-only).
   5. Not verified yet: whether Ponton redelivers on its own after a 500.
 - `epmsmail.*` — IMAP/SMTP accounts for EDA-over-email
+- `epmsmail.admin.javaxmail.mail.smtp.{connectiontimeout,timeout,writetimeout}` (10 s / 20 s / 20 s; env
+  `SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`; milliseconds or with unit,
+  e.g. `20s`; an invalid value stops the start) — SMTP timeouts of the gRPC `SendMailService`. Its reply status
+  (contract with the backend): 200 sent; 202 `SMTP unconfirmed: …` — the message was sent completely but the relay's
+  reply to it did not arrive in time, so it was most likely delivered (do not resend); 504 `SMTP timeout: …` —
+  timeout before the message was sent (connect, greeting, a command), nothing delivered; 500 any other error.
 - `slick.pgsql.local.db.*` / `flyway.*` — PostgreSQL connection + migrations
 
 Environment variables (names only): `SMTP_ADMIN_SERVER_HOST`, `SMTP_ADMIN_SERVER_PORT`,
-`EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `MAX_BODY_SIZE`, `TZ`, `JAVA_OPTS`.
+`SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`, `EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `MAX_BODY_SIZE`, `TZ`, `JAVA_OPTS`,
+`LOG_FORMAT`, `LOG_LEVEL`, `SLICK_LOG_LEVEL`, `SERVICE_VERSION`.
+
+### Logging
+
+Every line goes through one encoder (`src/main/resources/logback.xml`, `at.energydash.logging`) to stdout:
+
+- `LOG_FORMAT` — `json` (set in the image): one JSON object per line with flat ECS names (`@timestamp` UTC,
+  `log.level`, `log.logger`, `service.name` `eegfaktura-eda-xp`, `service.version`, `message`, `error.*`, and when
+  known `request.id`, `tenant.id`, `eda.conversation_id`, …); other MDC entries are not written. `text` (the default
+  when run from source): a plain line for reading in a terminal.
+- `LOG_LEVEL` — `trace`, `debug`, `info` (default), `warn`, `error`; `SLICK_LOG_LEVEL` the same for the `slick`
+  loggers only. An unknown value stops the start (exit code 2); an empty value means the default.
+- `SERVICE_VERSION` — set by the image build (the version without `v` for a tag build, else the commit, which a retagged image keeps); `dev` from source.
+- Access line (`event.action=http.access`, logger `at.energydash.access`): one line per request on port 6090 with
+  method, route, status, `event.outcome`, `event.duration` (ns), `request.id` (`X-Request-Id`, also returned),
+  `client.id=ponton` on `/pontonxp/*`, and `tenant.id`/`eda.conversation_id` once the message is parsed. Never an
+  IP, user agent, query or body. `/healthz` and `/readyz` are not logged.
+- Never logged: EDA XML, MQTT payloads, mail bodies/attachments, e-mail addresses of members.
 
 Exposed ports: **6090** (HTTP), **9093** (gRPC). Volumes: `/conf`, `/storage/prod`.
 
@@ -132,6 +177,9 @@ selected here by string match. Two coupled places must be updated **in order**:
    `domain/eda/CMRevokeRequest.scala`). Note the `case _` default falls back to an
    **older** version — an unmatched string does not error, it downgrades (since 1.0.5
    with a WARN log naming the label).
+   Then add the row for the new label to `src/test/resources/protocol/catalog.conf` (builder, XSD, Ponton
+   header), run `bash scripts/dev/test.sh --only '*Protocol*' --update-golden` and review the new golden
+   files with `git diff` before committing them.
 2. **eegfaktura-backend config** `eda-process-versions.<CODE>`: bump the value to the
    new version. The backend stamps it onto `MessageCodeVersion`
    (`mqtt/messageBroker.go`) and this service uses it to pick the schema above. Bump

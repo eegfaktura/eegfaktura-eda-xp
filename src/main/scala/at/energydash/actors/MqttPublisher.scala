@@ -5,6 +5,7 @@ import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.util.Timeout
 import at.energydash.domain.EbMsMessage
+import at.energydash.logging.LogText
 import at.energydash.mqtt.CommandMessage
 import at.energydash.mqtt.MqttProtocol.{EdaEventReceived, EdaInboundMessage, EdaMessageCommand, Handover, MqttCmd}
 import com.typesafe.scalalogging.StrictLogging
@@ -73,7 +74,7 @@ object MqttPublisher extends StrictLogging{
             mqttSystem ! EdaMessageCommand(command, None)
             Behaviors.same
           case MqttPublishError(tenantId, msg) =>
-            ctx.log.info(s"Error ${tenantId} ${msg}")
+            ctx.log.info(s"Error ${tenantId} ${LogText.errorText(msg)}")
             Behaviors.same
         }
 
