@@ -118,7 +118,7 @@ docker run -p 6090:6090 -p 9093:9093 \
   client stream failure, e.g. a publish in flight when the broker connection drops), the eda-xp database
   lookup fails or times out (aggregator, merge error), or the buffer is full. This also applies to unknown
   document types. The route gives up at the latest after 10 s, and always 2 s before
-  `pekko.http.server.request-timeout` counted from the request start; a message answered 500 is never
+  `pekko.http.server.request-timeout` counted from the moment the body is read; a message answered 500 is never
   published later. Each retry of a message refused by a merge error or aggregator failure still publishes
   the `error` notification as before, so the backend gets one error entry per Ponton retry during an
   eda-xp database outage. Still lost, as before: messages already in the buffer when the client stream

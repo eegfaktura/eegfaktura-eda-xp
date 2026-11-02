@@ -115,8 +115,9 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
       LogFields.TenantId -> context.flatMap(_.tenant),
       LogFields.ConversationId -> context.flatMap(_.conversationId))(body)
 
-  /** `started`: System.nanoTime() when the request reached the route, before its body was read. */
-  private def processLocally(response: NodeSeq, size: Option[Long], started: Long): Route =
+  /** Runs once the body is read: that is also when the request-timeout of the server starts. */
+  private def processLocally(response: NodeSeq, size: Option[Long]): Route = {
+    val started = System.nanoTime()
     optionalAttribute(AccessLog.ContextKey) { context =>
       onComplete(Future {
         logger.debug(s"Receive message from edaAdapter. Length ${response.head.length}")
@@ -154,6 +155,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
         }
       }
     }
+  }
 
   val pontonRoutes: Route = pathPrefix("pontonxp") {
     // inside the prefix: the routes are bound together with adminRoutes, which has its own limit
@@ -197,12 +199,12 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
           }
         } ~
         path("message") {
-          (post & extract(_ => System.nanoTime())) { started =>
+          post {
             if (forwardTargets.isEmpty)
               // no community forwarded: no read deadline, the body is parsed while it streams in
               // (capped by bodyLimit); its size is known when the request declares a Content-Length
               extractRequest { request =>
-                entity(as[NodeSeq])(processLocally(_, request.entity.contentLengthOption, started))
+                entity(as[NodeSeq])(processLocally(_, request.entity.contentLengthOption))
               }
             else
               // strict, so the unchanged body can be forwarded after reading the receiver; capped at
@@ -216,7 +218,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                     val alreadyForwarded = request.headers.exists(_.is(InboundForwarding.ForwardedHeader.toLowerCase))
                     val context = request.attribute(AccessLog.ContextKey)
                     InboundForwarding.decide(forwardTargets, receiver, alreadyForwarded) match {
-                      case InboundForwarding.Local => processLocally(response, size, started)
+                      case InboundForwarding.Local => processLocally(response, size)
                       case InboundForwarding.Loop(rc, target) =>
                         context.foreach(_.tenant = Some(rc))
                         withContext(context)(logger.error(s"Inbound message for $rc arrived already forwarded, but $rc is forwarded again to $target here; refusing it to avoid a loop"))
@@ -275,8 +277,8 @@ object PontonRoute {
 
   /**
    * Hand-over deadline: at most `cap`, and over at least RequestTimeoutMargin before the server's
-   * request-timeout counted from the request start (reading and parsing the body already took
-   * `elapsed`); zero when no time is left.
+   * request-timeout, which starts when the body is read (`elapsed`: the time since then, for parsing
+   * and the aggregator); zero when no time is left.
    */
   def handoverDeadline(cap: FiniteDuration, requestTimeout: Option[FiniteDuration], elapsed: FiniteDuration): FiniteDuration =
     requestTimeout.fold(cap)(t => (t - elapsed - RequestTimeoutMargin) min cap) max Duration.Zero
@@ -284,7 +286,7 @@ object PontonRoute {
   /*
    * Deadlines: app.forward-read-timeout / app.forward-timeout (InboundForwarding.timeouts). Reading the
    * body, parsing it and forwarding normally stay below the server's request-timeout (pekko default
-   * 20 s, counted from the start of the request), so the forward result decides the answer; the route
+   * 20 s, counted from the moment the body is read), so the forward result decides the answer; the route
    * warns at start when the configured values reach it. A very large, slowly read body can still run
    * into the server's own 503; Ponton then redelivers as well. Ponton's EDA add-on waits 30 s
    * (eda.adapter.httpclient_timeout).
