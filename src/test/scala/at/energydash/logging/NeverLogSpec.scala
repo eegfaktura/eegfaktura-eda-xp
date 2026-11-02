@@ -7,9 +7,10 @@ import java.nio.file.{Files, Path, Paths}
 import scala.jdk.CollectionConverters._
 
 /**
- * The never-log rule, enforced on the source (dev#45 L11, logging concept W-261008-ca2): reads every log call under
- * `src/main/scala` and fails on a value that is not known to be safe, on `getMessage` without the exception and on
- * personal names. The scan is a positive list: a new `$value` fails until it is added to [[NeverLogScan.Allowed]]
+ * The never-log rule, enforced on the source (dev#45 L11, logging concept W-261008-ca2): reads the log calls under
+ * `src/main/scala` (`logger.…`, `log.…`, `.setMessage(`, `.log(`) and fails on a value that is not known to be safe,
+ * on `getMessage` without the exception and on personal names. It does not read `.addKeyValue(` (the encoder writes
+ * only the fields of [[LogFields.Allowed]]) or `println`. The scan is a positive list: a new `$value` fails until it is added to [[NeverLogScan.Allowed]]
  * with the reason why it holds no personal data and no document. That list is the only way past the scan.
  */
 class NeverLogSpec extends AnyWordSpec with Matchers {

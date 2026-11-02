@@ -17,7 +17,7 @@ Logging only (dev#45): topics, payloads, the answer to Ponton and mails do not c
   levels, written at any `LOG_LEVEL`.
 - **`jul-to-slf4j`:** java.util.logging (gRPC, pgjdbc, paho) goes through the encoder instead of printing plain text
   to stderr. Levels: what JUL passes (info and above); `LOG_LEVEL=debug` does not switch on JUL's fine levels.
-- **A never-log test** (`NeverLogSpec`) reads every log call of the source and fails on a value outside its positive
+- **A never-log test** (`NeverLogSpec`) reads the log calls of the source, not `.addKeyValue(` or `println`, and fails on a value outside its positive
   list, on `getMessage` without the exception and on personal names.
 
 ### Changed
@@ -29,7 +29,12 @@ Logging only (dev#45): topics, payloads, the answer to Ponton and mails do not c
 - Some log texts changed; a saved search on them needs adapting: `Cannot merge conversation …`, `Notification from EDA
   not read`, `Status from EDA not read`, `Parse message to XML failed: …`, `Extract Message failed for mail …`,
   `Error Subject: not an EDA subject …`, `Error ProcessInfo: not a process name`, `SOAP fault in response body …`,
-  `Send Mail: …`, `Sent Mail: …`, `About to send Email …`.
+  `Send Mail: …`, `Sent Mail: …`, `About to send Email …`, `Mail Subject: …` (was `Mail Subject (…)`),
+  `Supervisor: Can not handle message -> …` (now the class name), `Forward mail to Mail Actor: …`.
+- **`tenant.id` from a Ponton message** is upper case and left out unless it has the shape of a tenant
+  (`^[A-Z0-9][A-Z0-9_-]{0,63}$`, also GEA tenants such as `GC123456-001`).
+- **`message` of a log line** is masked like the error text: an e-mail address reads `<address>`, also a Message-ID
+  or a Ponton id of that shape.
 
 ### Security
 - Security relevant log lines fixed (dev#45 L4, L5); details not published.

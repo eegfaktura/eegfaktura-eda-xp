@@ -167,7 +167,8 @@ Every line goes through one encoder (`src/main/resources/logback.xml`, `at.energ
   `client.id=ponton` on `/pontonxp/*`, and `tenant.id`/`eda.conversation_id` once the message is parsed. Never an
   IP, user agent, query or body. `/healthz` and `/readyz` are not logged.
 - Never logged: EDA XML, MQTT payloads, mail bodies/attachments, e-mail addresses of members. `NeverLogSpec` reads
-  every log call: a new value in a log line needs an entry with a reason in its positive list.
+  the log calls of the source, not `.addKeyValue(` or `println`: a new value in a log line needs an entry with a
+  reason in its positive list.
 
 Exposed ports: **6090** (HTTP), **9093** (gRPC). Volumes: `/conf`, `/storage/prod`.
 
