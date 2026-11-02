@@ -1,5 +1,6 @@
 package at.energydash.interfaces
 
+import at.energydash.actors.http.AckingPublisher
 import at.energydash.actors.MqttPublisher.{MqttCommand, MqttPublish, MqttPublishError}
 import at.energydash.actors.http.{BodySizeLimit, PontonRoute}
 import at.energydash.testsupport.KnownError.knownError
@@ -17,7 +18,7 @@ import scala.concurrent.duration._
 class PontonRouteSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
   private val publisher: TestProbe[MqttCommand] = createTestProbe[MqttCommand]()
   private val binding = Await.result(Http()(system).newServerAt("127.0.0.1", 0)
-    .bind(new PontonRoute(publisher.ref, maxBodyBytes = BodySizeLimit.maxBytes(system.settings.config))(system).pontonRoutes), 10.seconds)
+    .bind(new PontonRoute(testKit.spawn(AckingPublisher(publisher.ref)), maxBodyBytes = BodySizeLimit.maxBytes(system.settings.config))(system).pontonRoutes), 10.seconds)
   private val base = s"http://127.0.0.1:${binding.localAddress.getPort}/pontonxp"
 
   override def afterAll(): Unit = { Await.ready(binding.unbind(), 10.seconds); super.afterAll() }
@@ -74,7 +75,7 @@ class PontonRouteSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       val xml = at.energydash.domain.eda.MessageHelper.getEdaMessageByType(doc).get.toXML.asInstanceOf[scala.xml.Elem]
       post("message", Fixtures.inboundEnvelope(xml, "AT003000", "RC100401", "ANFORDERUNG_ECP")).status.isSuccess shouldBe true
       publisher.receiveMessage(1.second) match {
-        case MqttPublish(n) => n.head.protocol shouldBe "error"
+        case MqttPublish(n, _) => n.head.protocol shouldBe "error"
         case _: MqttPublishError => succeed
         case other => fail(s"unexpected $other")
       }
