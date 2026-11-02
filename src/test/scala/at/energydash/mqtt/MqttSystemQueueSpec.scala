@@ -1,8 +1,10 @@
 package at.energydash.mqtt
 
 import at.energydash.domain.EbMsMessage
-import at.energydash.mqtt.MqttProtocol.{EdaEventReceived, EdaInboundMessage, Handover, MqttMessageCmd}
+import at.energydash.mqtt.MqttProtocol.{EdaEventReceived, EdaInboundMessage, EdaMessageCommand, Handover, MqttMessageCmd}
+import at.energydash.testsupport.LogCapture
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.apache.pekko.stream.{BoundedSourceQueue, QueueOfferResult}
 import org.apache.pekko.stream.scaladsl.{Keep, Sink, Source}
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -13,6 +15,14 @@ import scala.concurrent.{Await, Future, Promise}
 class MqttSystemQueueSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
 
   private implicit val ec: scala.concurrent.ExecutionContext = system.executionContext
+
+  /** A publishing stream that answers every offer with `result`. */
+  private def answering(result: QueueOfferResult): BoundedSourceQueue[MqttMessageCmd] = new BoundedSourceQueue[MqttMessageCmd] {
+    override def offer(elem: MqttMessageCmd): QueueOfferResult = result
+    override def complete(): Unit = ()
+    override def fail(ex: Throwable): Unit = ()
+    override def size(): Int = 0
+  }
 
   private val msg = EbMsMessage(conversationId = "RC100181202407101720603980000000099", sender = "AT003000", receiver = "RC100181")
 
@@ -36,6 +46,31 @@ class MqttSystemQueueSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
       val results = (1 to 4).map(_ => send()).map(h => Await.result(h.future.map(_ => "accepted").recover { case e => e.getMessage }, 3.seconds))
       results shouldBe Seq("accepted", "accepted", "MQTT publish buffer full", "MQTT publish buffer full")
       stalled.success(())
+    }
+
+    "tell the sender when the stream failed or is closed" in {
+      def refusal(result: QueueOfferResult): String = {
+        val h = new Handover
+        testKit.spawn(MqttSystem.connected(answering(result))) ! EdaEventReceived(EdaInboundMessage("cr_msg", msg), None, Some(h))
+        (the[IllegalStateException] thrownBy Await.result(h.future, 3.seconds)).getMessage
+      }
+      refusal(QueueOfferResult.Failure(new RuntimeException("boom"))) shouldBe "MQTT publish stream failed: boom"
+      refusal(QueueOfferResult.QueueClosed) shouldBe "MQTT publish stream closed"
+    }
+
+    "log what it cannot publish when no sender waits for the result" in {
+      val (_, events) = LogCapture(org.slf4j.Logger.ROOT_LOGGER_NAME) {
+        val mqttSystem = testKit.spawn(MqttSystem.connected(answering(QueueOfferResult.Dropped)))
+        mqttSystem ! EdaEventReceived(EdaInboundMessage("cr_msg", msg), None)
+        mqttSystem ! EdaMessageCommand(CommandMessage("RC100130", "pontononlinestatus", io.circe.Json.Null), None)
+        val h = new Handover // handled after the two above: the lines are written by then
+        mqttSystem ! EdaEventReceived(EdaInboundMessage("cr_msg", msg), None, Some(h))
+        Await.ready(h.future, 3.seconds)
+      }
+      val lines = LogCapture.messages(events)
+      lines.count(_.contains("not published: MQTT publish buffer full")) shouldBe 2
+      lines.exists(_.contains(s"conversation ${msg.conversationId}")) shouldBe true
+      lines.exists(_.contains("command pontononlinestatus")) shouldBe true
     }
 
     "not take a message the sender already gave up on" in {
