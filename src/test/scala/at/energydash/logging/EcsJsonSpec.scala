@@ -89,7 +89,7 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
       events should have size 1
       events.head.getFormattedMessage should fullyMatch regex
         "Service start: version \\S+, log level (trace|debug|info|warn|error), slick log level (trace|debug|info|warn|error)"
-      events.head.getKeyValuePairs.asScala.map(kv => kv.key -> kv.value) shouldBe Seq("event.action" -> "service.start")
+      events.head.getKeyValuePairs.asScala.map(kv => kv.key -> kv.value) shouldBe Seq("event.action" -> "service.start", "log.effective_level" -> "info")
     }
     "be written at any LOG_LEVEL" in {
       System.setProperty("LOG_LEVEL", "error")
@@ -114,7 +114,7 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
     }
     "refuse anything else" in {
       Seq("", " RC100401", "-RC1", "_RC1", "RC 1", "max@example.com", "RC1\n", "A" * 65, null).foreach { value =>
-        withClue(value)(LogFields.tenantId(value) shouldBe None)
+        withClue(String.valueOf(value))(LogFields.tenantId(value) shouldBe None)
       }
     }
   }
