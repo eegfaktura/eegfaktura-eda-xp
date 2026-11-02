@@ -147,6 +147,16 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
       fields("error.type") shouldBe "scala.MatchError"
       fields.values.mkString should not include "AT003"
     }
+    "keep the end of a text line whose document has no marker" in {
+      val enc = new LogEncoder()
+      enc.setContext(context)
+      enc.setFormat("text")
+      enc.start()
+      val line = new String(enc.encode(event(Level.ERROR, s"Failed: Error while parsing $document", mdc = Map("tenant.id" -> "RC100001"))), "UTF-8")
+      line should not include "AT003"
+      line should include("Failed: Error while parsing the document (content not logged) request.id= tenant.id=RC100001 eda.conversation_id=")
+      line should endWith("\n")
+    }
     "not bring a document into the text format, with the stack once" in {
       val enc = new LogEncoder()
       enc.setContext(context)

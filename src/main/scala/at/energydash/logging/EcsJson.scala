@@ -115,7 +115,10 @@ class LogEncoder extends EncoderBase[ILoggingEvent] {
 
   override def encode(event: ILoggingEvent): Array[Byte] =
     text.fold(EcsJson.line(event, LogSettings.ServiceName, serviceVersion, deploymentEnvironment)) { layout =>
-      LogText.errorText(layout.doLayout(event)) + Option(event.getThrowableProxy).fold("")(EcsJson.stackTrace)
+      // only the message is masked: the fields behind it stay on the line
+      val line = layout.doLayout(event)
+      val message = Option(event.getFormattedMessage).filter(_.nonEmpty)
+      message.fold(line)(line.replace(_, EcsJson.safeMessage(event))) + Option(event.getThrowableProxy).fold("")(EcsJson.stackTrace)
     }.getBytes(StandardCharsets.UTF_8)
 }
 
