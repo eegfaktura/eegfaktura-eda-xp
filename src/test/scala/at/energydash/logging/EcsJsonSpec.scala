@@ -156,6 +156,14 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
       stack should include("mail to <address> failed")
       Seq("AT003", "max@example.com").foreach(s => stack should not include s)
     }
+    "mask a message that holds the message of another exception of the chain" in {
+      val error = new RuntimeException("max@example.com", new MatchError("<doc>max@example.com AT003</doc>"))
+      json(event(Level.ERROR, "failed", error = Some(error)))("error.stack_trace").toString should not include "AT003"
+    }
+    "leave a null in the line alone for a MatchError of null" in {
+      val line = json(event(Level.ERROR, "message code null not handed to MQTT", error = Some(new MatchError(null))))
+      line("message").toString should include("message code null not handed to MQTT")
+    }
     "not write the value of a MatchError" in {
       val fields = json(event(Level.ERROR, "failed", error = Some(new MatchError(document))))
       fields("error.type") shouldBe "scala.MatchError"

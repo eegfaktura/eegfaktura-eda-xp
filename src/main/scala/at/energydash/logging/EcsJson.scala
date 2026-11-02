@@ -65,7 +65,11 @@ object EcsJson {
 
   /** `text` with the message of `t` and of each exception of its [[chain]] through [[LogText.exceptionText]]. */
   private def masked(t: IThrowableProxy, text: String): String =
-    chain(t).flatMap(p => Option(p.getMessage).filter(_.nonEmpty).map(m => m -> LogText.exceptionText(p.getClassName, m)))
+    // longest first: a message inside a longer one would otherwise keep the longer one from being found.
+    // "null" is the message of `new MatchError(null)`, not a value.
+    chain(t).flatMap(p => Option(p.getMessage).filter(m => m.nonEmpty && m != "null")
+      .map(m => m -> LogText.exceptionText(p.getClassName, m)))
+      .sortBy(-_._1.length)
       .foldLeft(text) { case (masking, (message, safe)) => masking.replace(message, safe) }
 
   /**
