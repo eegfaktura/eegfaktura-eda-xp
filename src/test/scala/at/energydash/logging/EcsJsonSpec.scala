@@ -119,6 +119,15 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
       stack should include("EcsJsonSpec")
       Seq("AT003", "<v320", "max@example.com").foreach(s => fields.values.mkString should not include s)
     }
+    "not bring a document or an address in through a suppressed exception" in {
+      val error = new RuntimeException("failed")
+      val suppressed = new IllegalStateException(failure, new RuntimeException("mail to max@example.com failed"))
+      error.addSuppressed(suppressed)
+      val stack = json(event(Level.ERROR, "failed", error = Some(error)))("error.stack_trace").toString
+      stack should include("Suppressed: java.lang.IllegalStateException: Error while parsing the document: parser error")
+      stack should include("mail to <address> failed")
+      Seq("AT003", "max@example.com").foreach(s => stack should not include s)
+    }
     "not write the value of a MatchError" in {
       val fields = json(event(Level.ERROR, "failed", error = Some(new MatchError(document))))
       fields("error.type") shouldBe "scala.MatchError"

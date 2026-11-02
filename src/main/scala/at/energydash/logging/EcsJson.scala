@@ -58,11 +58,18 @@ object EcsJson {
     out.append('\n').toString
   }
 
-  /** The stack with the message of the exception and of each cause through [[LogText.exceptionText]]. */
-  def stackTrace(t: IThrowableProxy): String =
-    Iterator.iterate(t)(_.getCause).takeWhile(_ != null).take(16)
-      .flatMap(p => Option(p.getMessage).filter(_.nonEmpty).map(m => m -> LogText.exceptionText(p.getClassName, m)))
-      .foldLeft(ThrowableProxyUtil.asString(t)) { case (stack, (message, safe)) => stack.replace(message, safe) }
+  /** The exception, its causes and what they suppressed; logback has already cut a circular reference. */
+  private def chain(t: IThrowableProxy, depth: Int = 0): Seq[IThrowableProxy] =
+    if (t == null || depth >= 16) Nil
+    else t +: (chain(t.getCause, depth + 1) ++ Option(t.getSuppressed).toSeq.flatten.flatMap(chain(_, depth + 1)))
+
+  /** `text` with the message of `t` and of each exception of its [[chain]] through [[LogText.exceptionText]]. */
+  private def masked(t: IThrowableProxy, text: String): String =
+    chain(t).flatMap(p => Option(p.getMessage).filter(_.nonEmpty).map(m => m -> LogText.exceptionText(p.getClassName, m)))
+      .foldLeft(text) { case (masking, (message, safe)) => masking.replace(message, safe) }
+
+  /** The stack with every message of the exception masked. */
+  def stackTrace(t: IThrowableProxy): String = masked(t, ThrowableProxyUtil.asString(t))
 }
 
 /**
