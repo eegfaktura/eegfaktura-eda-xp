@@ -25,6 +25,7 @@ import java.util.Base64
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.GZIPOutputStream
 import javax.net.ssl.SSLContext
+import scala.util.Try
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.DurationInt
 
@@ -125,12 +126,16 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
             // stream already failed. just force restart through supervisor
             throw err
           case Terminate =>
-            mqttStream.complete()
+            closeStream(mqttStream)
             terminatingOk(context)
         }
       }
     }.onFailure(SupervisorStrategy.restartWithBackoff(minBackoff = 4.seconds, maxBackoff = 1.minute, randomFactor = 0.2))
   }
+
+  /** complete() throws when the stream has already ended, e.g. failed to connect; then there is nothing to close. */
+  private def closeStream(mqttStream: BoundedSourceQueue[MqttMessageCmd]): Unit =
+    Try(mqttStream.complete())
 
   /** A message that is not published: the sender of a hand-over fails (and logs it), anything else is logged here. */
   private def notPublished(cmd: MqttMessageCmd, reason: String)(implicit context: ActorContext[MqttCmd]): Unit = cmd match {
@@ -166,7 +171,7 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
           // stream already failed. just force restart through supervisor
           throw err
         case Terminate =>
-          mqttStream.complete()
+          closeStream(mqttStream)
           terminatingOk(context)
         case TerminatedOk =>
           Behaviors.same

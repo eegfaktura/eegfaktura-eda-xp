@@ -1,7 +1,7 @@
 package at.energydash.mqtt
 
 import at.energydash.domain.EbMsMessage
-import at.energydash.mqtt.MqttProtocol.{EdaEventReceived, EdaInboundMessage, EdaMessageCommand, Handover, MqttMessageCmd}
+import at.energydash.mqtt.MqttProtocol.{EdaEventReceived, EdaInboundMessage, EdaMessageCommand, Handover, MqttMessageCmd, Terminate, TerminatedOk}
 import at.energydash.testsupport.LogCapture
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.stream.{BoundedSourceQueue, QueueOfferResult}
@@ -72,6 +72,20 @@ class MqttSystemQueueSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
       lines.count(_.contains("not published: MQTT publish buffer full")) shouldBe 2
       lines.exists(_.contains(s"conversation ${msg.conversationId}")) shouldBe true
       lines.exists(_.contains("command pontononlinestatus")) shouldBe true
+    }
+
+    "stop after Terminate although the stream has already ended" in {
+      val ended = new BoundedSourceQueue[MqttMessageCmd] {
+        override def offer(elem: MqttMessageCmd): QueueOfferResult = QueueOfferResult.QueueClosed
+        override def complete(): Unit = throw new IllegalStateException("The queue has already been completed.")
+        override def fail(ex: Throwable): Unit = ()
+        override def size(): Int = 0
+        override def isCompleted: Boolean = true
+      }
+      val mqttSystem = testKit.spawn(MqttSystem.connected(ended))
+      mqttSystem ! Terminate
+      mqttSystem ! TerminatedOk
+      createTestProbe().expectTerminated(mqttSystem, 3.seconds)
     }
 
     "not take a message the sender already gave up on" in {
