@@ -22,6 +22,7 @@ trait LogStartup {
   LogSettings.stopOnInvalid()
   LogSettings.fillEmpty()
   LogSettings.bridgeJavaUtilLogging()
+  LogSettings.logStart()
 }
 
 object LogSettings {
