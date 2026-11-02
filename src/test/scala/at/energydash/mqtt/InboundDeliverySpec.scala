@@ -121,8 +121,9 @@ class InboundDeliverySpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
         val second = new Broker(18833)
         // Known gap (eegfaktura-dev tracking eda-xp 261102-mm1): when the client stream fails, what is in its buffer
         // is lost. Whether it fails here depends on the timing, so a hit is reported as pending, not as a pass.
+        // A duplicate is no part of that gap and stays red.
         try awaitCount(second.published, 1, 60.seconds)
-        catch { case _: TestFailedException => pending }
+        catch { case _: TestFailedException if second.published.get() == 0 => pending }
         finally second.stop()
       }
     }
