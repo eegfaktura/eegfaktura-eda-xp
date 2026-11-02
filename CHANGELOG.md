@@ -8,6 +8,8 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.4.0] – 2026-11-02
+
 ### Security
 - **guava 33.7.2** (from 33.3.1, comes in through gRPC): fixes CVE-2026-102554, a denial of service while deserializing
   Java objects. eda-xp does not use Java serialization on external input, so the code path was not reachable; the update
