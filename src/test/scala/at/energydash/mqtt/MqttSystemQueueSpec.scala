@@ -22,6 +22,7 @@ class MqttSystemQueueSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
     override def complete(): Unit = ()
     override def fail(ex: Throwable): Unit = ()
     override def size(): Int = 0
+    override def isCompleted: Boolean = false
   }
 
   private val msg = EbMsMessage(conversationId = "RC100181202407101720603980000000099", sender = "AT003000", receiver = "RC100181")
