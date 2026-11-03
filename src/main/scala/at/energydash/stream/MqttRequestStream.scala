@@ -134,7 +134,7 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
     RestartSource.onFailuresWithBackoff(restartSettings) { () =>
       source.mapMaterializedValue { subscribed =>
         subscribed.failed.foreach(e => logger.warn("EDA command listener: subscription failed, restarting with backoff", e))
-        firstSubscription.tryCompleteWith(subscribed)
+        firstSubscription.completeWith(subscribed) // same as the deprecated tryCompleteWith: a later restart leaves the first result
         NotUsed
       }
     }.throttle(5, 1.second)
