@@ -43,7 +43,7 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   }
 
   def perpareEmail(tenant: String, xmlfile: String, subject: String): Unit = {
-    val session = ConfiguredMailer.getSession(tenantConfig)
+    val session = ConfiguredMailer.createSession(tenantConfig)
 
     // prepare Mock - Mailbox
     val attachement = XML.load(Source.fromResource(xmlfile).reader())
@@ -61,7 +61,7 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   }
 
   def perpareErrorEmail(tenant: String): Unit = {
-    val session = ConfiguredMailer.getSession(tenantConfig)
+    val session = ConfiguredMailer.createSession(tenantConfig)
 
     val mailMsg: Message = new MimeMessage(session)
     mailMsg.setSubject("Just a Mail")
@@ -77,7 +77,7 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
     // dev#45 L4: the exception of a failed attachment parse can hold the whole document
     "log a failed attachment parse without the document" in {
       val meter = "AT0030000000000000000000000526178"
-      val session = ConfiguredMailer.getSession(tenantConfig)
+      val session = ConfiguredMailer.createSession(tenantConfig)
       val mail: Message = new MimeMessage(session)
       mail.setSubject("[ZUSTIMMUNG_ECON_01.00 MessageId=123456]")
       mail.setHeader("Message-ID", "4711")
@@ -119,7 +119,7 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       val command = at.energydash.mailer.EmailService.SendEmailCommand(email, "email.com", createTestProbe[EdaCommand]().ref)
       try {
         val (_, events) = LogCapture("at.energydash.mailer.EmailService$") {
-          command.sendEmail(courier.Mailer(ConfiguredMailer.getSession(tenantConfig)))
+          command.sendEmail(courier.Mailer(ConfiguredMailer.createSession(tenantConfig)))
         }
         LogCapture.messages(events) shouldBe List(s"About to send Email ${EbMsMessageType.ERROR_MESSAGE}, conversation C4711")
       } finally Mailbox.clearAll()
@@ -138,6 +138,22 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       notification.mails.head.message.messageCode shouldBe EbMsMessageType.ZP_LIST_RESPONSE
 
       Mailbox.clearAll()
+    }
+
+    // XP-CQ-27: a worker for a changed tenant config must not get the session of the earlier config
+    "read the mailbox of the current config after the tenant config changed" in {
+      val earlier = spawn(TenantMailActor(tenantConfig.copy(user = Some("someone-else")), emailRepo))
+      val mailActor = spawn(TenantMailActor(tenantConfig, emailRepo))
+      val replyActor = createTestProbe[MqttCommand]()
+      try {
+        perpareEmail("myeeg", "TestECMPLIst.xml", "[EC_PODLIST_01.00 MessageId=123456]")
+
+        mailActor ! FetchEmailCommand("myeeg", "", replyActor.ref)
+        replyActor.expectMessageType[MqttPublish].mails should have size 1
+      } finally {
+        testKit.stop(earlier); testKit.stop(mailActor)
+        Mailbox.clearAll()
+      }
     }
 
     "handle Error EmailMessages" in {

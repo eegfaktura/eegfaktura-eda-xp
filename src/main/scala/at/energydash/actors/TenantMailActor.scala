@@ -26,7 +26,8 @@ class TenantMailActor(tenantConfig: TenantConfig, mailRepo: SlickEmailOutboxRepo
 
   var tenant: String = tenantConfig.tenant
 //  val config: com.typesafe.config.Config = Config.getMailSessionConfig(tenant)
-  private val mailSession = ConfiguredMailer.getSession(tenantConfig)
+  // per worker, from the config it starts with: a changed tenant config starts a new worker (XP-CQ-27)
+  private val mailSession = ConfiguredMailer.createSession(tenantConfig)
 
   implicit val mailContext: FetcherContext = FetcherContext(tenant, mailSession, mailRepo)
 
