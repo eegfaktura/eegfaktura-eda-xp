@@ -24,8 +24,8 @@ object NeverLogScan {
   val ExceptionInText = "exception in the text instead of as the last argument"
 
   /**
-   * The never-log words of all services, compared with the words of an identifier (camelCase and snake_case split,
-   * lower case), alone or as two or three adjacent words: `lastName`, `api_key`, `mailAddress`, `accountHolder`.
+   * The never-log words of all services, compared with the words of an identifier (camelCase, acronyms and snake_case
+   * split as in admin-backend, lower case), alone or as two adjacent words: `lastName`, `api_key`, `SMTPPassword`.
    */
   val Words: Set[String] = Set("password", "passwd", "pwd", "secret", "token", "jwt", "bearer", "authorization",
     "credential", "creds", "cookie", "apikey", "iban", "bic", "firstname", "lastname", "vorname", "nachname", "name1",
@@ -36,13 +36,13 @@ object NeverLogScan {
   /** The text of an exception: the encoder masks it only on the exception, which the call attaches instead. */
   private val ExceptionText = ("""\b(?:getMessage|getLocalizedMessage)\b|errorText\(\s*(?:""" + Throwables.mkString("|") + """)\s*\)""").r
   private val Identifier = """[A-Za-z_][A-Za-z0-9_]*""".r
-  private val WordBoundary = """(?<=[a-z0-9])(?=[A-Z])|_"""
+  private val WordBoundary = """(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|_"""
   private val Start = """(?:\b(?:logger|log)\.(?:trace|debug|info|warn|error)|\.setMessage|\.log)\(""".r
 
   /** The word of [[Words]] in `identifier`, if any. */
   def personalWord(identifier: String): Option[String] = {
     val words = identifier.split(WordBoundary).filter(_.nonEmpty).map(_.toLowerCase(Locale.ROOT)).toSeq
-    (1 to 3).iterator.flatMap(n => words.sliding(n).map(_.mkString)).find(Words)
+    (1 to 2).iterator.flatMap(n => words.sliding(n).map(_.mkString)).find(Words)
   }
 
   def findings(call: Call): Seq[Hit] = call.values.map { case (value, interpolated) =>

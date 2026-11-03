@@ -166,7 +166,8 @@ class NeverLogSpec extends AnyWordSpec with Matchers {
     // dev#45 Q7: the word list of all services, as whole words, on every segment of a dotted value
     "refuse a never-log word in any identifier of a value" in {
       Seq("firstname", "lastName", "email", "toEmail", "iban", "password", "token", "soapBody", "api_key", "apiKey",
-        "accountHolder", "sentTo", "userId", "getSubject", "jwt", "name1", "mailAddress", "bearerToken").foreach { name =>
+        "accountHolder", "sentTo", "userId", "getSubject", "jwt", "name1", "mailAddress", "bearerToken", "SMTPPassword",
+        "JWTToken", "IBANNumber").foreach { name =>
         withClue(name)(rulesOf(s"""logger.info(s"x $${member.$name}")""").mkString should include(PersonalWord))
       }
       rulesOf("""logger.info(s"x ${email.data.conversationId}")""") shouldBe Seq(s"$PersonalWord: email")
