@@ -54,7 +54,6 @@ object SupervisorActor {
       implicit val system: ActorSystem[Nothing] = ctx.system
 
       ctx.setLoggerName("Supervisor")
-//      val messageStore = ctx.spawn(MessageStorage(), name = "message-storage")
       val conversationEntity = ctx.spawn(ConversationEntity(), name = "conversationentity")
 
       val ebMsAggregator = ctx.spawn(EbMsAggregator(conversationEntity), name = "ebMsAggregator")
@@ -79,28 +78,14 @@ object SupervisorActor {
       val fileService = FileService(system, mqttPublisher)
       val adminRoutes = new ServiceRoute(fileService, maxBodyBytes)
       val healthRoutes = new HealthRoute(HealthRoute.databaseCheck(Config.config)(system.dispatchers.lookup(DispatcherSelector.blocking())))
-      //      val pontonPublisher = ctx.spawn(PontonService(), name = "ponton-service")
 
       def process(): Behavior[Command] =
         Behaviors.receiveMessage {
           case Start =>
-//            adapter.partnerExistenceTest()
-//            adapter.getPartnerlistTest()
-//            adapter.sendTest()
             mqttRequestStream.startCommand()
 
             startHttpServer(httpRoutes(routes, adminRoutes, healthRoutes))
             startGRPCServer(tenantProvider)
-
-//            val edaMessage = EbMsMessage(
-//              conversationId = "AT003000202303041506076450000003761",
-//              requestId = Some("5JWLV5Z3"),
-//              messageId = Some("RC100181202303041506080740000003762"),
-//              sender = "RC100130", receiver = "AT003000", messageCode = EbMsMessageType.ONLINE_REG_INIT, messageCodeVersion = Some("02.00"),
-//              meter = Some(Meter("AT0030000000000000000000000655856", Some(MeterDirectionType.CONSUMPTION))), ecId = Some("AT00300000000RC100181000000956509"))
-//            pontonPublisher ! TestSendEdaCommand(edaMessage)
-            Behaviors.same
-          case Shutdown =>
             Behaviors.same
           case m =>
           ctx.log.warn(s"Supervisor: Can not handle message -> ${m.getClass.getSimpleName}")
