@@ -33,11 +33,12 @@ object LogFields {
   private val ValidTenant = "[A-Z0-9][A-Z0-9_-]{0,63}".r
 
   /**
-   * The `tenant.id` written for a value (the rule of all services): upper case, and none when it does not have the
-   * shape of a tenant. Applied by the encoder ([[EcsJson.fields]]) to every line, so a caller sets the value as it is.
+   * The `tenant.id` written for a value (the rule of all services): trimmed, upper case, and none when it does not
+   * have the shape of a tenant. Applied by the encoder ([[EcsJson.fields]]) to every line, so a caller sets the value
+   * as it is.
    */
   def tenantId(value: String): Option[String] =
-    Option(value).map(_.toUpperCase(java.util.Locale.ROOT)).filter(ValidTenant.matches)
+    Option(value).map(_.trim.toUpperCase(java.util.Locale.ROOT)).filter(ValidTenant.matches)
 
   /** The fields of this thread's MDC, for [[withMdc]] in code that goes on on another thread (a stream stage). */
   def current(): Seq[(String, Option[String])] = Allowed.map(k => k -> Option(MDC.get(k)))
