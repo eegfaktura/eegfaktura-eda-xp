@@ -56,6 +56,26 @@ class LogSettingsSpec extends AnyWordSpec with Matchers {
     }
   }
 
+  "LogLevelDefiner" should {
+    "take a context property, then a JVM system property, then the environment" in {
+      val name = "EDA_XP_LOG_LEVEL_DEFINER_TEST"
+      def level(ctx: LoggerContext) = {
+        val definer = new LogLevelDefiner()
+        definer.setContext(ctx)
+        definer.setEnv(name)
+        definer.getPropertyValue
+      }
+      System.setProperty(name, "warning")
+      try {
+        level(new LoggerContext()) shouldBe "WARN"
+        val ctx = new LoggerContext()
+        ctx.putProperty(name, "error")
+        level(ctx) shouldBe "ERROR"
+      } finally System.clearProperty(name)
+      level(new LoggerContext()) shouldBe "INFO"
+    }
+  }
+
   "logback.xml" should {
     "write every line through LogEncoder to stdout, as JSON, root and slick at info, also for empty variables" in {
       configured("LOG_LEVEL" -> "", "SLICK_LOG_LEVEL" -> "", "LOG_FORMAT" -> "") { ctx =>
