@@ -111,26 +111,18 @@ object EcsJson {
 
 /**
  * The encoder of every log line (`logback.xml`): JSON lines ([[EcsJson.line]]) or, with `format` `text`, the same
- * fields as a plain line for local runs ([[EcsJson.text]]). An unknown format is reported to logback and written as
- * JSON; `XpAdapter` stops the start before (see [[LogSettings.stopOnInvalid]]).
+ * fields as a plain line for local runs ([[EcsJson.text]]). The settings come from `logback.xml`.
  */
 class LogEncoder extends EncoderBase[ILoggingEvent] {
-  private var format = "json"
   private var text = false
-  private val serviceVersion = LogSettings.serviceVersion(sys.env)
-  private val deploymentEnvironment = LogSettings.deploymentEnvironment(sys.env)
+  private var serviceVersion = "dev"
+  private var deploymentEnvironment: Option[String] = None
 
-  def setFormat(value: String): Unit = format = value
-
-  override def start(): Unit = {
-    text = LogSettings.isText(format) match {
-      case Right(isText) => isText
-      case Left(error) =>
-        addError(error)
-        false
-    }
-    super.start()
-  }
+  /** `text` or `json`; unset, empty and unknown are json (an unknown value is refused at the start, [[LogStartup]]). */
+  def setFormat(value: String): Unit = text = LogSettings.parseFormat(value).contains("text")
+  def setServiceVersion(value: String): Unit = serviceVersion = Option(value).map(_.trim).filter(_.nonEmpty).getOrElse("dev")
+  /** Unset and empty: the field is not written. */
+  def setDeploymentEnvironment(value: String): Unit = deploymentEnvironment = Option(value).map(_.trim).filter(_.nonEmpty)
 
   override def headerBytes(): Array[Byte] = null
   override def footerBytes(): Array[Byte] = null

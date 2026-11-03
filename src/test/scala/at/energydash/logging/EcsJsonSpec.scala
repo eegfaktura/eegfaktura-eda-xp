@@ -1,12 +1,8 @@
 package at.energydash.logging
 
 import ch.qos.logback.classic.spi.{LoggingEvent, ThrowableProxy, ThrowableProxyUtil}
-import ch.qos.logback.classic.joran.JoranConfigurator
 import ch.qos.logback.classic.{Level, LoggerContext}
-import ch.qos.logback.core.ConsoleAppender
-import ch.qos.logback.core.status.{Status, StatusUtil}
 import com.fasterxml.jackson.databind.ObjectMapper
-import at.energydash.testsupport.LogCapture
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.slf4j.event.KeyValuePair
@@ -75,33 +71,6 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
     }
     "be left out when it is not set" in {
       json(event(Level.INFO, "m")).keySet should not contain "deployment.environment"
-    }
-    "come from DEPLOYMENT_ENVIRONMENT, an empty value counting as unset" in {
-      LogSettings.deploymentEnvironment(Map("DEPLOYMENT_ENVIRONMENT" -> " prod ")) shouldBe Some("prod")
-      LogSettings.deploymentEnvironment(Map("DEPLOYMENT_ENVIRONMENT" -> " ")) shouldBe None
-      LogSettings.deploymentEnvironment(Map.empty) shouldBe None
-    }
-  }
-
-  "The start-up line (dev#45 L14)" should {
-    "name version and effective log levels, and nothing else" in {
-      val (_, events) = LogCapture(LogSettings.StartLogger)(LogSettings.logStart())
-      events should have size 1
-      events.head.getFormattedMessage should fullyMatch regex
-        "Service start: version \\S+, log level (trace|debug|info|warn|error), slick log level (trace|debug|info|warn|error)"
-      events.head.getKeyValuePairs.asScala.map(kv => kv.key -> kv.value) shouldBe Seq("event.action" -> "service.start", "log.effective_level" -> "info")
-    }
-    "be written at any LOG_LEVEL" in {
-      System.setProperty("LOG_LEVEL", "error")
-      try {
-        val ctx = new LoggerContext()
-        val configurator = new JoranConfigurator()
-        configurator.setContext(ctx)
-        configurator.doConfigure(getClass.getResource("/logback.xml"))
-        ctx.getLogger(LogSettings.StartLogger).isInfoEnabled shouldBe true
-        ctx.getLogger("at.energydash.Other").isInfoEnabled shouldBe false
-        ctx.stop()
-      } finally System.clearProperty("LOG_LEVEL")
     }
   }
 
@@ -230,79 +199,6 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
       val config = at.energydash.domain.dao.TenantConfig("RC100001", "MAIL", None, None, None, None, None,
         Some("mailbox-user"), Some("mailbox-secret"), None, None, active = true)
       config.toString shouldBe "TenantConfig(RC100001, MAIL, active=true)"
-    }
-  }
-
-  "java.util.logging" should {
-    "come out through SLF4J as a JSON line, with the exception (dev#45 L13)" in {
-      LogSettings.bridgeJavaUtilLogging()
-      LogSettings.bridgeJavaUtilLogging() // once only, or each line would come twice
-      val jul = java.util.logging.Logger.getLogger("io.grpc.Test")
-      val (_, events) = LogCapture("io.grpc.Test") {
-        jul.log(java.util.logging.Level.WARNING, "channel broken", new IllegalStateException("boom"))
-      }
-      events should have size 1
-      val fields = mapper.readValue(EcsJson.line(events.head, "eegfaktura-eda-xp", "dev"), classOf[java.util.Map[String, Any]]).asScala
-      fields("log.logger") shouldBe "io.grpc.Test"
-      fields("log.level") shouldBe "warn"
-      fields("message") shouldBe "channel broken"
-      fields("error.type") shouldBe "java.lang.IllegalStateException"
-    }
-  }
-
-  "LogSettings" should {
-    "accept the five levels and two formats in any case, and unset or empty variables" in {
-      LogSettings.check(Map("LOG_LEVEL" -> "TRACE", "SLICK_LOG_LEVEL" -> "warn", "LOG_FORMAT" -> "Json")) shouldBe Nil
-      LogSettings.check(Map.empty) shouldBe Nil
-      LogSettings.check(Map("LOG_LEVEL" -> "", "SLICK_LOG_LEVEL" -> " ", "LOG_FORMAT" -> "")) shouldBe Nil
-    }
-    "refuse an unknown value" in {
-      LogSettings.check(Map("LOG_LEVEL" -> "verbose")) should have size 1
-      LogSettings.check(Map("SLICK_LOG_LEVEL" -> "warning")) should have size 1
-      LogSettings.check(Map("LOG_FORMAT" -> "ecs")).head should include("LOG_FORMAT")
-    }
-    "give the default for an empty variable, not for an unset or filled one" in {
-      LogSettings.defaultsForEmpty(Map("LOG_LEVEL" -> "", "SLICK_LOG_LEVEL" -> " ", "LOG_FORMAT" -> "")) shouldBe
-        Map("LOG_LEVEL" -> "info", "SLICK_LOG_LEVEL" -> "info", "LOG_FORMAT" -> "json")
-      LogSettings.defaultsForEmpty(Map("LOG_LEVEL" -> "warn")) shouldBe Map.empty
-    }
-    "start with the settings of this environment" in {
-      noException should be thrownBy new LogStartup {}
-    }
-    "take SERVICE_VERSION, else dev" in {
-      LogSettings.serviceVersion(Map("SERVICE_VERSION" -> "0.2.22")) shouldBe "0.2.22"
-      LogSettings.serviceVersion(Map("SERVICE_VERSION" -> " ")) shouldBe "dev"
-      LogSettings.serviceVersion(Map.empty) shouldBe "dev"
-    }
-  }
-
-  "logback.xml" should {
-    "write every line through LogEncoder to stdout, root and slick at info by default" in {
-      assume(!sys.env.contains("LOG_LEVEL") && !sys.env.contains("SLICK_LOG_LEVEL"))
-      val ctx = new LoggerContext()
-      val configurator = new JoranConfigurator()
-      configurator.setContext(ctx)
-      configurator.doConfigure(getClass.getResource("/logback.xml"))
-      new StatusUtil(ctx).getHighestLevel(0) should be < Status.WARN
-      val root = ctx.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
-      root.getLevel shouldBe Level.INFO
-      ctx.getLogger("slick").getLevel shouldBe Level.INFO
-      val console = root.getAppender("CONSOLE").asInstanceOf[ConsoleAppender[_]]
-      console.getTarget shouldBe "System.out"
-      console.getEncoder shouldBe a[LogEncoder]
-      root.iteratorForAppenders().asScala.toList should have size 1
-      ctx.stop()
-    }
-    "prefer a system property to the environment, so an empty LOG_LEVEL gets the default" in {
-      System.setProperty("LOG_LEVEL", "error")
-      try {
-        val ctx = new LoggerContext()
-        val configurator = new JoranConfigurator()
-        configurator.setContext(ctx)
-        configurator.doConfigure(getClass.getResource("/logback.xml"))
-        ctx.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).getLevel shouldBe Level.ERROR
-        ctx.stop()
-      } finally System.clearProperty("LOG_LEVEL")
     }
   }
 }

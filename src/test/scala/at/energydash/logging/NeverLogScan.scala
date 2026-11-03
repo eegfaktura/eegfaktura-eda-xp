@@ -57,9 +57,6 @@ object NeverLogScan {
     "NoValidRecipient" -> "a constant text, without the recipients",
     "declared.fold(\"none\")(b => s\"$b bytes\")" -> "a size in bytes",
     "size.fold(\"size unknown\")(b => s\"$b bytes\")" -> "a size in bytes",
-    "serviceVersion(sys.env)" -> "the version of the image",
-    "level(Logger.ROOT_LOGGER_NAME)" -> "a log level",
-    "level(\"slick\")" -> "a log level",
     // texts that are built from the above or masked
     "details" -> "logSize: message code and conversation id, or a fixed text, at both callers",
     "reason" -> "fixed texts with ids; MqttPublisher's and MqttSystem's reasons name no document",
