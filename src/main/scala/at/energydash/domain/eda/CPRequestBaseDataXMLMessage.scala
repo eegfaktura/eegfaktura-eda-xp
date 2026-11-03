@@ -39,7 +39,7 @@ case class CPRequestBaseDataXMLMessage(message: EbMsMessage) extends EdaXMLMessa
   def toXML: Node = {
     rewriteRootSchema(scalaxb.toXML[cprequest.v01p12.CPRequest](toDoc, Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12"), Some("CPRequest"),
       toScope,
-      typeAttribute = false).head, "CPRequest",
+      typeAttribute = false).head,
       "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12 CPRequest_01p12.xsd")
 
   }
