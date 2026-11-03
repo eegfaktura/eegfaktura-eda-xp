@@ -21,7 +21,7 @@ trait LogStartup {
  *  - `LOG_FORMAT`: `json` (default) or `text`, a readable line for local runs.
  *  - `LOG_LEVEL`: `trace`, `debug`, `info` (default), `warn` (also `warning`), `error` — the root level.
  *  - `SLICK_LOG_LEVEL`: the same values, for the `slick` loggers only (default `info`).
- *  - `SERVICE_VERSION`: `service.version` of every line (set in the image), default `dev`.
+ *  - `SERVICE_VERSION`: `service.version` of every JSON line (set in the image), default `dev`.
  *  - `DEPLOYMENT_ENVIRONMENT`: `deployment.environment` of every line; the field is left out when unset or empty.
  */
 object LogSettings {
@@ -65,7 +65,7 @@ object LogSettings {
     }
 
   /**
-   * The one start-up line: `service.version` as on every line, and the effective root level. Its logger is at info in
+   * The one start-up line: `service.version` as on every JSON line, and the effective root level. Its logger is at info in
    * `logback.xml`, so `LOG_LEVEL=warn` does not switch it off.
    */
   def logStart(context: LoggerContext = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]): Unit = {

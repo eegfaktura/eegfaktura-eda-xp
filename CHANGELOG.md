@@ -11,10 +11,10 @@ this changelog highlights the changes relevant for overview and operations.
 Logging only (dev#45): topics, payloads, the answer to Ponton and mails do not change.
 
 ### Added
-- **`deployment.environment` on every JSON line**, from the new variable `DEPLOYMENT_ENVIRONMENT`; left out when unset.
+- **`deployment.environment` on every line**, from the new variable `DEPLOYMENT_ENVIRONMENT`; left out when unset.
   **Operators:** set it per zone (`dev`, `pilot`, `prod`) in the deployment.
 - **One start-up line** `service start` (`event.action=service.start`, `log.effective_level`, logger
-  `at.energydash.start`; `service.version` as on every line), written at any `LOG_LEVEL`.
+  `at.energydash.start`; `service.version` as on every JSON line), written at any `LOG_LEVEL`.
 - **`jul-to-slf4j`:** java.util.logging (gRPC, pgjdbc, paho) goes through the encoder instead of printing plain text
   to stderr. Levels: what JUL passes (info and above); `LOG_LEVEL=debug` does not switch on JUL's fine levels.
 - **A never-log test** (`NeverLogSpec`) reads the log calls of the source, not `.addKeyValue(` or `println`, and fails

@@ -23,7 +23,10 @@ import scala.jdk.CollectionConverters._
 object EcsJson {
   private val factory = new JsonFactory()
   private val Millis = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC)
-  /** Not repeated after the message of a text line: the head has them, the stack starts with type and message. */
+  /**
+   * Not written as `key=value` on a text line: time, level, logger and message are its head, the stack starts with
+   * type and message, and the service fields are left out of a line that is for local runs only.
+   */
   private val TextHead = Set("@timestamp", "log.level", "log.logger", "message", "service.name", "service.version",
     "error.type", "error.message", "error.stack_trace")
 
