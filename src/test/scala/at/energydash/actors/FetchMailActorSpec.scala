@@ -140,6 +140,20 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       Mailbox.clearAll()
     }
 
+    // XP-CQ-20: a failed mailbox connect was dropped without a trace
+    "log a failed mailbox connect" in {
+      val props = new java.util.Properties()
+      props.put("mail.store.protocol", "no-such-protocol")
+      val broken = at.energydash.mailer.Fetcher.FetcherContext("myeeg", javax.mail.Session.getInstance(props), emailRepo)
+      val (_, events) = LogCapture("at.energydash.actors.TenantMailActor") {
+        FetchEmailCommand("myeeg", "", createTestProbe[MqttCommand]().ref)
+          .fetchEmail("", _ => fail("there is no mailbox to read"))(scala.concurrent.ExecutionContext.global, broken)
+      }
+      events.map(_.getLevel.toString) shouldBe List("ERROR")
+      events.head.getFormattedMessage should startWith("Fetching mails failed: ")
+      events.head.getThrowableProxy.getClassName shouldBe classOf[javax.mail.NoSuchProviderException].getName
+    }
+
     // XP-CQ-27: a worker for a changed tenant config must not get the session of the earlier config
     "read the mailbox of the current config after the tenant config changed" in {
       val earlier = spawn(TenantMailActor(tenantConfig.copy(user = Some("someone-else")), emailRepo))

@@ -9,7 +9,7 @@ import at.energydash.domain.eda.EdaErrorMessage
 import at.energydash.mailer.EmailService.SendEmailCommand
 import at.energydash.mailer.Fetcher.{ErrorMessage, FetcherContext, MailContent, MailMessage}
 import at.energydash.mailer.{ConfiguredMailer, Fetcher}
-import at.energydash.logging.LogFields
+import at.energydash.logging.{LogFields, LogText}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.ExecutionContext
@@ -72,11 +72,14 @@ class TenantMailActor(tenantConfig: TenantConfig, mailRepo: SlickEmailOutboxRepo
 }
 
 object TenantMailActor {
+  private val fetchLogger: Logger = LoggerFactory.getLogger(classOf[TenantMailActor])
+
   case class FetchEmailCommand(tenant: String, subject: String, replyTo: ActorRef[MqttCommand]) extends EmailCommand {
     def fetchEmail(searchTerm: String, distributeMessage: MailContent => Unit)(implicit ex: ExecutionContext, ctx: FetcherContext): Unit /*Try[List[MailContent]]*/ = {
+      // a failed connect, login or search must be seen, or a MAIL tenant silently stops receiving (XP-CQ-20)
       Try(
         Fetcher().fetch(searchTerm, distributeMessage)
-      )
+      ).failed.foreach(e => fetchLogger.error(s"Fetching mails failed: ${LogText.exceptionText(e.getClass.getName, e.getMessage)}", e))
     }
   }
 

@@ -83,31 +83,32 @@ class Fetcher {
 
   def fetch(searchTerm: String, distributeMessage: MailContent => Unit)(implicit ctx: FetcherContext): Unit = {
     val store = getStore(ctx.session)
-    val inbox = store.getFolder("Inbox")
-    inbox.open(Folder.READ_WRITE)
+    try {
+      val inbox = store.getFolder("Inbox")
+      inbox.open(Folder.READ_WRITE)
+      try {
+        val messages = inbox.search(createAndTerm(searchTerm))
+        logger.info(s"[${ctx.tenant}] Emails found ${messages.length}")
 
-    val messages = inbox.search(createAndTerm(searchTerm))
-    logger.info(s"[${ctx.tenant}] Emails found ${messages.length}")
-
-    persist(ctx.tenant, messages).toList.foreach(m => buildMessage(m) match {
-      case Success((m, c)) => c match {
-        case Some(content) =>
-          content match {
-            case msg @ (_:MailMessage | _:ErrorMessage)  =>
-              distributeMessage(msg)
+        persist(ctx.tenant, messages).toList.foreach(m => buildMessage(m) match {
+          case Success((m, c)) => c match {
+            case Some(content) =>
+              content match {
+                case msg @ (_:MailMessage | _:ErrorMessage)  =>
+                  distributeMessage(msg)
+                  deleteEmail(m, inbox)
+                case _ =>
+              }
+            case None =>
               deleteEmail(m, inbox)
-            case _ =>
           }
-        case None =>
-          deleteEmail(m, inbox)
-      }
-      case Failure(e) =>
-        // the exception can hold the whole document: only its type here, LogText masks the attached one
-        logger.error(s"Extract Message failed for mail ${m.getMessageNumber}: ${e.getClass.getName} (content not logged)", e)
-        deleteEmail(m, inbox)
-    })
-    inbox.close(true)
-    store.close()
+          case Failure(e) =>
+            // the exception can hold the whole document: only its type here, LogText masks the attached one
+            logger.error(s"Extract Message failed for mail ${m.getMessageNumber}: ${e.getClass.getName} (content not logged)", e)
+            deleteEmail(m, inbox)
+        })
+      } finally inbox.close(true)
+    } finally store.close()
   }
 
   def withAttachement(content: Message): List[MimeBodyPart] = content.getContent match {
