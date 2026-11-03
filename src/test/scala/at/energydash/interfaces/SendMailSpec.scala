@@ -56,6 +56,9 @@ class SendMailSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       logged should not be empty
       logged.exists(_.contains("@email.com")) shouldBe false
       logged.exists(l => l.contains("Willkommen") || l.contains("Aktivierung")) shouldBe false
+      // dev#45 Q9: the service's own SLF4J logger, not pekko's system logger
+      events.filter(_.getFormattedMessage == "Send Mail").map(_.getLoggerName).toSet shouldBe
+        Set("at.energydash.service.SendMailServiceImpl")
     }
     // a rejected recipient can be a name or a phone number; the reply keeps it for the caller
     "log no rejected recipient" in {
