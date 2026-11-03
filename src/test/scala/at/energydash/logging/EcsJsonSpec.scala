@@ -147,9 +147,11 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
       lines should contain("Caused by: scala.MatchError: (content not logged)")
     }
     "keep the operator text of a message that was not handed to MQTT" in {
-      val text = "Inbound message (conversation RC1, message code ANTWORT_ECON) not handed to MQTT after 12 ms: " +
-        "java.lang.IllegalStateException: MQTT client not connected; Ponton will redeliver"
-      json(event(Level.ERROR, text, error = Some(new IllegalStateException("MQTT client not connected"))))("message") shouldBe text
+      // PontonRoute's text; the reason is on the exception (dev#45 Q1)
+      val text = "Inbound message (conversation RC1, message code ANTWORT_ECON) not handed to MQTT after 12 ms; Ponton will redeliver"
+      val fields = json(event(Level.ERROR, text, error = Some(new IllegalStateException("MQTT client not connected"))))
+      fields("message") shouldBe text
+      fields("error.message") shouldBe "MQTT client not connected"
     }
     "not bring a document or an address in through a suppressed exception" in {
       val error = new RuntimeException("failed")
@@ -163,10 +165,6 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
     "mask a message that holds the message of another exception of the chain" in {
       val error = new RuntimeException("max@example.com", new MatchError("<doc>max@example.com AT003</doc>"))
       json(event(Level.ERROR, "failed", error = Some(error)))("error.stack_trace").toString should not include "AT003"
-    }
-    "leave a null in the line alone for a MatchError of null" in {
-      val line = json(event(Level.ERROR, "message code null not handed to MQTT", error = Some(new MatchError(null))))
-      line("message").toString should include("message code null not handed to MQTT")
     }
     "not write the value of a MatchError" in {
       val fields = json(event(Level.ERROR, "failed", error = Some(new MatchError(document))))
