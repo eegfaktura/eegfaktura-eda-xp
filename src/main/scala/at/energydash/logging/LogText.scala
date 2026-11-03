@@ -2,6 +2,8 @@ package at.energydash.logging
 
 import io.circe.{CursorOp, DecodingFailure, ParsingFailure}
 
+import scala.util.matching.Regex
+
 /** Error texts that are safe for the log (never-log rule: no EDA payloads). */
 object LogText {
 
@@ -42,33 +44,19 @@ object LogText {
     case _: ParsingFailure => "Request is not valid JSON"
   }
 
-  private val Separators = " \t\n\u000B\f\r<>\"'`(),;:"
+  /** A run of characters between separators; a single class, so the match takes time linear in the length. */
+  private val Run = """[^\s<>"'`(),;:]+""".r
 
   /**
    * The text with every e-mail address replaced by `<address>` (javax.mail names the address in its errors): a run of
-   * characters between separators that has an `@` inside it, not at either end. One pass, no regex: every exception
-   * text comes through here on a dispatcher thread.
+   * characters between separators that has an `@` inside it, not at either end.
    */
   def withoutEmailAddresses(text: String): String =
     if (text == null) ""
     else if (text.indexOf('@') < 0) text
-    else {
-      def separator(c: Char) = Separators.indexOf(c.toInt) >= 0
-      val out = new java.lang.StringBuilder(text.length)
-      var start = 0
-      while (start < text.length) {
-        var end = start + 1
-        if (separator(text(start))) out.append(text(start))
-        else {
-          var address = false
-          while (end < text.length && !separator(text(end))) {
-            if (text(end) == '@' && end + 1 < text.length && !separator(text(end + 1))) address = true
-            end += 1
-          }
-          if (address) out.append("<address>") else out.append(text, start, end)
-        }
-        start = end
-      }
-      out.toString
-    }
+    else Run.replaceAllIn(text, m => {
+      val run = m.matched
+      val at = run.indexOf('@', 1)
+      if (at > 0 && at < run.length - 1) "<address>" else Regex.quoteReplacement(run)
+    })
 }
