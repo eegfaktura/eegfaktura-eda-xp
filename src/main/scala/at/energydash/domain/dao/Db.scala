@@ -5,13 +5,6 @@ import com.github.tminglei.slickpg._
 import slick.basic.DatabaseConfig
 import slick.jdbc.PostgresProfile
 
-trait Db {
-
-  val db: PostgresProfile#Backend#Database
-  val config: DatabaseConfig[PostgresProfile]
-//  val pgDb: ExPostgresProfile#Backend#Database
-}
-
 object Db {
   /** The one connection pool of the JVM (XP-CQ-12); it opens on first use and is closed by [[close]]. */
   lazy val config: DatabaseConfig[PostgresProfile] = DatabaseConfig.forConfig[PostgresProfile]("slick.pgsql.local")
