@@ -134,7 +134,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
               complete(HttpResponse(StatusCodes.NoContent))
             case Failure(ex) =>
               val ms = (System.nanoTime() - started) / 1000000
-              withContext(context)(logger.error(s"Inbound message (conversation ${x.conversationId}, message code ${x.messageCode}) not handed to MQTT after $ms ms: ${LogText.errorText(ex)}; Ponton will redeliver", ex))
+              withContext(context)(logger.error(s"Inbound message (conversation ${x.conversationId}, message code ${x.messageCode}) not handed to MQTT after $ms ms; Ponton will redeliver", ex))
               complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
           }
         case Failure(ex) => withContext(context) {
@@ -144,7 +144,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
           // (team decision, platform#111 ca11). Only unknown document types are
           // acknowledged above, because eda-xp can never process them.
           // no exception attached when it holds the document: scalaxb's message does (261005-ca14)
-          val text = s"Error while parsing message from edaAdapter: ${LogText.errorText(ex)}"
+          val text = "Error while parsing message from edaAdapter"
           if (LogText.carriesDocument(ex)) logger.error(text) else logger.error(text, ex)
           mqttPublisher ! MqttPublishError("NotSpecified", ex.getMessage)
           complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
@@ -238,7 +238,7 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                               logger.error(s"Inbound message for $rc not accepted by $target: $status in $ms ms; Ponton will redeliver")
                               complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                             case Failure(ex) =>
-                              logger.error(s"Inbound message for $rc could not be forwarded to $target after $ms ms: ${ex.getMessage}; Ponton will redeliver", ex)
+                              logger.error(s"Inbound message for $rc could not be forwarded to $target after $ms ms; Ponton will redeliver", ex)
                               complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                           } }
                         }

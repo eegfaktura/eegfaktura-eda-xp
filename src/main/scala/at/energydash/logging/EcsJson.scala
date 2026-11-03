@@ -2,6 +2,7 @@ package at.energydash.logging
 
 import ch.qos.logback.classic.PatternLayout
 import ch.qos.logback.classic.spi.{ILoggingEvent, IThrowableProxy, ThrowableProxyUtil}
+import ch.qos.logback.core.CoreConstants
 import ch.qos.logback.core.encoder.EncoderBase
 import com.fasterxml.jackson.core.JsonFactory
 
@@ -58,31 +59,38 @@ object EcsJson {
     out.append('\n').toString
   }
 
-  /** The exception, its causes and what they suppressed; logback has already cut a circular reference. */
-  private def chain(t: IThrowableProxy, depth: Int = 0): Seq[IThrowableProxy] =
-    if (t == null || depth >= 16) Nil
-    else t +: (chain(t.getCause, depth + 1) ++ Option(t.getSuppressed).toSeq.flatten.flatMap(chain(_, depth + 1)))
-
-  /** `text` with the message of `t` and of each exception of its [[chain]] through [[LogText.exceptionText]]. */
-  private def masked(t: IThrowableProxy, text: String): String =
-    // longest first: a message inside a longer one would otherwise keep the longer one from being found.
-    // "null" is the message of `new MatchError(null)`, not a value.
-    chain(t).flatMap(p => Option(p.getMessage).filter(m => m.nonEmpty && m != "null")
-      .map(m => m -> LogText.exceptionText(p.getClassName, m)))
-      .sortBy(-_._1.length)
-      .foldLeft(text) { case (masking, (message, safe)) => masking.replace(message, safe) }
+  /** Causes and suppressed exceptions below this depth are not written; logback has already cut a circular reference. */
+  private val MaxDepth = 16
 
   /**
-   * The message of the event with the mask of the exception text, which also covers a value only the attached
-   * exception identifies (the text of a `MatchError` that a line quotes through `getMessage`).
+   * The message of the event without a document or an address. An exception's text is never part of it: a log call
+   * attaches the exception instead (`NeverLogSpec` refuses `getMessage` in the text).
    */
-  def safeMessage(event: ILoggingEvent): String = {
-    val message = Option(event.getFormattedMessage).getOrElse("")
-    LogText.withoutEmailAddresses(LogText.errorText(Option(event.getThrowableProxy).fold(message)(masked(_, message))))
+  def safeMessage(event: ILoggingEvent): String =
+    LogText.withoutEmailAddresses(LogText.errorText(event.getFormattedMessage))
+
+  /**
+   * The stack as logback writes it, with the message of the exception and of each cause and suppressed exception
+   * through [[LogText.exceptionText]].
+   */
+  def stackTrace(t: IThrowableProxy): String = {
+    val out = new java.lang.StringBuilder(2048)
+    appendStack(out, t, "", 1, 0)
+    out.toString
   }
 
-  /** The stack with every message of the exception masked. */
-  def stackTrace(t: IThrowableProxy): String = masked(t, ThrowableProxyUtil.asString(t))
+  private def appendStack(out: java.lang.StringBuilder, t: IThrowableProxy, prefix: String, indent: Int, depth: Int): Unit =
+    if (t != null && depth < MaxDepth) {
+      ThrowableProxyUtil.indent(out, indent - 1)
+      out.append(prefix)
+      val text = s"${t.getClassName}: ${LogText.exceptionText(t.getClassName, t.getMessage)}"
+      if (t.isCyclic) out.append("[CIRCULAR REFERENCE: ").append(text).append(']') else out.append(text)
+      out.append(CoreConstants.LINE_SEPARATOR)
+      ThrowableProxyUtil.subjoinSTEPArray(out, indent, t)
+      Option(t.getSuppressed).foreach(_.foreach(s =>
+        appendStack(out, s, CoreConstants.SUPPRESSED, indent + ThrowableProxyUtil.SUPPRESSED_EXCEPTION_INDENT, depth + 1)))
+      appendStack(out, t.getCause, CoreConstants.CAUSED_BY, indent, depth + 1)
+    }
 }
 
 /**

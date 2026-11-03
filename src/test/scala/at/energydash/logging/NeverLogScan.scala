@@ -63,9 +63,9 @@ object NeverLogScan {
     // texts that are built from the above or masked
     "details" -> "logSize: message code and conversation id, or a fixed text, at both callers",
     "reason" -> "fixed texts with ids; MqttPublisher's and MqttSystem's reasons name no document",
-    "text" -> "PontonRoute: fixed text with LogText.errorText",
+    "text" -> "PontonRoute: a fixed text",
+    "getMessageNumber" -> "number of a mail in the mailbox",
     "msg" -> "EdaMessage.fallbackVersion: version label, message code and conversation id",
-    "LogText.errorText(ex)" -> "masked by LogText",
     "LogText.errorText(msg)" -> "masked by LogText",
     "logText(exception)" -> "SendMailServiceImpl: toString without addresses",
     "faultCode(x)" -> "XmlParseHandler: a QName by its pattern, never the fault text",
@@ -78,6 +78,8 @@ object NeverLogScan {
   private val Personal = "(?i)first_?name|last_?name|e_?mail|iban|password|passwd|pwd|token|soap_?body".r
   private val PersonalLabel = ("(?i)(" + Personal.regex.stripPrefix("(?i)") + """)\s*[=:]\s*$""").r
   private val Throwables = Set("e", "ex", "err", "exception", "f", "me")
+  /** The text of an exception: the encoder masks it only on the exception, which the call attaches instead. */
+  private val ExceptionText = ("""\b(?:getMessage|getLocalizedMessage)\b|errorText\(\s*(?:""" + Throwables.mkString("|") + """)\s*\)""").r
   private val SimplePath = """[A-Za-z_][\w.]*(\(\))?""".r
   private val Start = """(?:\b(?:logger|log)\.(?:trace|debug|info|warn|error)|\.setMessage|\.log)\(""".r
 
@@ -89,9 +91,8 @@ object NeverLogScan {
 
   def findings(call: Call): Seq[String] = {
     val where = s"${call.file}:${call.line}"
-    val getMessage = call.values.exists(_._1.contains("getMessage"))
     val rules = Seq(
-      Option.when(getMessage && !call.cause)("getMessage without the exception"),
+      call.values.find(v => ExceptionText.findFirstIn(v._1).isDefined).map(v => s"exception text in the message, attach the exception: ${v._1}"),
       call.literals.find(l => PersonalLabel.findFirstIn(l).isDefined).map(l => s"personal name as a label: '$l'")) ++
       call.values.map { case (value, interpolated) => check(value, interpolated, call.cause) }
     rules.flatten.map(rule => s"$where $rule")
@@ -103,7 +104,7 @@ object NeverLogScan {
     val logged = if (SimplePath.matches(value)) value.stripSuffix("()").split('.').last else code
     if (Personal.findFirstIn(logged).isDefined) Some(s"personal name: $value")
     else if (code.contains("toString")) Some(s"toString: $value")
-    else if (code.contains("getMessage")) None // with the exception (above), masked by the encoder
+    else if (ExceptionText.findFirstIn(code).isDefined) None // reported for the call (above)
     else if (allowedEntry(value).isDefined) None
     else if (interpolated && Throwables(value)) Some(s"exception in the text instead of as the last argument: $value")
     else Some(s"value not on the positive list: $value")

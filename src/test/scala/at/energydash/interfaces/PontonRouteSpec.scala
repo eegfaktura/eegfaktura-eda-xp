@@ -63,7 +63,7 @@ class PontonRouteSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       }
       // 261005-ca14: the parse error is logged without the document
       val errors = events.filter(_.getLevel.toString == "ERROR")
-      LogCapture.messages(errors).exists(_.startsWith("Error while parsing message from edaAdapter: ")) shouldBe true
+      LogCapture.messages(errors) should contain("Error while parsing message from edaAdapter")
       LogCapture.messages(errors).exists(_.contains("<")) shouldBe false
       errors.forall(_.getThrowableProxy == null) shouldBe true
     }

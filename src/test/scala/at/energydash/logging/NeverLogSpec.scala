@@ -9,7 +9,7 @@ import scala.jdk.CollectionConverters._
 /**
  * The never-log rule, enforced on the source (dev#45 L11, logging concept W-261008-ca2): reads the log calls under
  * `src/main/scala` (`logger.…`, `log.…`, `.setMessage(`, `.log(`) and fails on a value that is not known to be safe,
- * on `getMessage` without the exception and on personal names. It does not read `.addKeyValue(` (the encoder writes
+ * on the text of an exception in the message (attach the exception instead) and on personal names. It does not read `.addKeyValue(` (the encoder writes
  * only the fields of [[LogFields.Allowed]]) or `println`. The scan is a positive list: a new `$value` fails until it is added to [[NeverLogScan.Allowed]]
  * with the reason why it holds no personal data and no document. That list is the only way past the scan.
  */
@@ -60,13 +60,17 @@ class NeverLogSpec extends AnyWordSpec with Matchers {
       findingsOf("""logger.error(s"failed: $e")""") should have size 1
       findingsOf("""logger.error(s"failed: $e", e)""") should have size 1
     }
-    "refuse getMessage without the exception, and accept it with" in {
+    // dev#45 Q1: the encoder masks the text of an exception only on the attached exception
+    "refuse the text of an exception in the message, also with the exception attached" in {
       findingsOf("""logger.error(e.getMessage)""").mkString should include("getMessage")
       findingsOf("""logger.warn(s"failed: ${e.getMessage}")""").mkString should include("getMessage")
       findingsOf("""logger.warn(s"failed: ${e.getMessage()}")""").mkString should include("getMessage")
       findingsOf("""logger.error(s"failed: ${e.getMessage}", other)""").mkString should include("getMessage")
-      findingsOf("""logger.error(s"failed: ${e.getMessage}", e)""") shouldBe empty
-      findingsOf("""logger.error(e.getMessage, e)""") shouldBe empty
+      findingsOf("""logger.error(s"failed: ${e.getMessage}", e)""").mkString should include("getMessage")
+      findingsOf("""logger.error(e.getMessage, e)""").mkString should include("getMessage")
+      findingsOf("""logger.error(s"failed: ${ex.getLocalizedMessage}", ex)""").mkString should include("getLocalizedMessage")
+      findingsOf("""logger.error(s"failed: ${LogText.errorText(ex)}", ex)""").mkString should include("errorText(ex)")
+      findingsOf("""logger.error("failed", e)""") shouldBe empty
     }
     "refuse personal names in a value and as a label in the text" in {
       Seq("firstname", "lastName", "email", "toEmail", "iban", "password", "token", "soapBody").foreach { name =>

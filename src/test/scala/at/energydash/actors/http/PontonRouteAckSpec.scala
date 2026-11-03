@@ -68,7 +68,7 @@ class PontonRouteAckSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
         publish.handover.get.claim() shouldBe false
         log().exists(e => e.getLevel == Level.ERROR &&
           e.getFormattedMessage.contains("conversation RC100181202407101720603980000000011") &&
-          e.getFormattedMessage.contains("not handed to MQTT within 1000 ms")) shouldBe true
+          e.getThrowableProxy != null && e.getThrowableProxy.getMessage.contains("not handed to MQTT within 1000 ms")) shouldBe true
       }
     }
 
@@ -80,7 +80,8 @@ class PontonRouteAckSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
         probe.expectMessageType[MqttPublish](5.seconds).handover.get.refused(new IllegalStateException("MQTT client not connected"))
         Await.result(status, 5.seconds) shouldBe StatusCodes.InternalServerError
         (System.nanoTime() - started).nanos should be < 5.seconds
-        log().exists(e => e.getLevel == Level.ERROR && e.getFormattedMessage.contains("MQTT client not connected; Ponton will redeliver")) shouldBe true
+        log().exists(e => e.getLevel == Level.ERROR && e.getFormattedMessage.endsWith("; Ponton will redeliver") &&
+          e.getThrowableProxy != null && e.getThrowableProxy.getMessage == "MQTT client not connected") shouldBe true
       }
     }
   }

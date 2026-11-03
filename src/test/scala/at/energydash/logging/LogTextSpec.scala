@@ -31,9 +31,6 @@ class LogTextSpec extends AnyWordSpec with Matchers {
       LogText.errorText(s"Recover: $failure") should startWith("Recover: Error while parsing the document: parser error")
       LogText.errorText(s"Error: $failure").count(_ == '<') shouldBe 0
     }
-    "name the exception class" in {
-      LogText.errorText(new IllegalStateException(failure)) should startWith("java.lang.IllegalStateException: Error while parsing the document: parser error")
-    }
   }
 
   "exceptionText" should {
@@ -41,7 +38,6 @@ class LogTextSpec extends AnyWordSpec with Matchers {
       LogText.exceptionText("java.lang.RuntimeException", failure) should not include "AT00"
       LogText.exceptionText("javax.mail.SendFailedException", "Invalid: member@email.com") shouldBe "Invalid: <address>"
       LogText.exceptionText("scala.MatchError", "<doc>AT00</doc> (of class scala.xml.Elem)") shouldBe "(content not logged)"
-      LogText.errorText(new MatchError("<doc>AT00</doc>")) shouldBe "scala.MatchError: (content not logged)"
       LogText.exceptionText("java.lang.RuntimeException", null) shouldBe ""
     }
   }

@@ -1,6 +1,6 @@
 package at.energydash.logging
 
-import ch.qos.logback.classic.spi.LoggingEvent
+import ch.qos.logback.classic.spi.{LoggingEvent, ThrowableProxy, ThrowableProxyUtil}
 import ch.qos.logback.classic.joran.JoranConfigurator
 import ch.qos.logback.classic.{Level, LoggerContext}
 import ch.qos.logback.core.ConsoleAppender
@@ -133,14 +133,24 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
       stack should include("EcsJsonSpec")
       Seq("AT003", "<v320", "max@example.com").foreach(s => fields.values.mkString should not include s)
     }
-    "not leave an address or a MatchError value in message" in {
+    // dev#45 Q1: the text of an exception is no longer masked inside message; NeverLogSpec refuses it there
+    "not leave an address in message" in {
       val address = new RuntimeException("550 no mailbox max@example.com")
       json(event(Level.ERROR, s"Recover: ${address.getMessage}", error = Some(address)))("message") shouldBe
         "Recover: 550 no mailbox <address>"
       json(event(Level.ERROR, "SMTP said max@example.com"))("message") shouldBe "SMTP said <address>"
-      val unmatched = new MatchError(document)
-      val fields = json(event(Level.ERROR, s"Error Stream handling - ${unmatched.getMessage}", error = Some(unmatched)))
-      fields("message") shouldBe "Error Stream handling - (content not logged)"
+    }
+    "write the stack as logback does, with causes and suppressed exceptions" in {
+      val error = new RuntimeException("outer", new IllegalStateException("inner"))
+      error.addSuppressed(new IllegalArgumentException("aside", new RuntimeException("below")))
+      val proxy = new ThrowableProxy(error)
+      EcsJson.stackTrace(proxy) shouldBe ThrowableProxyUtil.asString(proxy)
+    }
+    "mask each message of the stack on its own line" in {
+      val error = new RuntimeException("mail to max@example.com failed", new MatchError(document))
+      val lines = EcsJson.stackTrace(new ThrowableProxy(error)).linesIterator.toList
+      lines.head shouldBe "java.lang.RuntimeException: mail to <address> failed"
+      lines should contain("Caused by: scala.MatchError: (content not logged)")
     }
     "keep the operator text of a message that was not handed to MQTT" in {
       val text = "Inbound message (conversation RC1, message code ANTWORT_ECON) not handed to MQTT after 12 ms: " +

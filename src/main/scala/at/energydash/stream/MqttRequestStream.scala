@@ -101,10 +101,10 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
       .via(responseFlow)
       .recover {
         case me: MqttException =>
-          withRequest(input)(logger.error(s"Error Stream handling - ${me.getMessage}", me))
+          withRequest(input)(logger.error("Error Stream handling", me))
           me.errorMsg
         case e =>
-          withRequest(input)(logger.error(s"Recover: ${e.getMessage}", e))
+          withRequest(input)(logger.error("Recover", e))
           MqttMessage("eda/response/error", ByteString(e.getMessage))
       }.runWith(Sink.head[MqttMessage])
   }
@@ -130,7 +130,7 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
     val firstSubscription = Promise[Done]()
     RestartSource.onFailuresWithBackoff(restartSettings) { () =>
       source.mapMaterializedValue { subscribed =>
-        subscribed.failed.foreach(e => logger.warn(s"EDA command listener: subscription failed, restarting with backoff - ${e.getMessage}", e))
+        subscribed.failed.foreach(e => logger.warn("EDA command listener: subscription failed, restarting with backoff", e))
         firstSubscription.tryCompleteWith(subscribed)
         NotUsed
       }

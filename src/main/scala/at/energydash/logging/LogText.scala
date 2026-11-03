@@ -36,8 +36,6 @@ object LogText {
   def exceptionText(className: String, message: String): String =
     if (className == classOf[MatchError].getName) "(content not logged)" else withoutEmailAddresses(errorText(message))
 
-  def errorText(ex: Throwable): String = s"${ex.getClass.getName}: ${exceptionText(ex.getClass.getName, ex.getMessage)}"
-
   /** A failed JSON decode without the value: circe's message quotes the offending value (a metering point, say). */
   def decodeError(error: io.circe.Error): String = error match {
     case failure: DecodingFailure => s"Request cannot be decoded at ${CursorOp.opsToPath(failure.history)}"
