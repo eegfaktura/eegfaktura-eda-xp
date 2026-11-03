@@ -86,6 +86,13 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
         withClue(String.valueOf(value))(LogFields.tenantId(value) shouldBe None)
       }
     }
+    // dev#45 Q5: one place for the rule, whatever writes the field
+    "be applied by the encoder to the MDC and the key-value pairs" in {
+      json(event(Level.INFO, "m", mdc = Map("tenant.id" -> "rc100401")))("tenant.id") shouldBe "RC100401"
+      json(event(Level.INFO, "m", kv = Seq("tenant.id" -> "gc123456-001")))("tenant.id") shouldBe "GC123456-001"
+      json(event(Level.INFO, "m", mdc = Map("tenant.id" -> "max@example.com"))).keySet should not contain "tenant.id"
+      json(event(Level.INFO, "m", kv = Seq("tenant.id" -> "RC 1"))).keySet should not contain "tenant.id"
+    }
   }
 
   "A logged exception" should {

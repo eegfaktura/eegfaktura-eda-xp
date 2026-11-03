@@ -43,7 +43,11 @@ object EcsJson {
       "service.name" -> serviceName,
       "service.version" -> serviceVersion,
     ) ++ deploymentEnvironment.map("deployment.environment" -> _) ++
-      LogFields.Allowed.flatMap(k => present.get(k).filter(_ != null).map(k -> _)) ++
+      LogFields.Allowed.flatMap(k => present.get(k).filter(_ != null).flatMap {
+        // the one place of the tenant rule, for every source: MDC, key-value pair, pekko's withMdc
+        case v if k == LogFields.TenantId => LogFields.tenantId(v.toString)
+        case v => Some(v)
+      }.map(k -> _)) ++
       error ++ Seq("message" -> safeMessage(event))
   }
 

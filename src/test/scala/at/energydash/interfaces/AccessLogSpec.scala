@@ -188,6 +188,7 @@ class AccessLogSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
         events.head.getThrowableProxy should not be null
       } finally Await.ready(other.unbind(), 10.seconds)
     }
+    // dev#45 Q5: the encoder applies the tenant rule, the route passes the receiver as it is
     "carry a receiver from the message only in the shape of a tenant" in {
       val doc = Fixtures.text("v3/eda-xml/in/CMNotification-01.12-ANTWORT_ECON-99.xml")
       val (sender, receiver) = Fixtures.routing(Fixtures.xml("v3/eda-xml/in/CMNotification-01.12-ANTWORT_ECON-99.xml"))
@@ -195,9 +196,11 @@ class AccessLogSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
         val body = Fixtures.inboundEnvelope(scala.xml.XML.loadString(doc.replace(receiver, value)), sender, value, "ANTWORT_ECON")
         val (_, events) = send(HttpRequest(HttpMethods.POST, s"$base/pontonxp/message", entity = xml(body)))
         publisher.expectMessageType[MqttPublish]
-        fields(events.head).get(LogFields.TenantId)
+        val line = new ObjectMapper().readTree(EcsJson.line(events.head, "eegfaktura-eda-xp", "dev"))
+        Option(line.get(LogFields.TenantId)).map(_.asText)
       }
       tenantOf("GC123456-001") shouldBe Some("GC123456-001")
+      tenantOf("gc123456-001") shouldBe Some("GC123456-001")
       tenantOf("max at example") shouldBe None
     }
     "carry the request id on a line of a parsing Future" in {
