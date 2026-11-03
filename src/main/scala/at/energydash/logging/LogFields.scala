@@ -23,8 +23,9 @@ object LogFields {
 
   val LogEffectiveLevel = "log.effective_level"
 
-  val Allowed: Set[String] = Set(LogEffectiveLevel, EventAction, EventOutcome, EventDuration, HttpMethod, HttpRoute, HttpStatus,
-    RequestId, TraceId, SpanId, TenantId, ClientId, ConversationId)
+  /** In the order of the line, whatever order the MDC or the call has them in. */
+  val Allowed: Seq[String] = Seq(EventAction, EventOutcome, EventDuration, HttpMethod, HttpRoute, HttpStatus,
+    RequestId, TraceId, SpanId, TenantId, ClientId, ConversationId, LogEffectiveLevel)
 
   /** Written as JSON numbers. */
   val Numeric: Set[String] = Set(EventDuration, HttpStatus)
@@ -39,7 +40,7 @@ object LogFields {
     Option(value).map(_.toUpperCase(java.util.Locale.ROOT)).filter(ValidTenant.matches)
 
   /** The fields of this thread's MDC, for [[withMdc]] in code that goes on on another thread (a stream stage). */
-  def current(): Seq[(String, Option[String])] = Allowed.toSeq.map(k => k -> Option(MDC.get(k)))
+  def current(): Seq[(String, Option[String])] = Allowed.map(k =>k -> Option(MDC.get(k)))
 
   /**
    * Runs `body` with the given fields in the MDC (only those with a non-empty value) and restores the previous

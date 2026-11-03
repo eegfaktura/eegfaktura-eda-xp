@@ -186,8 +186,7 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
       enc.start()
       val line = new String(enc.encode(event(Level.ERROR, s"Failed: Error while parsing $document", mdc = Map("tenant.id" -> "RC100001"))), "UTF-8")
       line should not include "AT003"
-      line should include("Failed: Error while parsing the document (content not logged) request.id= tenant.id=RC100001 eda.conversation_id=")
-      line should endWith("\n")
+      line should endWith("at.energydash.Test: Failed: Error while parsing the document (content not logged) tenant.id=RC100001\n")
     }
     "not bring a document into the text format, with the stack once" in {
       val enc = new LogEncoder()
@@ -212,10 +211,17 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
     "write JSON for json" in {
       new String(encoder("json").encode(event(Level.INFO, "m")), "UTF-8") should startWith("{\"@timestamp\"")
     }
-    "write a plain line with request, tenant and conversation for text" in {
-      val line = new String(encoder("TEXT").encode(event(Level.WARN, "m", mdc = Map("tenant.id" -> "RC100001"))), "UTF-8")
-      line should include("WARN  Test - m request.id= tenant.id=RC100001 eda.conversation_id=")
-      line should not startWith "{"
+    // dev#45 Q3: the text line is written from the fields of the JSON line
+    "write a plain line with the fields of the JSON line for text" in {
+      val e = event(Level.WARN, "m", mdc = Map("tenant.id" -> "RC100001", "pekkoSource" -> "x"),
+        kv = Seq("http.route" -> "/pontonxp/message", "event.duration" -> java.lang.Long.valueOf(12L), "client.ip" -> "10.0.0.1"))
+      val line = new String(encoder("TEXT").encode(e), "UTF-8")
+      line shouldBe "2026-12-30T11:14:56.789Z warn  at.energydash.Test: m event.duration=12 http.route=/pontonxp/message " +
+        "tenant.id=RC100001\n"
+    }
+    "quote a text value with a space, a quote or a line break" in {
+      val line = new String(encoder("text").encode(event(Level.INFO, "m", kv = Seq("event.action" -> "a \"b\"\nc"))), "UTF-8")
+      line should endWith(""": m event.action="a \"b\"\nc"""" + "\n")
     }
   }
 
