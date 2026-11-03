@@ -4,21 +4,16 @@ import at.energydash.config.Config
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.enums.EbMsMessageType
 import at.energydash.mqtt.MqttProtocol._
-import at.energydash.testsupport.{MqttRecorder, TestBroker}
-import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.classic.{Logger, LoggerContext}
-import ch.qos.logback.core.read.ListAppender
+import at.energydash.testsupport.{LogCapture, MqttRecorder, TestBroker}
 import org.apache.pekko.Done
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.ActorRef
 import org.scalatest.concurrent.Eventually
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
 
 /**
  * The states of the MQTT client actor (`MqttSystem`: connecting, connected, terminating), driven by sending
@@ -34,13 +29,8 @@ class MqttSystemStateSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
   private val event = EdaEventReceived(EdaInboundMessage("EC_REQ_ONL", answer), None)
   private val Topic = "eda/response/rc100401/protocol/ec_req_onl"
 
-  private def starts[T](body: (() => Int) => T): T = {
-    val logger = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext].getLogger(MqttSystem.getClass.getName).asInstanceOf[Logger]
-    val appender = new ListAppender[ILoggingEvent]()
-    appender.start()
-    logger.addAppender(appender)
-    try body(() => appender.list.asScala.toList.count(_.getFormattedMessage.startsWith("starting MQTT client")))
-    finally logger.detachAppender(appender)
+  private def starts[T](body: (() => Int) => T): T = LogCapture.during(MqttSystem.getClass.getName) { events =>
+    body(() => events().count(_.getFormattedMessage.startsWith("starting MQTT client")))
   }
 
   private def stopped(ref: ActorRef[_]): Unit = createTestProbe().expectTerminated(ref, 5.seconds)
