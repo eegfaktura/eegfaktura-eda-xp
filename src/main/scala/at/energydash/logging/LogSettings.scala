@@ -87,9 +87,9 @@ object LogSettings {
 }
 
 /**
- * `<define>` in `logback.xml`: the level of the variable `env` as logback level, info when it is unset or empty. A
- * logback context property of the same name comes before the environment, as in logback's own `${...}` (the tests
- * configure a context this way).
+ * `<define>` in `logback.xml`: the level of the variable `env` as logback level, info when it is unset or empty. As
+ * in logback's own `${...}` (and so as for `LOG_FORMAT`), a logback context property of the same name comes first
+ * (the tests configure a context this way), then a JVM system property, then the environment.
  */
 class LogLevelDefiner extends PropertyDefinerBase {
   private var variable = "LOG_LEVEL"
@@ -97,7 +97,7 @@ class LogLevelDefiner extends PropertyDefinerBase {
   def setEnv(value: String): Unit = variable = value
 
   override def getPropertyValue: String = {
-    val value = Option(getContext.getProperty(variable)).orElse(sys.env.get(variable))
+    val value = Option(getContext.getProperty(variable)).orElse(sys.props.get(variable)).orElse(sys.env.get(variable))
     LogSettings.levelOf(value.map(variable -> _).toMap, variable)
   }
 }
