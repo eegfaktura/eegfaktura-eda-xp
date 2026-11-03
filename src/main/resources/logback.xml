@@ -1,20 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- The one logging setup of eda-xp (logging concept W-261008-ca2): every line goes through LogEncoder to stdout,
-     one JSON object per line (LOG_FORMAT=json, set in the image) or a plain line (LOG_FORMAT=text, the default when
-     run from source). LOG_LEVEL sets the root level, SLICK_LOG_LEVEL the slick loggers; XpAdapter refuses to start
-     on an unknown value (at.energydash.logging.LogSettings). -->
+     one JSON object per line (LOG_FORMAT=json, the default) or a plain line (LOG_FORMAT=text). LOG_LEVEL sets the
+     root level, SLICK_LOG_LEVEL the slick loggers; an empty variable is the same as an unset one. LogStartup ends the
+     start on an unknown value before logback reads this file (at.energydash.logging.LogSettings). -->
 <configuration>
+    <define name="ROOT_LEVEL" class="at.energydash.logging.LogLevelDefiner">
+        <env>LOG_LEVEL</env>
+    </define>
+    <define name="SLICK_LEVEL" class="at.energydash.logging.LogLevelDefiner">
+        <env>SLICK_LOG_LEVEL</env>
+    </define>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <target>System.out</target>
         <encoder class="at.energydash.logging.LogEncoder">
-            <format>${LOG_FORMAT:-text}</format>
+            <format>${LOG_FORMAT:-json}</format>
+            <serviceVersion>${SERVICE_VERSION:-dev}</serviceVersion>
+            <deploymentEnvironment>${DEPLOYMENT_ENVIRONMENT:-}</deploymentEnvironment>
         </encoder>
     </appender>
 
-    <logger name="slick" level="${SLICK_LOG_LEVEL:-info}"/>
+    <logger name="slick" level="${SLICK_LEVEL}"/>
+    <logger name="at.energydash.start" level="info"/>
 
-    <root level="${LOG_LEVEL:-info}">
+    <root level="${ROOT_LEVEL}">
         <appender-ref ref="CONSOLE"/>
     </root>
 

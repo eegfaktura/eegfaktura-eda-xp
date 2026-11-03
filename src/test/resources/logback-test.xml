@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Tests log to the console only (no file appender), in the JVM's zone (Europe/Vienna, build.sbt).
-     Noisy libraries at WARN; LogCapture (testsupport) attaches to the root logger when a test asserts a log line.
-     The console cuts a message after 4000 characters (%.-4000msg; LogCapture still sees all of it): a test posts a
-     2 MB body that PontonRoute logs in full, and that single line stalled the GitHub runner's log processing, which
-     blocked every process writing to it — the CI hang. -->
+     Noisy libraries at WARN; LogCapture (testsupport) attaches to the logger whose lines a test asserts.
+     The console cuts a message after 4000 characters (%.-4000msg; LogCapture still sees all of it): a single line of
+     2 MB (a request body PontonRoute logged in full before 261005-ca14) stalled the GitHub runner's log processing,
+     which blocked every process writing to it — the CI hang. The cap stays as a guard. -->
 <configuration>
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <target>System.out</target>

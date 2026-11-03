@@ -2,10 +2,13 @@ package at.energydash.domain
 
 import at.energydash.domain.XmlParseHandler.ParseHeader
 import at.energydash.domain.enums.EbMsMessageType
+import at.energydash.testsupport.LogCapture
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import scalaxb.DataRecord
 
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext}
 import scala.io.Source
 import scala.xml.XML
 
@@ -21,6 +24,21 @@ class XmlParseHandlerSpec extends AnyWordSpec with Matchers {
     val xml = Source.fromResource("ZUSTIMMUNG_ECON.xml").mkString
       .replace(">ZUSTIMMUNG_ECON<", s">$messageCode<")
     DataRecord(scalaxb.fromXML[CMNotification](XML.loadString(xml)))
+  }
+
+  "responseBodyXml" should {
+    "log the code of a SOAP fault and nothing of its text" in {
+      val fault = <env:Fault xmlns:env="http://www.w3.org/2003/05/soap-envelope">
+        <env:Code><env:Value>env:Sender</env:Value></env:Code>
+        <env:Reason><env:Text>Bad AT0030000000000000000000000526178 for max@example.com</env:Text></env:Reason>
+      </env:Fault>
+      val envelope = soapenvelope11.Envelope(None, soapenvelope11.Body(Seq(DataRecord(None, None, fault)), Map()), Nil, Map())
+      val (result, events) = LogCapture("XmlParseHandler") {
+        Await.result(XmlParseHandler.responseBodyXml(envelope)(ExecutionContext.parasitic), 5.seconds)
+      }
+      result shouldBe empty
+      LogCapture.messages(events) shouldBe List("SOAP fault in response body, code env:Sender (fault text not logged)")
+    }
   }
 
   "mapDataRecordToEbms" should {

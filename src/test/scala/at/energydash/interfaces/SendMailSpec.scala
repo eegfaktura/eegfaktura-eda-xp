@@ -56,6 +56,9 @@ class SendMailSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       logged should not be empty
       logged.exists(_.contains("@email.com")) shouldBe false
       logged.exists(l => l.contains("Willkommen") || l.contains("Aktivierung")) shouldBe false
+      // dev#45 Q9: the service's own SLF4J logger, not pekko's system logger
+      events.filter(_.getFormattedMessage == "Send Mail").map(_.getLoggerName).toSet shouldBe
+        Set("at.energydash.service.SendMailServiceImpl")
     }
     // a rejected recipient can be a name or a phone number; the reply keeps it for the caller
     "log no rejected recipient" in {
@@ -68,6 +71,8 @@ class SendMailSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       val logged = LogCapture.messages(events)
       logged should contain("no valid recipient address")
       logged.exists(l => l.contains("Mustermann") || l.contains("0664")) shouldBe false
+      // the exception of this check lists the rejected recipients: it stays off the line (dev#45 L13)
+      events.forall(_.getThrowableProxy == null) shouldBe true
     }
     "answer an error for an invalid recipient (shape pinned)" in {
       val reply = Await.result(service.sendMail(SendMailRequest(sender = "x", recipient = "not an address",

@@ -179,6 +179,7 @@ lazy val root = (project in file("."))
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
       "ch.qos.logback" % "logback-classic" % "1.5.6",
       "org.slf4j" % "jcl-over-slf4j" % "2.0.13",
+      "org.slf4j" % "jul-to-slf4j" % "2.0.17",
 
       "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
 

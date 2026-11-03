@@ -6,6 +6,7 @@ import at.energydash.actors.TenantMailActor.FetchEmailCommand
 import at.energydash.domain.dao.{Db, SlickEmailOutboxRepository, TenantConfig}
 import at.energydash.domain.enums.EbMsMessageType
 import at.energydash.mailer.ConfiguredMailer
+import at.energydash.testsupport.LogCapture
 import courier.Multipart
 import org.jvnet.mock_javamail.Mailbox
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -73,6 +74,57 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   }
 
   "Fetch Mail Actor" should {
+    // dev#45 L4: the exception of a failed attachment parse can hold the whole document
+    "log a failed attachment parse without the document" in {
+      val meter = "AT0030000000000000000000000526178"
+      val session = ConfiguredMailer.getSession(tenantConfig)
+      val mail: Message = new MimeMessage(session)
+      mail.setSubject("[ZUSTIMMUNG_ECON_01.00 MessageId=123456]")
+      mail.setHeader("Message-ID", "4711")
+      mail.setFrom("test@email.com")
+      val document = Source.fromResource("ZUSTIMMUNG_ECON.xml").mkString
+        .replaceFirst("(?s)<([a-z0-9]+:)?ProcessDirectory.*ProcessDirectory>", s"<ProcessDirectory><Meter>$meter</Meter></ProcessDirectory>")
+      mail.setContent(Multipart().attachBytes(document.getBytes, "test.xml", "text/xml").html("Hallo").parts)
+      Mailbox.get("sepp@email.com").add(mail)
+
+      try {
+        val (_, events) = LogCapture("at.energydash.mailer.Fetcher") {
+          at.energydash.mailer.Fetcher().fetch("", _ => fail("the attachment must not parse"))(
+            at.energydash.mailer.Fetcher.FetcherContext("myeeg", session, emailRepo))
+        }
+        val failed = events.filter(_.getLevel.toString == "ERROR")
+        failed should have size 1
+        failed.head.getFormattedMessage should startWith("Extract Message failed for mail ")
+        failed.head.getThrowableProxy should not be null
+        at.energydash.logging.EcsJson.line(failed.head, "eegfaktura-eda-xp", "dev") should not include meter
+      } finally Mailbox.clearAll()
+    }
+
+    "log the message id of a subject only if it has the shape of one, and return it as before" in {
+      val fetcher = at.energydash.mailer.Fetcher()
+      val odd = "Max Mustermann, max@example.com"
+      val (parsed, events) = LogCapture("at.energydash.mailer.Fetcher") {
+        (fetcher.parseSubject("[CR_MSG_03.03 MessageId=RC100130.2023-1]"), fetcher.parseSubject(s"[CR_MSG_03.03 MessageId=$odd]"))
+      }
+      parsed shouldBe ((Some(("CR_MSG", "03.03", "RC100130.2023-1")), Some(("CR_MSG", "03.03", odd))))
+      LogCapture.messages(events) shouldBe List("Mail Subject: Protocol: CR_MSG Version: 03.03 MessageId: RC100130.2023-1",
+        "Mail Subject: Protocol: CR_MSG Version: 03.03 MessageId: (not a message id, not logged)")
+    }
+
+    // dev#45 L5
+    "log no address when sending a mail" in {
+      val data = at.energydash.domain.EbMsMessage(conversationId = "C4711", sender = "RC100001", receiver = "AT003000",
+        messageCode = EbMsMessageType.ERROR_MESSAGE)
+      val email = at.energydash.mailer.EmailService.EmailModel("RC100001", "AT003000", "subject", org.apache.pekko.util.ByteString("<a/>"), data)
+      val command = at.energydash.mailer.EmailService.SendEmailCommand(email, "email.com", createTestProbe[EdaCommand]().ref)
+      try {
+        val (_, events) = LogCapture("at.energydash.mailer.EmailService$") {
+          command.sendEmail(courier.Mailer(ConfiguredMailer.getSession(tenantConfig)))
+        }
+        LogCapture.messages(events) shouldBe List(s"About to send Email ${EbMsMessageType.ERROR_MESSAGE}, conversation C4711")
+      } finally Mailbox.clearAll()
+    }
+
     "handle Email Success Messages" in {
       val messageStoreProbe = createTestProbe[EdaCommand]()
       val mailActor = spawn(TenantMailActor(tenantConfig, emailRepo))

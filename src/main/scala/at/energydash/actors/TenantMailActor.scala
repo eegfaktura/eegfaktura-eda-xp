@@ -51,10 +51,10 @@ class TenantMailActor(tenantConfig: TenantConfig, mailRepo: SlickEmailOutboxRepo
             req.fetchEmail(req.subject, distributeMail(req))
             Behaviors.same
           case req: SendEmailCommand =>
-            context.log.info(s"Send Mail to ${req.email.toEmail}")
+            context.log.info(s"Send Mail: ${req.email.data.messageCode}, conversation ${req.email.data.conversationId}")
             req.sendEmail(ConfiguredMailer.createMailerFromSession(mailSession)).onComplete {
               case Success(_) =>
-                logger.info(s"Sent Mail to ${req.email.toEmail}")
+                logger.info(s"Sent Mail: ${req.email.data.messageCode}, conversation ${req.email.data.conversationId}")
                 req.replyTo ! SendEdaResponse(req.email.data)
               case Failure(ex) =>
                 req.replyTo ! SendResponseError(tenant, req.email.toEmail, ex.getMessage, "Send Mail")

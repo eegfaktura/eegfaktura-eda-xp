@@ -217,8 +217,11 @@ class MqttRequestStreamSpec extends MqttBaseSpec with EmbeddedDb with AnyWordSpe
         } finally stop.shutdown() // runCommand restarts its source: the stream must not outlive the case
       }
       val logged = LogCapture.messages(events)
-      logged.exists(_.contains("Local address contains control or whitespace")) shouldBe true
+      // dev#45 Q1: the reason is on the attached exception, not in the text
+      events.exists(e => e.getThrowableProxy != null && e.getThrowableProxy.getMessage.contains("Local address contains control or whitespace")) shouldBe true
       logged.exists(m => m.contains("AT0030000000000000000000000526178") || m.contains("RC103536000000973930")) shouldBe false
+      // dev#45 L13: the error line has the exception, for error.type and the stack
+      events.filter(_.getLevel.toString == "ERROR").forall(_.getThrowableProxy != null) shouldBe true
     }
 
   }

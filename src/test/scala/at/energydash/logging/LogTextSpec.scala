@@ -27,8 +27,18 @@ class LogTextSpec extends AnyWordSpec with Matchers {
       val text = LogText.errorText("""Error while parsing <a>AT00: parser error secret</a>: parser error "bad" while parsing /a""")
       text shouldBe """Error while parsing the document: parser error "bad" while parsing /a"""
     }
-    "name the exception class" in {
-      LogText.errorText(new IllegalStateException(failure)) should startWith("java.lang.IllegalStateException: Error while parsing the document: parser error")
+    "drop the document when other text comes first" in {
+      LogText.errorText(s"Recover: $failure") should startWith("Recover: Error while parsing the document: parser error")
+      LogText.errorText(s"Error: $failure").count(_ == '<') shouldBe 0
+    }
+  }
+
+  "exceptionText" should {
+    "drop the document, e-mail addresses and the text of a MatchError" in {
+      LogText.exceptionText("java.lang.RuntimeException", failure) should not include "AT00"
+      LogText.exceptionText("javax.mail.SendFailedException", "Invalid: member@email.com") shouldBe "Invalid: <address>"
+      LogText.exceptionText("scala.MatchError", "<doc>AT00</doc> (of class scala.xml.Elem)") shouldBe "(content not logged)"
+      LogText.exceptionText("java.lang.RuntimeException", null) shouldBe ""
     }
   }
 
@@ -45,20 +55,36 @@ class LogTextSpec extends AnyWordSpec with Matchers {
     }
   }
 
-  "carriesDocument" should {
-    "find a parser failure, also as a cause, and nothing else" in {
-      LogText.carriesDocument(new RuntimeException(failure)) shouldBe true
-      LogText.carriesDocument(new RuntimeException("wrapped", new RuntimeException(failure))) shouldBe true
-      LogText.carriesDocument(new MatchError("X")) shouldBe false
-      LogText.carriesDocument(new RuntimeException(null: String)) shouldBe false
-    }
-  }
-
   "withoutEmailAddresses" should {
     "replace every address" in {
       LogText.withoutEmailAddresses("Invalid Addresses: member@email.com, <cc@email.com>") shouldBe "Invalid Addresses: <address>, <<address>>"
       LogText.withoutEmailAddresses("no address here") shouldBe "no address here"
       LogText.withoutEmailAddresses(null) shouldBe ""
+    }
+    "mask what the regular expression it replaces masked" in {
+      val before = """[^\s<>"'`(),;:]+@[^\s<>"'`(),;:]+""".r
+      def old(text: String) = before.replaceAllIn(text, "<address>")
+      Seq("a@b", "@b", "a@", "@", "a@@", "@@b", "a@b@c", "@a@", "a@b,c@d", "<a@b>", "x a@b.c y", "a:b@c", "a@b:c", "a@\nb").foreach { text =>
+        withClue(text)(LogText.withoutEmailAddresses(text) shouldBe old(text))
+      }
+      val random = new scala.util.Random(45)
+      (1 to 20000).foreach { _ =>
+        val text = Seq.fill(random.nextInt(14))("ab@@ <,:\t\"".charAt(random.nextInt(10))).mkString
+        withClue(text)(LogText.withoutEmailAddresses(text) shouldBe old(text))
+      }
+    }
+    "take a time linear in the length" in {
+      def seconds(text: String): Double = {
+        val started = System.nanoTime()
+        LogText.withoutEmailAddresses(text)
+        (System.nanoTime() - started) / 1e9
+      }
+      val megabyte = 1024 * 1024
+      seconds("a" * megabyte) should be < 2.0
+      seconds("a" * megabyte + "@") should be < 2.0
+      seconds("a@" * (megabyte / 2)) should be < 2.0
+      seconds("@ " * (megabyte / 2)) should be < 2.0
+      seconds("a " * (megabyte / 2) + "@") should be < 2.0
     }
   }
 }

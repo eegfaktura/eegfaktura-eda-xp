@@ -103,7 +103,7 @@ object SupervisorActor {
           case Shutdown =>
             Behaviors.same
           case m =>
-          ctx.log.warn(s"Supervisor: Can not handle message -> ${m}")
+          ctx.log.warn(s"Supervisor: Can not handle message -> ${m.getClass.getSimpleName}")
             Behaviors.same
         }
       process()

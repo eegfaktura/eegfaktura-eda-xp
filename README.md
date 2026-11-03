@@ -143,24 +143,35 @@ docker run -p 6090:6090 -p 9093:9093 \
 
 Environment variables (names only): `SMTP_ADMIN_SERVER_HOST`, `SMTP_ADMIN_SERVER_PORT`,
 `SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`, `EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `MAX_BODY_SIZE`, `TZ`, `JAVA_OPTS`,
-`LOG_FORMAT`, `LOG_LEVEL`, `SLICK_LOG_LEVEL`, `SERVICE_VERSION`.
+`LOG_FORMAT`, `LOG_LEVEL`, `SLICK_LOG_LEVEL`, `SERVICE_VERSION`, `DEPLOYMENT_ENVIRONMENT`.
 
 ### Logging
 
 Every line goes through one encoder (`src/main/resources/logback.xml`, `at.energydash.logging`) to stdout:
 
-- `LOG_FORMAT` — `json` (set in the image): one JSON object per line with flat ECS names (`@timestamp` UTC,
+- `LOG_FORMAT` — `json` (default): one JSON object per line with flat ECS names (`@timestamp` UTC,
   `log.level`, `log.logger`, `service.name` `eegfaktura-eda-xp`, `service.version`, `message`, `error.*`, and when
-  known `request.id`, `tenant.id`, `eda.conversation_id`, …); other MDC entries are not written. `text` (the default
-  when run from source): a plain line for reading in a terminal.
-- `LOG_LEVEL` — `trace`, `debug`, `info` (default), `warn`, `error`; `SLICK_LOG_LEVEL` the same for the `slick`
+  known `request.id`, `tenant.id`, `eda.conversation_id`, …); other MDC entries are not written. `text`: the same
+  fields as a plain line for reading in a terminal. `tenant.id` is written only in the shape of a tenant (upper case,
+  `^[A-Z0-9][A-Z0-9_-]{0,63}$`).
+- `LOG_LEVEL` — `trace`, `debug`, `info` (default), `warn` (also `warning`), `error`; `SLICK_LOG_LEVEL` the same for the `slick`
   loggers only. An unknown value stops the start (exit code 2); an empty value means the default.
 - `SERVICE_VERSION` — set by the image build (the version without `v` for a tag build, else the commit, which a retagged image keeps); `dev` from source.
+- `DEPLOYMENT_ENVIRONMENT` — `deployment.environment` of every line (JSON and text) (`dev`, `pilot`, `prod`); the field is left
+  out when unset or empty.
+- Start-up line `service start` (`event.action=service.start`, `log.effective_level`), at any `LOG_LEVEL`.
+- An error line has a fixed text and the exception (`error.type`, `error.message`, `error.stack_trace`); the message
+  of the exception and of its causes is masked (no document, no e-mail address).
+- java.util.logging (gRPC, pgjdbc, paho) goes through the same encoder.
+- Lines of an HTTP request on port 6090 carry its `request.id`, and `tenant.id` once the message is parsed; not the
+  lines of the actors behind the route.
 - Access line (`event.action=http.access`, logger `at.energydash.access`): one line per request on port 6090 with
   method, route, status, `event.outcome`, `event.duration` (ns), `request.id` (`X-Request-Id`, also returned),
   `client.id=ponton` on `/pontonxp/*`, and `tenant.id`/`eda.conversation_id` once the message is parsed. Never an
   IP, user agent, query or body. `/healthz` and `/readyz` are not logged.
-- Never logged: EDA XML, MQTT payloads, mail bodies/attachments, e-mail addresses of members.
+- Never logged: EDA XML, MQTT payloads, mail bodies/attachments, e-mail addresses of members. `NeverLogSpec` reads
+  the log calls of the source, not `.addKeyValue(` or `println`: a new value in a log line needs an entry for its file
+  with a reason in its allowlist; the text of an exception in the message and a word of the never-log list fail.
 
 Exposed ports: **6090** (HTTP), **9093** (gRPC). Volumes: `/conf`, `/storage/prod`.
 

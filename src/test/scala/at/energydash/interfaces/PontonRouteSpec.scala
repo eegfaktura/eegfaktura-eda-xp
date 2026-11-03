@@ -61,11 +61,17 @@ class PontonRouteSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
         post("message", Fixtures.inboundEnvelope(doc, "AT003000", "RC100401", "ERROR")).status shouldBe StatusCodes.InternalServerError
         publisher.expectMessageType[MqttPublishError]
       }
-      // 261005-ca14: the parse error is logged without the document
+      // 261005-ca14: the parse error is logged without the document; dev#45 Q2: with the exception, which the
+      // encoder masks
       val errors = events.filter(_.getLevel.toString == "ERROR")
-      LogCapture.messages(errors).exists(_.startsWith("Error while parsing message from edaAdapter: ")) shouldBe true
+      LogCapture.messages(errors) should contain("Error while parsing message from edaAdapter")
       LogCapture.messages(errors).exists(_.contains("<")) shouldBe false
-      errors.forall(_.getThrowableProxy == null) shouldBe true
+      errors.foreach { e =>
+        e.getThrowableProxy should not be null
+        val line = at.energydash.logging.EcsJson.line(e, "eegfaktura-eda-xp", "dev")
+        line should include("Error while parsing the document")
+        line should not include "RC900001202607141781008000000000001"
+      }
     }
 
     // 261005-ca11: a document the envelope admits but the parser does not map (CPRequest) ends in a 500

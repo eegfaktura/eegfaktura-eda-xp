@@ -78,14 +78,14 @@ object ConversationEntity {
           // Reply at once: the request is sent right after this (platform#111 ca6), and a slow
           // or failing insert must not delay or block the send. Answers arrive minutes later.
           conversationRepo.create(message).failed.foreach(e =>
-            logger.error(s"Cannot store conversation ${message.conversationId}: ${e.getMessage}"))
+            logger.error(s"Cannot store conversation ${message.conversationId}", e))
           replyTo ! InitDone(message)
           Behaviors.same
         case MergeConversation(message, replyTo) =>
           merge(message) onComplete {
             case Success(m) => replyTo ! ConversationMerged(m)
             case Failure(e) =>
-              logger.error(e.getMessage)
+              logger.error(s"Cannot merge conversation ${message.conversationId}", e)
               replyTo ! MergeError(e.getMessage)
           }
           Behaviors.same
@@ -93,7 +93,7 @@ object ConversationEntity {
           merge(notification.message) onComplete {
             case Success(m) => replyTo ! NotificationMerged(notification.copy(message = m))
             case Failure(e) =>
-              logger.error(e.getMessage)
+              logger.error(s"Cannot merge conversation ${notification.message.conversationId}", e)
               replyTo ! MergeError(e.getMessage)
           }
           Behaviors.same

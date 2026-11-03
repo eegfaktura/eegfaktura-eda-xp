@@ -55,7 +55,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
           a ! GracefulShutdown
         } catch {
           case e: Exception =>
-            logger.warn(s"Error sending shutdown to tenant actor: ${e.getMessage}")
+            logger.warn("Error sending shutdown to tenant actor", e)
         }
       }
 
@@ -89,7 +89,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
       tenantConfigRepository.allActivated(Config.superviseType)
         .map(Success(_))
         .recover { case e =>
-          logger.error(s"Failed to load tenant configuration: ${e.getMessage}", e)
+          logger.error("Failed to load tenant configuration", e)
           Failure(e)
         }
     }
@@ -150,7 +150,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
                 Try(spawnMailWorker(t)) match {
                   case Success(mailWorker) => Some(t.tenant.toUpperCase -> mailWorker)
                   case Failure(e) =>
-                    logger.error(s"Tenant ${t.tenant}: mail worker not started: ${e.getMessage}", e)
+                    logger.error(s"Tenant ${t.tenant}: mail worker not started", e)
                     None
                 }
 
@@ -167,7 +167,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
 
         case InitializationFailure(exception) =>
           logger.error(
-            s"Initialization failed: ${exception.getMessage}. Retrying in 5 seconds...",
+            "Initialization failed. Retrying in 5 seconds...",
             exception
           )
           // a timer, not scheduleOnce: a restart cancels it, so no stale TenantStart reaches the next incarnation
@@ -218,7 +218,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
         }
       } catch {
         case e: Exception =>
-          logger.error(s"Error passing command to tenant: ${e.getMessage}", e)
+          logger.error("Error passing command to tenant", e)
           replyTo ! SendResponseError(tenant, message.receiver, s"Internal error: ${e.getMessage}")
       }
     }
@@ -244,7 +244,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
             case Success(_) =>
               context.self ! TenantModified(tenantConfig, replyTo)
             case Failure(e) =>
-              logger.error(s"Failed to add tenant ${tenantConfig.tenant}: ${e.getMessage}", e)
+              logger.error(s"Failed to add tenant ${tenantConfig.tenant}", e)
               replyTo ! ResponseError(e.getMessage)
           }
           Behaviors.same
@@ -255,7 +255,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
             case Success(_) =>
               context.self ! TenantModified(tenantConfig, replyTo)
             case Failure(e) =>
-              logger.error(s"Update Tenant failed for ${tenantConfig.tenant}: ${e.getMessage}", e)
+              logger.error(s"Update Tenant failed for ${tenantConfig.tenant}", e)
               replyTo ! ResponseError(e.getMessage)
           }
           Behaviors.same
@@ -275,7 +275,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
 
           updated match {
             case Failure(e) =>
-              logger.error(s"Tenant ${tenantConfig.tenant}: worker not started: ${e.getMessage}", e)
+              logger.error(s"Tenant ${tenantConfig.tenant}: worker not started", e)
               replyTo ! ResponseError(s"Tenant worker not started: ${e.getMessage}")
               Behaviors.same
 
@@ -290,7 +290,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
                   )
                 case Left(e) =>
                   logger.error(
-                    s"Failed to parse MQTT message for tenant ${tenantConfig.tenant}: ${e.message}"
+                    s"Failed to parse MQTT message for tenant ${tenantConfig.tenant}", e
                   )
               }
 

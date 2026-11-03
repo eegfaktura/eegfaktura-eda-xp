@@ -33,6 +33,7 @@ on that date; the other rows are taken over from the build files and still have 
 | com.typesafe.scala-logging:scala-logging | 3.9.5 | Apache-2.0 | compile | open |
 | ch.qos.logback:logback-classic | 1.5.6 | EPL-1.0 / LGPL-2.1 | compile | open |
 | org.slf4j:jcl-over-slf4j | 2.0.13 | Apache-2.0 | compile | open |
+| org.slf4j:jul-to-slf4j | 2.0.17 (2025-02-25) | MIT | compile (java.util.logging through the log encoder; the version of the resolved slf4j-api) | 2026-11-02 (POM, LICENSE) |
 | org.fusesource.leveldbjni:leveldbjni-all | 1.8 | BSD-3-Clause | compile (persistence journal) | open |
 | com.google.guava:guava | 33.2.1-jre | Apache-2.0 | compile | open |
 | org.scalatest:scalatest | 3.2.19 | Apache-2.0 | test | open |

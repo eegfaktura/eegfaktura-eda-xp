@@ -1,7 +1,7 @@
 package at.energydash.interfaces
 
 import at.energydash.actors.http.AckingPublisher
-import at.energydash.actors.MqttPublisher.{MqttCommand, MqttPublish}
+import at.energydash.actors.MqttPublisher.{MqttCommand, MqttPublish, MqttPublishError}
 import at.energydash.actors.SupervisorActor
 import at.energydash.actors.http.{AccessLog, BodySizeLimit, HealthRoute, PontonRoute, ServiceRoute}
 import at.energydash.logging.{EcsJson, LogFields}
@@ -145,6 +145,80 @@ class AccessLogSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
         "event.action", "event.outcome", "event.duration", "http.request.method", "http.route",
         "http.response.status_code", "request.id", "client.id")
       Seq("secret", "203.0.113.7", "max@example.com", "member=").foreach(s => line should not include s)
+    }
+  }
+
+  // dev#45 L12: the lines the routes write, on whatever thread, can be joined with the access line
+  "The lines of a request" should {
+    def mdc(e: ILoggingEvent) = e.getMDCPropertyMap.asScala.toMap
+    def request(path: String, body: String) = HttpRequest(HttpMethods.POST, s"$base/$path",
+      headers = List(RawHeader("X-Request-Id", "line-123")), entity = xml(body))
+    def capture(logger: String)(req: HttpRequest): List[ILoggingEvent] = LogCapture(logger) {
+      val res = Await.result(Http()(system).singleRequest(req), 10.seconds)
+      res.discardEntityBytes()(Materializer(system))
+    }._2
+
+    "carry the request id after the body is read, on another thread" in {
+      val events = capture("at.energydash.actors.http.PontonRoute")(request("pontonxp/notification", "<Notification/>"))
+      events.map(mdc(_).get(LogFields.RequestId)) shouldBe List(Some("line-123"))
+    }
+    "carry the request id on the error line of a message that does not parse" in {
+      val events = capture("at.energydash.actors.http.PontonRoute")(request("pontonxp/message", "<a/>")).filter(_.getLevel.toString == "ERROR")
+      events should not be empty
+      events.foreach(mdc(_).get(LogFields.RequestId) shouldBe Some("line-123"))
+      publisher.expectMessageType[MqttPublishError]
+    }
+    "carry the tenant once the message is parsed" in {
+      val doc = Fixtures.xml("v3/eda-xml/in/CMNotification-01.12-ANTWORT_ECON-99.xml")
+      val (sender, receiver) = Fixtures.routing(doc)
+      val big = HttpEntity(ContentTypes.`text/xml(UTF-8)`, Fixtures.inboundEnvelope(doc, sender, receiver, "ANTWORT_ECON"))
+      val failed = new PontonRoute(system.ignoreRef[MqttCommand], maxBodyBytes = maxBytes, handoverTimeout = 50.millis)(system)
+      val other = Await.result(Http()(system).newServerAt("127.0.0.1", 0).bind(SupervisorActor.httpRoutes(failed,
+        new ServiceRoute(FileService(system, publisher.ref)(Materializer(system)), maxBytes)(system),
+        new HealthRoute(() => Future.unit)(system))), 10.seconds)
+      try {
+        val events = capture("at.energydash.actors.http.PontonRoute")(HttpRequest(HttpMethods.POST,
+          s"http://127.0.0.1:${other.localAddress.getPort}/pontonxp/message",
+          headers = List(RawHeader("X-Request-Id", "line-456")), entity = big)).filter(_.getLevel.toString == "ERROR")
+        events should have size 1
+        val fields = mdc(events.head)
+        fields.get(LogFields.RequestId) shouldBe Some("line-456")
+        fields.get(LogFields.TenantId) shouldBe Some(receiver)
+        fields.get(LogFields.ConversationId) should not be empty
+        events.head.getThrowableProxy should not be null
+      } finally Await.ready(other.unbind(), 10.seconds)
+    }
+    // dev#45 Q5: the encoder applies the tenant rule, the route passes the receiver as it is
+    "carry a receiver from the message only in the shape of a tenant" in {
+      val doc = Fixtures.text("v3/eda-xml/in/CMNotification-01.12-ANTWORT_ECON-99.xml")
+      val (sender, receiver) = Fixtures.routing(Fixtures.xml("v3/eda-xml/in/CMNotification-01.12-ANTWORT_ECON-99.xml"))
+      def tenantOf(value: String): Option[String] = {
+        val body = Fixtures.inboundEnvelope(scala.xml.XML.loadString(doc.replace(receiver, value)), sender, value, "ANTWORT_ECON")
+        val (_, events) = send(HttpRequest(HttpMethods.POST, s"$base/pontonxp/message", entity = xml(body)))
+        publisher.expectMessageType[MqttPublish]
+        val line = new ObjectMapper().readTree(EcsJson.line(events.head, "eegfaktura-eda-xp", "dev"))
+        Option(line.get(LogFields.TenantId)).map(_.asText)
+      }
+      tenantOf("GC123456-001") shouldBe Some("GC123456-001")
+      tenantOf("gc123456-001") shouldBe Some("GC123456-001")
+      tenantOf("max at example") shouldBe None
+    }
+    "carry the request id on a line of a parsing Future" in {
+      val fault = """<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"><soapenv:Body>""" +
+        """<env:Fault xmlns:env="http://www.w3.org/2003/05/soap-envelope"><env:Code><env:Value>env:Sender</env:Value></env:Code></env:Fault>""" +
+        "</soapenv:Body></soapenv:Envelope>"
+      val events = capture("XmlParseHandler")(request("pontonxp/message", fault))
+      events.map(mdc(_).get(LogFields.RequestId)) shouldBe List(Some("line-123"))
+      publisher.expectMessageType[MqttPublishError]
+    }
+    "carry the request id in the stream of an upload" in {
+      val form = Multipart.FormData(Multipart.FormData.BodyPart.Strict("ANTWORT_ECON_01.10",
+        HttpEntity(ContentTypes.`text/xml(UTF-8)`, Fixtures.text("v3/eda-xml/in/CMNotification-01.12-ANTWORT_ECON-99.xml")), Map("filename" -> "a.xml")))
+      val entity = Await.result(org.apache.pekko.http.scaladsl.marshalling.Marshal(form).to[RequestEntity](implicitly, system.executionContext), 5.seconds)
+      val events = capture("at.energydash.service.FileServiceImpl")(HttpRequest(HttpMethods.POST, s"$base/admin/upload",
+        headers = List(RawHeader("X-Request-Id", "line-789")), entity = entity))
+      publisher.expectMessageType[MqttPublish]
+      events.map(mdc(_).get(LogFields.RequestId)) shouldBe List(Some("line-789"))
     }
   }
 

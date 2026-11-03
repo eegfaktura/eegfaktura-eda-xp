@@ -8,6 +8,54 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+Logging only (dev#45): topics, payloads, the answer to Ponton and mails do not change.
+
+### Added
+- **`deployment.environment` on every line**, from the new variable `DEPLOYMENT_ENVIRONMENT`; left out when unset.
+  **Operators:** set it per zone (`dev`, `pilot`, `prod`) in the deployment.
+- **One start-up line** `service start` (`event.action=service.start`, `log.effective_level`, logger
+  `at.energydash.start`; `service.version` as on every JSON line), written at any `LOG_LEVEL`.
+- **`jul-to-slf4j`:** java.util.logging (gRPC, pgjdbc, paho) goes through the encoder instead of printing plain text
+  to stderr. Levels: what JUL passes (info and above); `LOG_LEVEL=debug` does not switch on JUL's fine levels.
+- **A never-log test** (`NeverLogSpec`) reads the log calls of the source, not `.addKeyValue(` or `println`, and fails
+  on a value not allowed for its file (each entry with a reason), on the text of an exception in the message (also
+  with the exception attached), on `toString`, and on a word of the never-log list of all services in any identifier
+  of a value (whole words, every segment of a dotted value).
+
+### Changed
+- **`request.id` and `tenant.id` on the lines of an HTTP request** on port 6090, not only on the access line
+  (`tenant.id` once the message is parsed). HTTP only: nothing travels over MQTT or gRPC. Lines of the actors a message
+  passes after the route (`MqttPublisher`, `EbMsAggregator`, `ConversationEntity`, `MqttSystem`) do not carry them.
+- **Error lines carry the exception** (`error.type`, `error.message`, `error.stack_trace`) and a fixed text; the
+  reason of a failure is in `error.message`, no longer in `message`. The encoder masks the message of the exception
+  and of each cause and suppressed exception in the stack, so the parse-failure line of `/pontonxp/message` carries
+  its exception too (without the document).
+- **`LOG_FORMAT` defaults to `json`**, also when run from source; unset and empty are the same. `text` writes the
+  fields of the JSON line as `time level logger: message key=value …` (before: a pattern with empty
+  `request.id=`/`tenant.id=` placeholders). `LOG_LEVEL` and `SLICK_LOG_LEVEL` accept `warning` as `warn`.
+- Some log texts changed; a saved search on them needs adapting: `Cannot merge conversation …`, `Notification from EDA
+  not read`, `Status from EDA not read`, `Parse message to XML failed: …`, `Extract Message failed for mail …`,
+  `Error Subject: not an EDA subject …`, `Error ProcessInfo: not a process name`, `SOAP fault in response body …`,
+  `Send Mail: …`, `Sent Mail: …`, `About to send Email …`, `Mail Subject: …` (was `Mail Subject (…)`),
+  `Supervisor: Can not handle message -> …` (now the class name), `Forward mail to Mail Actor: …`. Without the
+  exception text after them now: `Recover Aggregator`, `Error sending shutdown to tenant actor`, `Failed to load tenant
+  configuration`, `Tenant …: mail worker not started`, `Initialization failed. Retrying in 5 seconds...`, `Error
+  passing command to tenant`, `Failed to add tenant …`, `Update Tenant failed for …`, `Tenant …: worker not started`,
+  `Error Stream handling`, `Recover`, `EDA command listener: subscription failed, restarting with backoff`, `Error
+  while parsing message from edaAdapter`, `Inbound message (…) not handed to MQTT after … ms; Ponton will redeliver`,
+  `Inbound message for … could not be forwarded to … after … ms; Ponton will redeliver`, `EDA message not built`
+  (was the exception text alone), `SMTP unconfirmed`, `SMTP timeout`, `Mail not sent` (was the exception text alone).
+  The mail service's lines come from the logger `at.energydash.service.SendMailServiceImpl` (was pekko's
+  `org.apache.pekko.actor.typed.ActorSystem`).
+- **`tenant.id` on every line** is upper case and left out unless it has the shape of a tenant
+  (`^[A-Z0-9][A-Z0-9_-]{0,63}$`, also GEA tenants such as `GC123456-001`), whatever sets it: a Ponton message, the
+  sender of an MQTT request, the tenant configuration of the mail actors.
+- **`message` of a log line** is masked like the error text: an e-mail address reads `<address>`, also a Message-ID
+  or a Ponton id of that shape.
+
+### Security
+- Security relevant log lines fixed (dev#45 L4, L5); details not published.
+
 ## [1.4.0] – 2026-11-02
 
 ### Security
