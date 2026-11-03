@@ -6,11 +6,15 @@ import java.util.Locale
  * The scan of [[NeverLogSpec]]: reads the log calls of Scala source, without a compiler. Every value of a call is a
  * finding (default-deny) unless the spec's allowlist names it for its file; a value with a word of [[Words]] in one
  * of its identifiers, `toString`, the text of an exception or an exception in the text is one by its rule. The text
- * of string literals is not scanned.
+ * of string literals is not scanned for words, except the word directly before a placeholder (`password=%s`,
+ * `"token: {}"`, `s"secret=$x"`). Values are not skipped by type: without a compiler the scan does not know it.
  */
 object NeverLogScan {
-  /** One log call: its interpolated and argument values (an exception as the last argument is not one). */
-  final case class Call(file: String, line: Int, values: Seq[(String, Boolean)])
+  /**
+   * One log call: its interpolated and argument values (an exception as the last argument is not one), and the word of
+   * the text directly before each placeholder.
+   */
+  final case class Call(file: String, line: Int, values: Seq[(String, Boolean)], labels: Seq[String] = Nil)
 
   /** A value of a call at `file:line` and the rule it breaks. */
   final case class Hit(file: String, line: Int, term: String, rule: String) {
@@ -22,10 +26,13 @@ object NeverLogScan {
   val ToStringCall = "toString"
   val ExceptionInMessage = "text of an exception in the message, attach the exception instead"
   val ExceptionInText = "exception in the text instead of as the last argument"
+  val WordBeforePlaceholder = "never-log word before a placeholder"
 
   /**
    * The never-log words of all services, compared with the words of an identifier (camelCase, acronyms and snake_case
-   * split as in admin-backend, lower case), alone or as two adjacent words: `lastName`, `api_key`, `SMTPPassword`.
+   * split as in admin-backend, lower case), alone or as two adjacent words: `lastName`, `api_key`, `SMTPPassword`; also
+   * with a trailing `s` (`tokens`, `IBANs`). In an identifier all in lower case, a word of five or more letters also
+   * matches inside it (`accesstoken`, `userpassword`); shorter ones (`sub`, `pwd`, `bic`) only as a whole word.
    */
   val Words: Set[String] = Set("password", "passwd", "pwd", "secret", "token", "jwt", "bearer", "authorization",
     "credential", "creds", "cookie", "apikey", "iban", "bic", "firstname", "lastname", "vorname", "nachname", "name1",
@@ -39,13 +46,24 @@ object NeverLogScan {
   private val WordBoundary = """(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|_"""
   private val Start = """(?:\b(?:logger|log)\.(?:trace|debug|info|warn|error)|\.setMessage|\.log)\(""".r
 
+  private val LongWords = Words.filter(_.length >= 5)
+
+  private def listWord(candidate: String): Option[String] =
+    Option(candidate).filter(Words).orElse(Option(candidate.stripSuffix("s")).filter(w => candidate.endsWith("s") && Words(w)))
+
   /** The word of [[Words]] in `identifier`, if any. */
   def personalWord(identifier: String): Option[String] = {
+    val lower = identifier.toLowerCase(Locale.ROOT)
     val words = identifier.split(WordBoundary).filter(_.nonEmpty).map(_.toLowerCase(Locale.ROOT)).toSeq
-    (1 to 2).iterator.flatMap(n => words.sliding(n).map(_.mkString)).find(Words)
+    // the whole identifier too: the acronym split cuts `IBANs` into `IBA` and `Ns`
+    val candidates = (1 to 2).iterator.flatMap(n => words.sliding(n).map(_.mkString)) ++ Iterator(lower.replace("_", ""))
+    candidates.flatMap(listWord).nextOption()
+      .orElse(Option.when(identifier == lower)(LongWords.find(lower.contains)).flatten)
   }
 
-  def findings(call: Call): Seq[Hit] = call.values.map { case (value, interpolated) =>
+  def findings(call: Call): Seq[Hit] = call.labels.flatMap(label =>
+    personalWord(label).map(w => Hit(call.file, call.line, label, s"$WordBeforePlaceholder: $w"))) ++
+    call.values.map { case (value, interpolated) =>
     // the text of a string literal inside the value is not scanned
     val code = value.replaceAll("\"[^\"]*\"", "\"\"")
     // every identifier, so every segment of a dotted value: `email.data.conversationId` names the mail
@@ -63,7 +81,9 @@ object NeverLogScan {
   def logCalls(file: String, text: String): Seq[Call] = {
     val code = withoutCommentsAndStrings(text)
     Start.findAllMatchIn(code).toList.flatMap { m =>
-      List(Call(file, text.take(m.start).count(_ == '\n') + 1, new CallReader(text, m.end - 1).read()))
+      val reader = new CallReader(text, m.end - 1)
+      val values = reader.read()
+      List(Call(file, text.take(m.start).count(_ == '\n') + 1, values, reader.labels))
     }
   }
 
@@ -113,6 +133,10 @@ object NeverLogScan {
   /** Reads the arguments of the call whose `(` is at `open`. */
   private final class CallReader(text: String, open: Int) {
     private val values = Seq.newBuilder[(String, Boolean)]
+    private val labelsFound = Seq.newBuilder[String]
+
+    /** The words before a placeholder, after [[read]]. */
+    def labels: Seq[String] = labelsFound.result()
 
     def read(): Seq[(String, Boolean)] = {
       val args = Seq.newBuilder[String]
@@ -153,15 +177,19 @@ object NeverLogScan {
     private def string(start: Int, stop: Int, interpolated: Boolean): Unit = {
       val quote = if (text.startsWith("\"\"\"", start)) 3 else 1
       val body = text.substring(start + quote, stop - quote)
+      def label(before: String): Unit = Label.findFirstMatchIn(before).foreach(m => labelsFound += m.group(1))
+      FormatPlaceholder.findAllMatchIn(body).filterNot(_.matched == "%%").foreach(m => label(body.substring(0, m.start)))
       if (interpolated) {
         var i = 0
         while (i < body.length) {
           if (body.startsWith("$$", i)) i += 2
           else if (body.startsWith("${", i)) {
+            label(body.substring(0, i))
             val end = blockEnd(body, i + 1)
             values += body.substring(i + 2, end - 1).trim -> true
             i = end
           } else if (body(i) == '$' && i + 1 < body.length && (body(i + 1).isLetter || body(i + 1) == '_')) {
+            label(body.substring(0, i))
             val end = (i + 1 until body.length).find(j => !body(j).isLetterOrDigit && body(j) != '_').getOrElse(body.length)
             values += body.substring(i + 1, end) -> true
             i = end
@@ -170,4 +198,9 @@ object NeverLogScan {
       }
     }
   }
+
+  /** An SLF4J `{}` or a `%` format placeholder. */
+  private val FormatPlaceholder = """\{\}|%%|%[-#+ 0,(]*\d*(?:\.\d+)?[a-zA-Z]""".r
+  /** The word that ends the text before a placeholder, with an optional `=` or `:`. */
+  private val Label = """([A-Za-z_][A-Za-z0-9_]*)\s*[=:]?\s*$""".r
 }

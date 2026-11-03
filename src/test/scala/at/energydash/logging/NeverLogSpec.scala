@@ -86,6 +86,7 @@ class NeverLogSpec extends AnyWordSpec with Matchers {
     Allowed("actors/http/PontonRoute.scala", "x.receiver", "market partner id of an inbound message (RC or EC number)"),
     Allowed("domain/XmlParseHandler.scala", "faultCode(x)", "a QName by its pattern, never the fault text"),
     Allowed("domain/eda/EdaXMLMessage.scala", "msg", "EdaMessage.fallbackVersion: version label, message code and conversation id"),
+    Allowed("mailer/EmailService.scala", "Email", "the label of the action in `About to send Email <message code>`, the value is the message code"),
     Allowed("mailer/EmailService.scala", "email.data.conversationId", "the EmailModel: its EDA conversation id"),
     Allowed("mailer/EmailService.scala", "email.data.messageCode", "the EmailModel: its EDA message code"),
     Allowed("mailer/Fetcher.scala", "ctx.tenant", "tenant id, an RC number"),
@@ -175,11 +176,25 @@ class NeverLogSpec extends AnyWordSpec with Matchers {
       rulesOf("""logger.info(s"x ${email.data.conversationId}")""") shouldBe Seq(s"$PersonalWord: email")
       rulesOf("""logger.info(s"x ${names.map(_.lastname).mkString}")""") shouldBe Seq(s"$PersonalWord: lastname")
     }
-    "match whole words only, and not read string literals" in {
-      Seq("substring", "tokenizer", "subjects", "nameless", "owners").foreach { name =>
+    // amendment of 2026-11-03: plural s, lower-case compounds, the word before a placeholder
+    "refuse a word with a trailing s, and a long word inside an identifier in lower case" in {
+      Seq("tokens", "emails", "passwords", "recipients", "IBANs", "subjects", "owners", "accesstoken", "userpassword",
+        "mailaddress", "tokenizer").foreach { name =>
+        withClue(name)(rulesOf(s"""logger.info(s"x $${a.$name}")""").mkString should include(PersonalWord))
+      }
+    }
+    "match a short word and a word in a mixed-case identifier as a whole word only" in {
+      Seq("substring", "subscription", "bicycle", "pwdlength", "nameless", "accessTokenizer").foreach { name =>
         withClue(name)(rulesOf(s"""logger.info(s"x $${a.$name}")""") shouldBe Seq(NotKnownSafe))
       }
+    }
+    "refuse a never-log word directly before a placeholder, and not read other literal text" in {
+      Seq("""logger.info(String.format("password=%s", a))""", """logger.info("token: {}", a)""",
+        """logger.info(s"secret=$a")""", """logger.info(f"iban ${a}")""", """logger.info(s"Recipients: ${a}")""").foreach { code =>
+        withClue(code)(rulesOf(code).mkString should include(WordBeforePlaceholder))
+      }
       findingsOf("""logger.info("the password and the email are not logged")""") shouldBe empty
+      rulesOf("""logger.info("password reset for {} done", a)""") shouldBe Seq(NotKnownSafe)
       rulesOf("""logger.info(s"x ${a.getOrElse("token")}")""") shouldBe Seq(NotKnownSafe)
     }
     "see a call over several lines and a parenthesis in the text, and not a comment or a plain string" in {
