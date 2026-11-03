@@ -26,14 +26,14 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   import scala.concurrent.ExecutionContext.Implicits.global
 
   val tenantConfig = TenantConfig("myeeg", "KEP", Some("email.com"), Some("email.com"), Some(0), Some("smtp.mail.com"), Some(0), Some("sepp"), Some("password"), Some(""), Some(""), true)
-  val emailRepo = new SlickEmailOutboxRepository(Db.getConfig)
+  val emailRepo = new SlickEmailOutboxRepository(Db.config)
   val rand = new scala.util.Random
 
 //  override def afterAll: Unit = {
 //    TestKit.shutdownActorSystem(system)
 //  }
   def loadManyMails(): Unit = {
-    val session = ConfiguredMailer.getSession(tenantConfig)
+    val session = ConfiguredMailer.createSession(tenantConfig)
 
     val dir = FileSystems.getDefault.getPath("/home/petero/projects/energycash/scripts/rc100298-aug")
     val emails = Files.walk(dir).iterator().asScala.filter(Files.isRegularFile(_))

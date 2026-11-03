@@ -13,9 +13,10 @@ trait Db {
 }
 
 object Db {
-  def getConfig: DatabaseConfig[PostgresProfile] = {
-    DatabaseConfig.forConfig[PostgresProfile]("slick.pgsql.local")
-  }
+  /** The one connection pool of the JVM (XP-CQ-12); it opens on first use and is closed by [[close]]. */
+  lazy val config: DatabaseConfig[PostgresProfile] = DatabaseConfig.forConfig[PostgresProfile]("slick.pgsql.local")
+
+  def close(): Unit = config.db.close()
 }
 
 trait PostgresProfiler

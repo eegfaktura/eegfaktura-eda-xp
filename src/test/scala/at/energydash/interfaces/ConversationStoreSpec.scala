@@ -75,5 +75,14 @@ class ConversationStoreSpec extends ScalaTestWithActorTestKit with AnyWordSpecLi
       TestDb.seedEeg("RC100401", "AT00300000000RC100401000000000001")
       aggregate(EdaNotification("CM_REV_IMP", crmsg.copy(messageCode = EbMsMessageType.EDA_MSG_AUFHEBUNG_CCMI))).message.ecId shouldBe None
     }
+    // XP-CQ-12/-38: every actor used to open its own database pool (the test config keeps one connection
+    // open per pool), so connections piled up over the suite
+    "open no new database connections for further actors" in {
+      def connections() = TestDb.count("SELECT count(*) FROM pg_stat_activity WHERE datname = 'postgres' AND pid <> pg_backend_pid()")
+      aggregate(EdaNotification("CR_MSG", crmsg))
+      val before = connections()
+      (1 to 3).foreach(_ => aggregate(EdaNotification("CR_MSG", crmsg)))
+      eventually(timeout(5.seconds), interval(50.millis)) { connections() should be <= before }
+    }
   }
 }

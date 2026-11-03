@@ -31,7 +31,7 @@ object TestDb {
   def start(): Unit = server
 
   /** Slick configuration the production code uses (`slick.pgsql.local`), pointing at the embedded server. */
-  lazy val dbConfig: DatabaseConfig[PostgresProfile] = { start(); at.energydash.domain.dao.Db.getConfig }
+  lazy val dbConfig: DatabaseConfig[PostgresProfile] = { start(); at.energydash.domain.dao.Db.config }
 
   def withConnection[T](f: Connection => T): T = {
     start()

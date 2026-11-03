@@ -39,7 +39,7 @@ object EbMsAggregator {
       implicit val mat: Materializer = Materializer(ctx)
       implicit val timeout: Timeout = Timeout(5.seconds)
 
-      val eegRepo = new SlickEegMasterRepository(Db.getConfig)
+      val eegRepo = new SlickEegMasterRepository(Db.config)
       val log = ctx.log // ctx.log itself only works on the actor thread, not in the stream below
 
       Behaviors.receiveMessage {

@@ -58,7 +58,7 @@ object ConversationEntity {
 
       import system.executionContext
 
-      val conversationRepo = new SlickConversationRepository(Db.getConfig)
+      val conversationRepo = new SlickConversationRepository(Db.config)
 
       val logger = context.log
       def merge(message: EbMsMessage) = conversationRepo.findById(message.conversationId).map {
