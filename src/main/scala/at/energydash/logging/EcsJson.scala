@@ -79,7 +79,10 @@ object EcsJson {
     if (v.nonEmpty && !v.exists(c => c == ' ' || c == '"' || c == '=' || c == '\n')) v
     else "\"" + v.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") + "\""
 
-  /** Causes and suppressed exceptions below this depth are not written; logback has already cut a circular reference. */
+  /**
+   * Causes and suppressed exceptions below this depth are not written, a line says how many causes are left out;
+   * logback has already cut a circular reference.
+   */
   private val MaxDepth = 16
 
   /**
@@ -100,10 +103,17 @@ object EcsJson {
   }
 
   private def appendStack(out: java.lang.StringBuilder, t: IThrowableProxy, prefix: String, indent: Int, depth: Int): Unit =
-    if (t != null && depth < MaxDepth) {
+    if (t != null && depth >= MaxDepth) {
+      // said, not dropped silently: the root cause is often the one that matters
+      val omitted = Iterator.iterate(t)(_.getCause).takeWhile(_ != null).take(10000).size
+      ThrowableProxyUtil.indent(out, indent - 1)
+      out.append(s"... $omitted more causes omitted").append(CoreConstants.LINE_SEPARATOR)
+    } else if (t != null) {
       ThrowableProxyUtil.indent(out, indent - 1)
       out.append(prefix)
-      val text = s"${t.getClassName}: ${LogText.exceptionText(t.getClassName, t.getMessage)}"
+      // logback writes a missing message as `null`
+      val message = if (t.getMessage == null) "null" else LogText.exceptionText(t.getClassName, t.getMessage)
+      val text = s"${t.getClassName}: $message"
       if (t.isCyclic) out.append("[CIRCULAR REFERENCE: ").append(text).append(']') else out.append(text)
       out.append(CoreConstants.LINE_SEPARATOR)
       ThrowableProxyUtil.subjoinSTEPArray(out, indent, t)

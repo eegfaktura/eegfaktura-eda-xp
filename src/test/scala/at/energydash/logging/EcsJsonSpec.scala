@@ -122,6 +122,24 @@ class EcsJsonSpec extends AnyWordSpec with Matchers {
       val proxy = new ThrowableProxy(error)
       EcsJson.stackTrace(proxy) shouldBe ThrowableProxyUtil.asString(proxy)
     }
+    "write a missing message and a circular reference as logback does" in {
+      val proxy = new ThrowableProxy(new IllegalStateException(null: String, new RuntimeException(null: String)))
+      EcsJson.stackTrace(proxy) shouldBe ThrowableProxyUtil.asString(proxy)
+      EcsJson.stackTrace(proxy).linesIterator.next() shouldBe "java.lang.IllegalStateException: null"
+      val outer = new RuntimeException("outer")
+      val inner = new IllegalStateException("inner", outer)
+      outer.initCause(inner)
+      val circular = new ThrowableProxy(outer)
+      EcsJson.stackTrace(circular) shouldBe ThrowableProxyUtil.asString(circular)
+      EcsJson.stackTrace(circular) should include("[CIRCULAR REFERENCE: java.lang.RuntimeException: outer]")
+    }
+    "say how many causes it leaves out below 16 levels" in {
+      val error = (1 to 19).foldLeft(new RuntimeException("root"): Throwable)((cause, i) => new RuntimeException(s"level $i", cause))
+      val lines = EcsJson.stackTrace(new ThrowableProxy(error)).linesIterator.toList
+      lines.count(_.startsWith("Caused by: ")) shouldBe 15
+      lines.last shouldBe "... 4 more causes omitted"
+      lines.mkString should not include "java.lang.RuntimeException: root"
+    }
     "mask each message of the stack on its own line" in {
       val error = new RuntimeException("mail to max@example.com failed", new MatchError(document))
       val lines = EcsJson.stackTrace(new ThrowableProxy(error)).linesIterator.toList
