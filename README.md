@@ -157,7 +157,7 @@ Every line goes through one encoder (`src/main/resources/logback.xml`, `at.energ
 - `LOG_LEVEL` — `trace`, `debug`, `info` (default), `warn` (also `warning`), `error`; `SLICK_LOG_LEVEL` the same for the `slick`
   loggers only. An unknown value stops the start (exit code 2); an empty value means the default.
 - `SERVICE_VERSION` — set by the image build (the version without `v` for a tag build, else the commit, which a retagged image keeps); `dev` from source.
-- `DEPLOYMENT_ENVIRONMENT` — `deployment.environment` of every JSON line (`dev`, `pilot`, `prod`); the field is left
+- `DEPLOYMENT_ENVIRONMENT` — `deployment.environment` of every line (JSON and text) (`dev`, `pilot`, `prod`); the field is left
   out when unset or empty.
 - Start-up line `service start` (`event.action=service.start`, `log.effective_level`), at any `LOG_LEVEL`.
 - An error line has a fixed text and the exception (`error.type`, `error.message`, `error.stack_trace`); the message

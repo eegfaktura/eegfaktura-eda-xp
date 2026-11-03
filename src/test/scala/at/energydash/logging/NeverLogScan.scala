@@ -63,8 +63,7 @@ object NeverLogScan {
   def logCalls(file: String, text: String): Seq[Call] = {
     val code = withoutCommentsAndStrings(text)
     Start.findAllMatchIn(code).toList.flatMap { m =>
-      val call = new CallReader(text, m.end - 1).read()
-      Option.when(call.nonEmpty)(Call(file, text.take(m.start).count(_ == '\n') + 1, call.values))
+      List(Call(file, text.take(m.start).count(_ == '\n') + 1, new CallReader(text, m.end - 1).read()))
     }
   }
 
@@ -114,13 +113,8 @@ object NeverLogScan {
   /** Reads the arguments of the call whose `(` is at `open`. */
   private final class CallReader(text: String, open: Int) {
     private val values = Seq.newBuilder[(String, Boolean)]
-    private val literals = Seq.newBuilder[String]
 
-    final case class Read(values: Seq[(String, Boolean)], literals: Seq[String]) {
-      def nonEmpty: Boolean = values.nonEmpty || literals.nonEmpty
-    }
-
-    def read(): Read = {
+    def read(): Seq[(String, Boolean)] = {
       val args = Seq.newBuilder[String]
       val current = new StringBuilder
       var depth = 0
@@ -153,31 +147,26 @@ object NeverLogScan {
         .filter(a => a.replaceAll("""\b\w+\s*=>""", "").replaceAll("""[{}()\s]""", "").nonEmpty)
       val cause = code.lastOption.exists(Throwables)
       code.dropRight(if (cause) 1 else 0).foreach(v => values += v -> false)
-      Read(values.result(), literals.result())
+      values.result()
     }
 
     private def string(start: Int, stop: Int, interpolated: Boolean): Unit = {
       val quote = if (text.startsWith("\"\"\"", start)) 3 else 1
       val body = text.substring(start + quote, stop - quote)
-      if (!interpolated) literals += body
-      else {
-        val literal = new StringBuilder
+      if (interpolated) {
         var i = 0
         while (i < body.length) {
           if (body.startsWith("$$", i)) i += 2
           else if (body.startsWith("${", i)) {
             val end = blockEnd(body, i + 1)
             values += body.substring(i + 2, end - 1).trim -> true
-            literals += literal.toString; literal.clear()
             i = end
           } else if (body(i) == '$' && i + 1 < body.length && (body(i + 1).isLetter || body(i + 1) == '_')) {
             val end = (i + 1 until body.length).find(j => !body(j).isLetterOrDigit && body(j) != '_').getOrElse(body.length)
             values += body.substring(i + 1, end) -> true
-            literals += literal.toString; literal.clear()
             i = end
-          } else { literal.append(body(i)); i += 1 }
+          } else i += 1
         }
-        literals += literal.toString
       }
     }
   }
