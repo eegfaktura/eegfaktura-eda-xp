@@ -1,6 +1,5 @@
 package at.energydash.actors
 
-import org.apache.pekko.Done
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior}
 import at.energydash.actors.MqttPublisher.EdaNotification
@@ -26,11 +25,6 @@ object ConversationEntity {
   final case class NotificationMerged(notification: EdaNotification) extends EdaCommand
 
   final case class MergeError(error: String) extends EdaCommand
-
-  sealed trait Command[ReplyMessage] extends CborSerializable
-
-  final case class SetValue(msg: EbMsMessage, replyTo: ActorRef[Done]) extends Command[Done]
-  //  final case class GetValue(replyTo: ActorRef[State]) extends Command[State]
 
   def mergeEbmsMessage(stored: Option[EbMsMessage], current: EbMsMessage): EbMsMessage = {
     current.messageCode match {

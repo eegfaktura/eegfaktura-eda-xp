@@ -28,6 +28,4 @@ case class SendEdaResponse(email: EbMsMessage) extends EdaCommand
 
 //case class SendErrorResponse(tenant: String, message: String, step: String = "") extends EdaCommand
 
-case class ReceiveEdaRequest(tenant: String, message: EbMsMessage) extends EdaCommand
-
 

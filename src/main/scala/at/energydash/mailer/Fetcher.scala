@@ -23,7 +23,7 @@ class Fetcher {
   val logger = LoggerFactory.getLogger(classOf[Fetcher])
 
   private def createAndTerm(subject: String): SearchTerm = new OrTerm(new AndTerm(Array(new SubjectTerm(""), Fetcher.UNSEENTERM)), Fetcher.SEENTERM)
-  //  private def createAndTerm(subject: String) : SearchTerm = new AndTerm(Array(new SubjectTerm(""), Fetcher.UNSEENTERM))
+
   private def persistenceFileName(tenant: String, m: Message) = {
     val receiveDate = new GregorianCalendar(TimeZone.getTimeZone("Europe/Vienna"))
     receiveDate.setTime(m.getReceivedDate)
@@ -41,10 +41,6 @@ class Fetcher {
   }
   def persist(tenant: String, msgs: Array[Message])(implicit ctx: FetcherContext): Array[Message] = {
     msgs.foreach(m => if (m.getSize > 0) {
-//      val dataOutputStream = new ByteArrayOutputStream()
-//      m.writeTo(dataOutputStream)
-//      m.writeTo(new FileOutputStream(new File(s"${Config.emailPersistInbox}/${m.getReceivedDate.toString}_${m.getSubject}-${m.getMessageNumber}.eml")))
-
       val (file, fileName) = prepareFile(tenant, m)
 
       val gzipFile = new GZIPOutputStream(new FileOutputStream(file))
@@ -52,27 +48,10 @@ class Fetcher {
       gzipFile.flush()
       gzipFile.close()
 
-//      ctx.mailRepo.create(EmailOutbox(None, tenant, m.getSubject, dataOutputStream.toByteArray, new Timestamp(System.currentTimeMillis())))
       ctx.mailRepo.create(EmailOutbox(None, tenant, m.getSubject, fileName.getBytes(), new Timestamp(m.getReceivedDate.getTime)))
     })
     msgs
   }
-
-  def persistMail(tenant: String, msg: Message)(implicit ctx: FetcherContext): Message = {
-    if (msg.getSize > 0) {
-      val (file, fileName) = prepareFile(tenant, msg)
-      msg.writeTo(new GZIPOutputStream(new FileOutputStream(file)))
-      ctx.mailRepo.create(EmailOutbox(None, tenant, msg.getSubject, fileName.getBytes(), new Timestamp(msg.getReceivedDate.getTime)))
-    }
-    msg
-  }
-
-  //  def openInbox(): Folder = {
-  //    Fetcher.store.connect(Config.imapHost, Config.imapUser, Config.imapPwd)
-  //    val inbox = Fetcher.store.getFolder("Inbox")
-  //    inbox.open(Folder.READ_WRITE)
-  //    inbox
-  //  }
 
   def getStore(session: Session): Store = {
     val store = session.getStore()
@@ -152,22 +131,6 @@ class Fetcher {
               mapXmlToEbms(XmlParseHandler.ParseHeader("", "", None, Some(protocol)),
               scala.xml.XML.load(body.getInputStream))
             )))
-            //            case List(body) => MessageHelper.getEdaMessageFromHeader(EbMsProcessType.withName(protocol), version).map(
-            //              msg => msg.fromXML(scala.xml.XML.load(body.getInputStream)) match {
-            //                case Success(value) =>
-            //                  (m, Some(
-            //                    MailMessage(
-            //                      m.getHeader("Message-ID").toList.head,
-            //                      m.getFrom.head.toString,
-            //                      protocol,
-            //                      messageId,
-            //                      value
-            //                    )
-            //                  ))
-            //                case Failure(exception) =>
-            //                  logger.error(s"Extract Attachements: ${exception.getMessage}")
-            //                  (m, Some(ErrorParseMessage(exception.getMessage)))
-            //              }).getOrElse((m, None))
             case _ => (m, Some(ErrorMessage(
               m.getHeader("Message-ID").toList.head,
               "ERROR", EbMsMessage(
@@ -180,66 +143,13 @@ class Fetcher {
                 errorMessage = Some(s"No Attachment in Mail with Subject ${m.getSubject}")
               )
             )))
-//            case _ => (m, None)
           }
         case _ => (m, None)
       }
     }
   }
 
-//  def buildMessage_old(m: Message): Either[Message, MailContent] = {
-//    parseSubject(m.getSubject) match {
-//      case Some(("ERROR", "", "")) =>
-//        Right(ErrorMessage(m.getHeader("Message-ID").toList.head, "ERROR",
-//          withAttachement(m).take(1).map(body => scala.xml.XML.load(body.getInputStream)) match {
-//            case List(x) => EdaErrorMessage.fromXML(x) match {
-//              case Success(e) => e
-//              case Failure(exception) => EdaErrorMessage(EbMsMessage(messageCode = EbMsMessageType.ERROR_MESSAGE, conversationId = "1", messageId = None,
-//                sender = "", receiver = "", errorMessage = Some(exception.getMessage)))
-//            }
-//            case _ => EdaErrorMessage.fromXML(<EDASendError>
-//              <ReasonText>No Attachement</ReasonText>
-//            </EDASendError>) match {
-//              case Success(e) => e
-//              case Failure(exception) => EdaErrorMessage(EbMsMessage(messageCode = EbMsMessageType.ERROR_MESSAGE, conversationId = "1", messageId = None,
-//                sender = "", receiver = "", errorMessage = Some(exception.getMessage)))
-//            }
-//          }))
-//      case Some((protocol, version, messageId)) =>
-//        withAttachement(m) match {
-//          case List(body) => MessageHelper.getEdaMessageFromHeader(EbMsProcessType.withName(protocol), version).map(
-//            msg => msg.fromXML(scala.xml.XML.load(body.getInputStream)) match {
-//              case Success(value) =>
-//                Right(
-//                  MailMessage(
-//                    m.getHeader("Message-ID").toList.head,
-//                    m.getFrom.head.toString,
-//                    protocol,
-//                    messageId,
-//                    value
-//                  )
-//                )
-//              case Failure(exception) =>
-//                logger.error(s"Extract Attachements: ${exception.getMessage}")
-//                Left(m)
-//            }).getOrElse(Left(m))
-//          case _ => Right(ErrorMessage(
-//            m.getHeader("Message-ID").toList.head,
-//            "ERROR", EdaErrorMessage.fromXML(
-//              <EDASendError>
-//                <ReasonText>No Attachement</ReasonText>
-//              </EDASendError>) match {
-//              case Success(e) => e
-//              case Failure(exception) => EdaErrorMessage(EbMsMessage(messageCode = EbMsMessageType.ERROR_MESSAGE, conversationId = "1", messageId = None,
-//                sender = "", receiver = "", errorMessage = Some(exception.getMessage)))
-//            }))
-//        }
-//      case _ => Left(m)
-//    }
-//  }
-
   def parseSubject(subject: String): Option[(String, String, String)] = {
-//    val pattern = """\[([A-Za-z_-]*)(?:_\d+\.\d+){0,1} MessageId=(.*)\]""".r
     val pattern = """\[([A-Za-z_-]*)(_(\d+\.\d+)){0,1} MessageId=(.*)\]""".r
     try {
       val pattern(protocol, _, version, messageId) = subject
@@ -252,23 +162,6 @@ class Fetcher {
       case _: Throwable =>
         None
     }
-  }
-
-  //  def getProtocol(subject: String): Option[String] = {
-  //    val pattern = """\[([A-Za-z_-]*) MessageId=.*\]""".r
-  //    println(s"subject: ${subject}")
-  //    try {
-  //      val pattern(protocol) = subject.toString
-  //      if(protocol.isEmpty) None else Some(protocol)
-  //    } catch {
-  //      case e:MatchError => None
-  //    }
-  //  }
-
-  def extractAttachments(multiPart: Multipart): List[MimeBodyPart] = {
-    List.range(0, multiPart.getCount)
-      .map(i => multiPart.getBodyPart(i).asInstanceOf[MimeBodyPart])
-      .filter(isAttachment)
   }
 
   def isAttachment(b: MimeBodyPart): Boolean = {
@@ -290,25 +183,6 @@ class Fetcher {
     }
   }
 
-  def deleteById(id: String)(implicit ctx: FetcherContext): Unit = {
-    val store = getStore(ctx.session)
-    val inbox = store.getFolder("Inbox")
-    inbox.open(Folder.READ_WRITE)
-    try {
-      val term = new MessageIDTerm(id)
-      inbox.search(term).foreach(m => {
-        m.setFlag(Flags.Flag.DELETED, true)
-      })
-      logger.info(s"Delete Email with id ${id}")
-    } catch {
-      case e: Exception => {
-        logger.error("194 Error deleting Mail", e)
-      }
-    } finally {
-      inbox.close(true)
-      store.close()
-    }
-  }
 }
 
 object Fetcher {
@@ -324,21 +198,12 @@ object Fetcher {
   val UNSEENTERM = new FlagTerm(new Flags(Flags.Flag.SEEN), false)
   val SEENTERM = new FlagTerm(new Flags(Flags.Flag.SEEN), true)
 
-  case class EmailEnvelop(id: String, subject: String, protocol: Option[String], msg: Message, content: Multipart)
-
   trait MailContent
 
   case class MailMessage(id: String, from: String, protocol: String, messageId: String, content: EbMsMessage) extends MailContent
 
   case class ErrorMessage(id: String, protocol: String, content: EbMsMessage) extends MailContent
-  case class ErrorParseMessage(message: String) extends MailContent
 
   case class FetcherContext(tenant: String, session: Session, mailRepo: SlickEmailOutboxRepository)
-
-  sealed trait MailerResponseValue
-
-  case class MailMessageList(response: List[MailMessage]) extends MailerResponseValue
-
-  case class ErrorMessageList(response: List[ErrorMessage]) extends MailerResponseValue
 
 }

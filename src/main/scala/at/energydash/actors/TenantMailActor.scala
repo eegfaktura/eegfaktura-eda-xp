@@ -61,9 +61,6 @@ class TenantMailActor(tenantConfig: TenantConfig, mailRepo: SlickEmailOutboxRepo
                 req.replyTo ! SendResponseError(tenant, req.email.toEmail, ex.getMessage, "Send Mail")
             }
             Behaviors.same
-          case req: DeleteEmailCommand =>
-            req.deleteMail()
-            Behaviors.same
         }
       }
     }
@@ -80,12 +77,6 @@ object TenantMailActor {
       Try(
         Fetcher().fetch(searchTerm, distributeMessage)
       ).failed.foreach(e => fetchLogger.error(s"Fetching mails failed: ${LogText.exceptionText(e.getClass.getName, e.getMessage)}", e))
-    }
-  }
-
-  case class DeleteEmailCommand(tenant: String, messageId: String) extends EmailCommand {
-    def deleteMail()(implicit ctx: FetcherContext): Unit = {
-      Fetcher().deleteById(messageId)
     }
   }
 
