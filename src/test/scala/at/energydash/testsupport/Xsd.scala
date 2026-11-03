@@ -14,14 +14,15 @@ import scala.xml.Node
 object Xsd {
   val Dir = new File("src/main/xsd")
   private val cache = new ConcurrentHashMap[String, Schema]()
-  // The JDK's secure-processing limit (5 000 content-model nodes) refuses the official ECMPList 01p10 XSD;
-  // the schemas here are the vendor files of the repository, so the limit is lifted for the tests only.
-  System.setProperty("jdk.xml.maxOccurLimit", "0")
-
   def schema(file: String): Schema = cache.computeIfAbsent(file, f => {
     val path = new File(Dir, f)
     require(path.isFile, s"no XSD $path")
-    SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI).newSchema(path)
+    val factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+    // The JDK's secure-processing limit (5 000 content-model nodes) refuses the official ECMPList 01p10 XSD;
+    // the schemas here are the vendor files of the repository, so the limit is lifted for this factory only,
+    // not for the whole test JVM (XP-CQ-41).
+    factory.setProperty("http://www.oracle.com/xml/jaxp/properties/maxOccurLimit", "0")
+    factory.newSchema(path)
   })
 
   /** XSD file name per `targetNamespace` of every schema in `src/main/xsd`. */
