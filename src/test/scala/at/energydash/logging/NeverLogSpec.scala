@@ -143,6 +143,8 @@ class NeverLogSpec extends AnyWordSpec with Matchers {
       findingsOf("""log.warn(s"got ${message}")""") should have size 1
       findingsOf("""context.log.info(s"got ${req.member}")""").map(h => h.term -> h.rule) shouldBe Seq("req.member" -> NotKnownSafe)
       findingsOf("""logger.error(text2)""") should have size 1
+      rulesOf("""logger.info("members {}", members.map(m => m.email).mkString(","))""") shouldBe Seq(s"$PersonalWord: email")
+      findingsOf("""source.log("MQTT", x => { s"to ${x.member}" })""").map(_.term) shouldBe Seq("x.member")
       findingsOf("""logger.info("x {}", member)""") should have size 1
       findingsOf("""ctx.setMessage(s"$member")""") should have size 1
       findingsOf("""logger.info("Send Email (no value here)")""") shouldBe empty

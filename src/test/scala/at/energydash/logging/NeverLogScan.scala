@@ -149,7 +149,8 @@ object NeverLogScan {
       args += current.toString
       // a string, with or without `s`, is read above; what is left are the arguments that are code
       val code = args.result().map(_.replaceAll("""\b[sfr]?""""", "").replace("\"\"", "").replace("+", "").trim)
-        .filter(a => a.nonEmpty && !a.contains("=>"))
+        // a function that only builds a string (`x => s"…"`, pekko's `.log(name, f)`) is read through that string
+        .filter(a => a.replaceAll("""\b\w+\s*=>""", "").replaceAll("""[{}()\s]""", "").nonEmpty)
       val cause = code.lastOption.exists(Throwables)
       code.dropRight(if (cause) 1 else 0).foreach(v => values += v -> false)
       Read(values.result(), literals.result())
