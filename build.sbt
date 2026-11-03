@@ -131,6 +131,8 @@ lazy val testSettings = Seq(
     "-Dconfig.resource=application-test.conf",
     s"-Djava.io.tmpdir=${(ThisBuild / baseDirectory).value / "target" / "test-tmp"}",
     s"-Deda.test.storage=${(ThisBuild / baseDirectory).value / "target" / "test-storage"}",
+    // embedded PostgreSQL on a free port per run: a server left over by a killed run cannot collide (XP-CQ-37)
+    s"-Deda.test.db.port=${{ val s = new java.net.ServerSocket(0); try s.getLocalPort finally s.close() }}",
   ) ++ sys.props.get("eda.golden.update").map(v => s"-Deda.golden.update=$v").toSeq,
   Test / unmanagedSourceDirectories ++= sys.env.get("EDA_XP_EXTRA_TESTS").map(file).toSeq,
   Test / testOptions += Tests.Setup(() => IO.createDirectory((ThisBuild / baseDirectory).value / "target" / "test-tmp")),

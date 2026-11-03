@@ -51,7 +51,7 @@ bash scripts/dev/test.sh --coverage       # + scoverage report and the coverage 
 bash scripts/dev/test.sh --update-golden  # rewrite the protocol golden files, then review `git diff`
 ```
 
-- Everything a test talks to is a loopback stand-in started by the tests: embedded PostgreSQL (port 54325,
+- Everything a test talks to is a loopback stand-in started by the tests: embedded PostgreSQL (a free port per run,
   migrated with the production migrations), embedded MQTT broker (18831), a fake Ponton messenger (16060).
   **No test ever sends to a real KEP endpoint.** Configuration: `src/test/resources/application-test.conf`.
 - Files a run writes stay under `target/`; the JVM runs in `Europe/Vienna`.
