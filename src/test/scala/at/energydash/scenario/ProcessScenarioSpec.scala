@@ -21,13 +21,21 @@ class ProcessScenarioSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
   private val V3 = "v3/eda-xml/in/"
   private def row(code: String, label: String) = ProtocolCatalog.outbound.find(r => r.code == code && r.label.contains(label)).get
 
-  /** Sends the request, waits for its SOAP request and its echo; returns the conversation id eda-xp gave it. */
+  /**
+   * Sends the request, waits for its SOAP request, its echo and its stored conversation row; returns the conversation id
+   * eda-xp gave it. The row is written asynchronously (since 1.0.8, platform#111 ca6): an answer posted before it
+   * exists finds nothing to merge (XP-CQ-43; in production answers come minutes later).
+   */
   private def send(code: String, label: String, topic: String): String = {
     g
     request(row(code, label).message.asJson)
     awaitPonton(1).size shouldBe 1
     val echo = await(s"eda/response/rc100401/protocol/$topic")
-    echo.hcursor.downField("conversationId").as[String].toOption.get
+    val conv = echo.hcursor.downField("conversationId").as[String].toOption.get
+    eventually(timeout(5.seconds), interval(50.millis)) {
+      TestDb.count(s"SELECT count(*) FROM eda.conversation WHERE id = '$conv'") shouldBe 1
+    }
+    conv
   }
 
   private def answer(doc: scala.xml.Elem, code: String, topic: String, receiver: String = Tenant): Json = {
