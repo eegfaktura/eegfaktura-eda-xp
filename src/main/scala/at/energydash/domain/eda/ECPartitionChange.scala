@@ -66,20 +66,3 @@ case class ECPartitionChangeXMLMessage(message: EbMsMessage) extends EdaXMLMessa
   }
 
 }
-
-//object ECPartitionChangeXMLMessage extends EdaResponseType {
-//  override def fromXML(xmlFile: Elem): Try[ECPartitionChangeMessage] =
-//    Try(scalaxb.fromXML[CPNotification](xmlFile)).map(document =>
-//      ECPartitionChangeMessage(
-//        EbMsMessage(
-//          messageId = Some(document.ProcessDirectory.MessageId),
-//          conversationId = document.ProcessDirectory.ConversationId,
-//          sender = document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-//          receiver = document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-//          messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
-//          messageCodeVersion = Some("01.13"),
-//          responseData = Some(document.ProcessDirectory.ResponseData.ResponseCode.map(r => ResponseData(None, List(r)))),
-//        )
-//      )
-//    )
-//}

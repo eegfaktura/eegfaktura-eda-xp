@@ -53,20 +53,3 @@ case class CPRequestBaseDataXMLMessage(message: EbMsMessage) extends EdaXMLMessa
     ByteString.fromString(xmlString.toString)
   }
 }
-
-//object CPRequestBaseDataXMLMessage extends EdaResponseType {
-//  def fromXML(xmlFile: Elem): Try[CPRequestBaseData] = {
-//    Try(scalaxb.fromXML[cprequest.v01p12.CPRequest](xmlFile)).map(document =>
-//      CPRequestBaseData(
-//        EbMsMessage(
-//          messageId = Some(document.ProcessDirectory.MessageId),
-//          conversationId = document.ProcessDirectory.ConversationId,
-//          sender = document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-//          receiver = document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-//          messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
-//          messageCodeVersion = Some("01.12"),
-//        )
-//      )
-//    )
-//  }
-//}
