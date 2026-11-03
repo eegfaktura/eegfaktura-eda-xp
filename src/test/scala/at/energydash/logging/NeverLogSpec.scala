@@ -106,7 +106,6 @@ class NeverLogSpec extends AnyWordSpec with Matchers {
     Allowed("service/FileService.scala", "protocol", "EDA process code; `[A-Za-z_-]*` by the pattern that yields it"),
     Allowed("service/FileService.scala", "version", "EDA schema version; digits and a dot by the pattern that yields it"),
     Allowed("service/SendMailServiceImpl.scala", "NoValidRecipient", "a constant text, without the recipients"),
-    Allowed("service/SendMailServiceImpl.scala", "logText(exception)", "toString without addresses"),
     Allowed("stream/MqttRequestStream.scala", "msg.topic", "MQTT topic: tenant and process"),
   )
 

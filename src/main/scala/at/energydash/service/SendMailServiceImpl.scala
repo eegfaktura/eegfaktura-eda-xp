@@ -4,7 +4,6 @@ import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
 import org.apache.pekko.util.{ByteString, Timeout}
 import at.energydash.admin.mail.{SendMailReply, SendMailRequest, SendMailService, SendMailWithInlineAttachmentsRequest}
 import at.energydash.config.Config
-import at.energydash.logging.LogText
 import at.energydash.mailer.{ConfiguredMailer, UnconfirmedDeliveryException}
 import courier.{Envelope, Mailer, Multipart}
 import org.slf4j.{Logger, LoggerFactory}
@@ -85,21 +84,19 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
   // closes the socket and arrives as an ordinary error (500).
   private def failureReply(exception: Throwable): SendMailReply = {
     if (causes(exception).exists(_.isInstanceOf[UnconfirmedDeliveryException])) {
-      logger.warn(s"SMTP unconfirmed: ${logText(exception)}", exception)
+      logger.warn("SMTP unconfirmed", exception)
       SendMailReply(202, Some(s"SMTP unconfirmed: ${exception.toString}"))
     } else if (causes(exception).exists(_.isInstanceOf[SocketTimeoutException])) {
-      logger.error(s"SMTP timeout: ${logText(exception)}", exception)
+      logger.error("SMTP timeout", exception)
       SendMailReply(504, Some(s"SMTP timeout: ${exception.toString}"))
     } else {
-      // our own check: its message lists the rejected recipients, which the encoder cannot mask
+      // our own check: its message lists the rejected recipients (a name or a phone number), which the encoder
+      // cannot mask; the reply keeps them for the caller
       if (noValidRecipient(exception)) logger.error(NoValidRecipient)
-      else logger.error(logText(exception), exception)
+      else logger.error("Mail not sent", exception)
       SendMailReply(500, Some(exception.toString))
     }
   }
-
-  // not the recipients: a rejected one can be a name or a phone number; the reply keeps them for the caller
-  private def logText(exception: Throwable): String = LogText.withoutEmailAddresses(exception.toString)
 
   private def noValidRecipient(exception: Throwable): Boolean =
     Option(exception.getMessage).exists(_.startsWith(NoValidRecipient))
