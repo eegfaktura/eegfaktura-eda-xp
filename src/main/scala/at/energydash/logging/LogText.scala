@@ -25,10 +25,6 @@ object LogText {
       })
     }
 
-  /** `true` when the error or one of its causes has the document in its message (scalaxb's `ParserFailure`). */
-  def carriesDocument(ex: Throwable): Boolean =
-    Iterator.iterate(ex)(_.getCause).takeWhile(_ != null).take(16).exists(e => Option(e.getMessage).exists(_.contains(ParserFailurePrefix)))
-
   /**
    * The message of an exception of the class `className` for the log: without a document ([[errorText]]) and without
    * e-mail addresses. A `MatchError` has the text of the value it failed on, which can be the whole document: dropped.

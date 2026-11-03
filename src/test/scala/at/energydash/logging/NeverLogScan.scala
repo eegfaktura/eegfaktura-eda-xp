@@ -63,7 +63,6 @@ object NeverLogScan {
     // texts that are built from the above or masked
     "details" -> "logSize: message code and conversation id, or a fixed text, at both callers",
     "reason" -> "fixed texts with ids; MqttPublisher's and MqttSystem's reasons name no document",
-    "text" -> "PontonRoute: a fixed text",
     "getMessageNumber" -> "number of a mail in the mailbox",
     "msg" -> "EdaMessage.fallbackVersion: version label, message code and conversation id",
     "LogText.errorText(msg)" -> "masked by LogText",

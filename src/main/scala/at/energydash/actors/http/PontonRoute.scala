@@ -14,7 +14,7 @@ import org.apache.pekko.util.Timeout
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish, MqttPublishError}
 import at.energydash.domain.{EbMsMessage, XmlParseHandler}
 import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
-import at.energydash.logging.{LogFields, LogText}
+import at.energydash.logging.LogFields
 import at.energydash.mqtt.MqttProtocol.Handover
 import org.slf4j.{Logger, LoggerFactory}
 import soapenvelope11.Envelope
@@ -143,9 +143,8 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
           // MessageCode): keep the 500 so Ponton holds it and redelivers it after a fix
           // (team decision, platform#111 ca11). Only unknown document types are
           // acknowledged above, because eda-xp can never process them.
-          // no exception attached when it holds the document: scalaxb's message does (261005-ca14)
-          val text = "Error while parsing message from edaAdapter"
-          if (LogText.carriesDocument(ex)) logger.error(text) else logger.error(text, ex)
+          // scalaxb's message holds the document: the encoder masks it in error.message and the stack (261005-ca14)
+          logger.error("Error while parsing message from edaAdapter", ex)
           mqttPublisher ! MqttPublishError("NotSpecified", ex.getMessage)
           complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
         }
