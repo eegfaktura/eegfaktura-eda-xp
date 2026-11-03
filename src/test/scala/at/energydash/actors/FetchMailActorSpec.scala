@@ -87,17 +87,17 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       mail.setContent(Multipart().attachBytes(document.getBytes, "test.xml", "text/xml").html("Hallo").parts)
       Mailbox.get("sepp@email.com").add(mail)
 
-      val (_, events) = LogCapture("at.energydash.mailer.Fetcher") {
-        at.energydash.mailer.Fetcher().fetch("", _ => fail("the attachment must not parse"))(
-          at.energydash.mailer.Fetcher.FetcherContext("myeeg", session, emailRepo))
-      }
-      val failed = events.filter(_.getLevel.toString == "ERROR")
-      failed should have size 1
-      failed.head.getFormattedMessage should startWith("Extract Message failed for mail ")
-      failed.head.getThrowableProxy should not be null
-      at.energydash.logging.EcsJson.line(failed.head, "eegfaktura-eda-xp", "dev") should not include meter
-
-      Mailbox.clearAll()
+      try {
+        val (_, events) = LogCapture("at.energydash.mailer.Fetcher") {
+          at.energydash.mailer.Fetcher().fetch("", _ => fail("the attachment must not parse"))(
+            at.energydash.mailer.Fetcher.FetcherContext("myeeg", session, emailRepo))
+        }
+        val failed = events.filter(_.getLevel.toString == "ERROR")
+        failed should have size 1
+        failed.head.getFormattedMessage should startWith("Extract Message failed for mail ")
+        failed.head.getThrowableProxy should not be null
+        at.energydash.logging.EcsJson.line(failed.head, "eegfaktura-eda-xp", "dev") should not include meter
+      } finally Mailbox.clearAll()
     }
 
     "log the message id of a subject only if it has the shape of one, and return it as before" in {
@@ -117,12 +117,12 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
         messageCode = EbMsMessageType.ERROR_MESSAGE)
       val email = at.energydash.mailer.EmailService.EmailModel("RC100001", "AT003000", "subject", org.apache.pekko.util.ByteString("<a/>"), data)
       val command = at.energydash.mailer.EmailService.SendEmailCommand(email, "email.com", createTestProbe[EdaCommand]().ref)
-      val (_, events) = LogCapture("at.energydash.mailer.EmailService$") {
-        command.sendEmail(courier.Mailer(ConfiguredMailer.getSession(tenantConfig)))
-      }
-      LogCapture.messages(events) shouldBe List(s"About to send Email ${EbMsMessageType.ERROR_MESSAGE}, conversation C4711")
-
-      Mailbox.clearAll()
+      try {
+        val (_, events) = LogCapture("at.energydash.mailer.EmailService$") {
+          command.sendEmail(courier.Mailer(ConfiguredMailer.getSession(tenantConfig)))
+        }
+        LogCapture.messages(events) shouldBe List(s"About to send Email ${EbMsMessageType.ERROR_MESSAGE}, conversation C4711")
+      } finally Mailbox.clearAll()
     }
 
     "handle Email Success Messages" in {
