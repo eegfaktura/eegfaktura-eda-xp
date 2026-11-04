@@ -149,13 +149,15 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 
     // XP-CQ-27: a worker for a changed tenant config must not get the session of the earlier config
     "read the mailbox of the current config after the tenant config changed" in {
-      val earlier = spawn(TenantMailActor(tenantConfig.copy(user = Some("someone-else")), emailRepo))
-      val mailActor = spawn(TenantMailActor(tenantConfig, emailRepo))
+      // a tenant of its own: no earlier test may have created a session for it
+      val changed = tenantConfig.copy(tenant = "cq27-changed-config")
+      val earlier = spawn(TenantMailActor(changed.copy(user = Some("someone-else")), emailRepo))
+      val mailActor = spawn(TenantMailActor(changed, emailRepo))
       val replyActor = createTestProbe[MqttCommand]()
       try {
-        perpareEmail("myeeg", "TestECMPLIst.xml", "[EC_PODLIST_01.00 MessageId=123456]")
+        perpareEmail(changed.tenant, "TestECMPLIst.xml", "[EC_PODLIST_01.00 MessageId=123456]")
 
-        mailActor ! FetchEmailCommand("myeeg", "", replyActor.ref)
+        mailActor ! FetchEmailCommand(changed.tenant, "", replyActor.ref)
         replyActor.expectMessageType[MqttPublish].mails should have size 1
       } finally {
         testKit.stop(earlier); testKit.stop(mailActor)
