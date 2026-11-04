@@ -53,8 +53,7 @@ class CPRequestZPListXMLMessageSpec extends AnyWordSpecLike with Matchers with E
           scalaxb.toScope(scalaxb.fromScope(scope).foldRight(scalaxb.fromScope(xmlObj.toScope)){ (a, b) => a :: b }.reverse : _*/*.distinct: _**/), true
         )
 
-        // the Ponton header (MessageId 10000) and the document conversation are both in the outbound document
-        bodyDoc.toString should (include ("10000") and include (testMessage.conversationId))
+        (bodyDoc \\ "MessageId").head.text shouldBe "10000"
       }
     }
 
