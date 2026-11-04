@@ -62,10 +62,10 @@ class Fetcher {
 
   def fetch(searchTerm: String, distributeMessage: MailContent => Unit)(implicit ctx: FetcherContext): Unit = {
     val store = getStore(ctx.session)
-    try {
+    closing(if (store.isConnected) store.close()) {
       val inbox = store.getFolder("Inbox")
       inbox.open(Folder.READ_WRITE)
-      try {
+      closing(if (inbox.isOpen) inbox.close(true)) {
         val messages = inbox.search(createAndTerm(searchTerm))
         logger.info(s"[${ctx.tenant}] Emails found ${messages.length}")
 
@@ -86,8 +86,8 @@ class Fetcher {
             logger.error(s"Extract Message failed for mail ${m.getMessageNumber}: ${e.getClass.getName} (content not logged)", e)
             deleteEmail(m, inbox)
         })
-      } finally inbox.close(true)
-    } finally store.close()
+      }
+    }
   }
 
   def withAttachement(content: Message): List[MimeBodyPart] = content.getContent match {
@@ -188,6 +188,19 @@ class Fetcher {
 object Fetcher {
 
   def apply() = new Fetcher()
+
+  /**
+   * Runs `body`, then `close`. When `body` failed, a failing `close` does not replace its exception (that one is
+   * logged by the caller); it is attached as suppressed.
+   */
+  def closing[T](close: => Unit)(body: => T): T = {
+    var failed: Throwable = null
+    try body
+    catch { case e: Throwable => failed = e; throw e }
+    finally
+      try close
+      catch { case c: Exception if failed != null => failed.addSuppressed(c) }
+  }
 
   private val MessageIdShape = "[A-Za-z0-9._:-]{1,128}".r
 

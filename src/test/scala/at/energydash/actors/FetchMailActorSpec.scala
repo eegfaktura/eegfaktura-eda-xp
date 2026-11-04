@@ -136,6 +136,17 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       events.head.getThrowableProxy.getClassName shouldBe classOf[javax.mail.NoSuchProviderException].getName
     }
 
+    // XP-CQ-20 (review): a failing close after a failed fetch must not hide the fetch's exception
+    "keep the fetch failure when closing the mailbox fails as well" in {
+      val original = new IllegalStateException("search failed")
+      val thrown = the[IllegalStateException] thrownBy
+        at.energydash.mailer.Fetcher.closing(throw new javax.mail.MessagingException("close failed"))(throw original)
+      thrown should be theSameInstanceAs original
+      thrown.getSuppressed.toList.map(_.getMessage) shouldBe List("close failed")
+      a[javax.mail.MessagingException] should be thrownBy
+        at.energydash.mailer.Fetcher.closing(throw new javax.mail.MessagingException("close failed"))(())
+    }
+
     // XP-CQ-27: a worker for a changed tenant config must not get the session of the earlier config
     "read the mailbox of the current config after the tenant config changed" in {
       val earlier = spawn(TenantMailActor(tenantConfig.copy(user = Some("someone-else")), emailRepo))
