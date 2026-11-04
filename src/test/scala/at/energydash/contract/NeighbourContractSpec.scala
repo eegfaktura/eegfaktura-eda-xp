@@ -7,9 +7,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.io.{File, StringReader}
-import javax.xml.XMLConstants
 import javax.xml.transform.stream.StreamSource
-import javax.xml.validation.SchemaFactory
 import scala.io.Source.fromFile
 import scala.util.Using
 import scala.xml.XML
@@ -78,7 +76,7 @@ class NeighbourContractSpec extends ScalaTestWithActorTestKit with AnyWordSpecLi
       val copy = new File("target/test-tmp/InboundDocument-with-imports.xsd")
       copy.getParentFile.mkdirs()
       java.nio.file.Files.writeString(copy.toPath, withImports)
-      SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI).newSchema(copy)
+      Xsd.factory().newSchema(copy)
     }
     "be valid InboundDocuments for every via = ponton catalog row" in {
       ProtocolCatalog.inbound.filter(_.via == "ponton").foreach { row =>
