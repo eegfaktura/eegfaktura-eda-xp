@@ -173,20 +173,16 @@ lazy val root = (project in file("."))
       "org.apache.pekko" %% "pekko-discovery" % pekkoVersion,
       "org.apache.pekko" %% "pekko-slf4j" % pekkoVersion,
       "org.apache.pekko" %% "pekko-connectors-mqtt" % pekkoConnectorsVersion,
-      "org.apache.pekko" %% "pekko-connectors-mqtt-streaming" % pekkoConnectorsVersion,
       "com.github.pjfanning" %% "pekko-http-circe" % "3.1.0",
       "jakarta.xml.bind" % "jakarta.xml.bind-api" % "4.0.2",
 //      "org.http4s" %% "http4s-core" % "1.0.0-m38",
 
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
       "ch.qos.logback" % "logback-classic" % "1.5.6",
       "org.slf4j" % "jcl-over-slf4j" % "2.0.13",
       "org.slf4j" % "jul-to-slf4j" % "2.0.17",
 
       "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
 
-      "javax.xml.bind" % "jaxb-api" % scalaXmlVersion,
-      "com.sun.xml.bind" % "jaxb-core" % scalaXmlVersion,
       "org.scala-lang.modules" %% "scala-xml" % scalaXmlVersion,
 //      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2",
 
@@ -230,7 +226,6 @@ lazy val root = (project in file("."))
       "org.apache.pekko" %% "pekko-actor-testkit-typed" % pekkoVersion,
       "org.jvnet.mock-javamail" % "mock-javamail" % "1.12",
       "com.opentable.components" % "otj-pg-embedded" % "0.13.3",
-      "org.mockito" %% "mockito-scala" % "1.17.31",
       "org.scalamock" %% "scalamock" % "6.0.0",
       "io.moquette"      % "moquette-broker"  % "0.17",
     ).map(_ % Test),

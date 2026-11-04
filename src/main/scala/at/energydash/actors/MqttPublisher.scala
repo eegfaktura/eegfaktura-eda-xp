@@ -8,12 +8,13 @@ import at.energydash.domain.EbMsMessage
 import at.energydash.logging.LogText
 import at.energydash.mqtt.CommandMessage
 import at.energydash.mqtt.MqttProtocol.{EdaEventReceived, EdaInboundMessage, EdaMessageCommand, Handover, MqttCmd}
-import com.typesafe.scalalogging.StrictLogging
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 
-object MqttPublisher extends StrictLogging{
+object MqttPublisher {
+  private val logger: Logger = LoggerFactory.getLogger(getClass)
 
   trait MqttCommand
   case class EdaNotification(protocol: String, message: EbMsMessage)
