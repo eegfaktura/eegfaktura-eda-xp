@@ -7,6 +7,7 @@ import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.http.scaladsl.Http
 import at.energydash.actors.http.{AccessLog, BodySizeLimit, HealthRoute, InboundForwarding, PontonRoute, ServiceRoute}
 import at.energydash.config.Config
+import at.energydash.domain.dao.Db
 import at.energydash.mqtt.MqttSystem
 import at.energydash.service.FileService
 import at.energydash.stream.MqttRequestStream
@@ -47,6 +48,14 @@ object SupervisorActor {
 
   private def startGRPCServer(tenantProvider: ActorRef[EdaCommand])(implicit system: ActorSystem[_]) = {
     AdminServer.apply(tenantProvider, system)
+  }
+
+  /** The process's actor system (XpAdapter): started, with the database pool closed on its shutdown (XP-CQ-12). */
+  def start(): ActorSystem[Command] = {
+    val system = ActorSystem(apply(), "supervisor")
+    Db.closeOnShutdown(system)
+    system ! Start
+    system
   }
 
   def apply(): Behavior[Command] =

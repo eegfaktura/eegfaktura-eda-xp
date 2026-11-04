@@ -1,15 +1,11 @@
 package at.energydash
 
-import org.apache.pekko.actor.typed.ActorSystem
-import at.energydash.actors.{Start, SupervisorActor}
-import at.energydash.domain.dao.Db
+import at.energydash.actors.SupervisorActor
 import at.energydash.logging.LogStartup
 
 object XpAdapter extends LogStartup with App {
 
   MigrationRunner.migrate()
 
-  private val supervisor = ActorSystem(SupervisorActor(), "supervisor")
-  Db.closeOnShutdown(supervisor)
-  supervisor ! Start
+  SupervisorActor.start()
 }
