@@ -4,16 +4,14 @@ import at.energydash.domain.enums.{EbMsMessageType, MeterDirectionType}
 import at.energydash.domain.{EbMsMessage, Meter}
 import io.circe.generic.auto._
 import io.circe.parser._
+import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import ponton.OutHeaderType
-import ponton.`package`.__NodeXMLFormat
-import scalaxb.DataRecord
-import soapenvelope11.{Body, Envelope, Header}
 
 import scala.xml.NamespaceBinding
 
-class CPRequestZPListXMLMessageSpec extends AnyWordSpecLike with Matchers {
+class CPRequestZPListXMLMessageSpec extends AnyWordSpecLike with Matchers with EitherValues {
     import at.energydash.domain.JsonImplicit._
 
     "Request POD_LIST Message" should {
@@ -48,26 +46,15 @@ class CPRequestZPListXMLMessageSpec extends AnyWordSpecLike with Matchers {
         val record = xmlObj.toRecord
 
         val node = CPRequestZPList(testMessage).getVersion().map(_.toXML).get
+        (node \ "ProcessDirectory" \ "ConversationId").text shouldBe testMessage.conversationId
 
         val body = ponton.OutboundMessage(outboundmessageoption = record)
-//        scalaxb.toXML(ponton.OutboundDocument(header, body), targetNamespace, "OutboundDocument",
-//          scalaxb.toScope(scalaxb.fromScope(scope).foldRight(scalaxb.fromScope(xmlObj.toScope)){ (a, b) => a :: b }.reverse : _*/*.distinct: _**/)
-//        )
         val bodyDoc = scalaxb.toXML(ponton.OutboundDocument(header, body), None, Some("OutboundDocument"),
           scalaxb.toScope(scalaxb.fromScope(scope).foldRight(scalaxb.fromScope(xmlObj.toScope)){ (a, b) => a :: b }.reverse : _*/*.distinct: _**/), true
         )
 
-        val headers = Nil
-        val bodyRecords = bodyDoc.toSeq map { DataRecord(None, None, _) }
-        val headerOption = headers.toSeq.headOption map { _ =>
-          Header(headers.toSeq map {DataRecord(None, None, _)}, Map())
-        }
-        val envelope = Envelope(headerOption, Body(bodyRecords, Map()), Nil, Map())
-
-//        (node \ "MarketParticipantDirectory" \ "MessageCode").text shouldBe EbMsMessageType.ONLINE_REG_INIT.toString
-//        (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
-//        (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
-//        (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
+        // the Ponton header (MessageId 10000) and the document conversation are both in the outbound document
+        bodyDoc.toString should (include ("10000") and include (testMessage.conversationId))
       }
     }
 
@@ -105,9 +92,7 @@ class CPRequestZPListXMLMessageSpec extends AnyWordSpecLike with Matchers {
 
         val message = decode[EbMsMessage](jsonObjectStr)
 
-        val node = message match {
-          case Right(m) => CMRequestRegistrationOnlineXMLMessageV0200(m).toXML
-        }
+        val node = CMRequestRegistrationOnlineXMLMessageV0200(message.value).toXML
         (node \\ "ECPartFact").text shouldBe "90"
         (node \\ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0020000000000000000000020901971"
       }

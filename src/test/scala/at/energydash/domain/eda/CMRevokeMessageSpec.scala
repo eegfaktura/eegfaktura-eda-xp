@@ -1,13 +1,13 @@
 package at.energydash.domain.eda
 //import model.enums.EbMsProcessType._
-import org.apache.pekko.util.ByteString
 import at.energydash.domain.EbMsMessage
 import io.circe.generic.auto._
 import io.circe.parser.decode
+import org.scalatest.{EitherValues, OptionValues, TryValues}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
+class CMRevokeMessageSpec extends AnyWordSpec with Matchers with EitherValues with OptionValues with TryValues {
   import at.energydash.domain.JsonImplicit._
 
   "Revoke Message" should {
@@ -32,22 +32,10 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
 
       val message = decode[EbMsMessage](jsonObjectStr)
 
-      val node = message match {
-        case Right(m) => MessageHelper.getEdaMessageByType(m).get.toXML
-      }
+      val node = MessageHelper.getEdaMessageByType(message.value).value.toXML
 
       (node \ "ProcessDirectory" \ "ConsentEnd" ).text should fullyMatch regex """[12][0-9]{3}-[01][0-9]-[0-3][0-9]"""
       (node \ "ProcessDirectory" \ "ConsentEnd" ).text shouldBe  "2023-03-31"
-
-//      val obj = CMRevokeXMLMessageV0100.fromXML(node.asInstanceOf[Elem])
-//      obj match {
-//        case Success(o) =>
-//          o.message.messageCodeVersion shouldBe Some("01.01")
-//          o.message.messageCode shouldBe EbMsMessageType.EDA_MSG_AUFHEBUNG_CCMI
-//          o.message.sender shouldBe "TE000001"
-//          o.message.responseData.get.head.ConsentEnd shouldBe Some(1680213600000L)
-//          o.message.responseData.get.head.MeteringPoint shouldBe Some("AT0030000000000000000000000000101")
-//      }
     }
   }
 
@@ -71,15 +59,11 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers {
           | "consentEnd":1718920800000}""".stripMargin
       val message = decode[EbMsMessage](jsonObjectStr)
 
-      val requestObj = message match {
-        case Right(m) =>
-          CMRevokeRequest(m).getVersion().get
-      }
+      val requestObj = CMRevokeRequest(message.value).getVersion().success.value
 
       val node = requestObj.toXML
       (node \ "ProcessDirectory" \ "ConsentEnd" ).text shouldBe  "2024-06-21"
-
-      val doc = requestObj.toByte
+      requestObj.toByte.success.value.utf8String should include ("2024-06-21")
     }
   }
 }
