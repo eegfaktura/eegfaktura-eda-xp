@@ -19,7 +19,7 @@ on that date; the other rows are taken over from the build files and still have 
 |---|---|---|---|---|
 | Apache Pekko (actor-typed, stream, persistence-typed, serialization-jackson, discovery, slf4j) | 1.2.1 | Apache-2.0 | compile | open |
 | Apache Pekko HTTP (http, http-xml) | 1.2.0 | Apache-2.0 | compile | open |
-| Apache Pekko Connectors MQTT (mqtt, mqtt-streaming) | 1.1.0 | Apache-2.0 | compile | open |
+| Apache Pekko Connectors MQTT (mqtt) | 1.1.0 | Apache-2.0 | compile | open |
 | com.github.pjfanning:pekko-http-circe | 3.1.0 | Apache-2.0 | compile | open |
 | io.circe (core, generic, parser) | 0.14.3 | Apache-2.0 | compile | open |
 | com.typesafe.slick (slick, slick-hikaricp) | 3.5.1 | BSD-2-Clause | compile | open |
@@ -28,9 +28,7 @@ on that date; the other rows are taken over from the build files and still have 
 | org.flywaydb:flyway-core, flyway-database-postgresql | 10.20.0 | Apache-2.0 | compile (the only Flyway since 2026-10-08) | open |
 | org.scala-lang.modules:scala-xml | 2.3.0 | Apache-2.0 | compile | open |
 | jakarta.xml.bind:jakarta.xml.bind-api | 4.0.2 | EDL-1.0 (BSD-3-Clause) | compile | open |
-| javax.xml.bind:jaxb-api, com.sun.xml.bind:jaxb-core | 2.3.0 | CDDL-1.1 / GPL-2.0 with Classpath Exception | compile | open |
 | com.github.daddykotex:courier | 3.0.1 | MIT | compile (MAIL transport, unused) | open |
-| com.typesafe.scala-logging:scala-logging | 3.9.5 | Apache-2.0 | compile | open |
 | ch.qos.logback:logback-classic | 1.5.6 | EPL-1.0 / LGPL-2.1 | compile | open |
 | org.slf4j:jcl-over-slf4j | 2.0.13 | Apache-2.0 | compile | open |
 | org.slf4j:jul-to-slf4j | 2.0.17 (2025-02-25) | MIT | compile (java.util.logging through the log encoder; the version of the resolved slf4j-api) | 2026-11-02 (POM, LICENSE) |
@@ -40,11 +38,14 @@ on that date; the other rows are taken over from the build files and still have 
 | org.apache.pekko: pekko-stream-testkit, pekko-actor-testkit-typed | 1.2.1 | Apache-2.0 | test | open |
 | org.jvnet.mock-javamail:mock-javamail | 1.12 | CDDL-1.0 (to confirm) | test | open |
 | com.opentable.components:otj-pg-embedded | 0.13.3 | Apache-2.0 | test (embedded PostgreSQL) | open |
-| org.mockito:mockito-scala | 1.17.31 | MIT | test | open |
 | org.scalamock:scalamock | 6.0.0 | MIT | test | open |
 | io.moquette:moquette-broker | 0.17 | Apache-2.0 | test (embedded MQTT broker) | open |
 
 Removed 2026-10-08 (test environment): `slick-testkit` (listed twice), `h2`, `flyway-core` 7.2.0 (test scope).
+
+Removed 2026-11-04 (no source reference, XP-CQ-25): `pekko-connectors-mqtt-streaming`, `javax.xml.bind:jaxb-api`,
+`com.sun.xml.bind:jaxb-core` (scalaxb is generated for Jakarta), `scala-logging` (two classes now use slf4j like the
+rest), `mockito-scala` (test; only scalamock is used).
 
 ## Images and CI
 

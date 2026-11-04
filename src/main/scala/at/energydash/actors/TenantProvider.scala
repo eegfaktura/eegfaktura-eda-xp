@@ -23,7 +23,7 @@ class TenantProvider(mqttPublisher: ActorRef[MqttCommand]) {
 
     import context.executionContext
 
-    val dbConfig = Db.getConfig
+    val dbConfig = Db.config
     val mailRepo = new SlickEmailOutboxRepository(dbConfig)
     val tenantConfigRepository = new SlickTenantConfigRepository(dbConfig)
 

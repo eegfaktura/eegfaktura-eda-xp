@@ -11,7 +11,7 @@ import org.apache.pekko.util.{ByteString, Timeout}
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish}
 import at.energydash.domain.{DefaultEbMsMessage, XmlParseHandler}
 import at.energydash.logging.LogFields
-import com.typesafe.scalalogging.StrictLogging
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
@@ -28,7 +28,9 @@ object FileService {
     new FileServiceImpl(system, mqttPublisher)
 }
 
-class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCommand])(implicit val mat: Materializer) extends FileService with StrictLogging {
+class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCommand])(implicit val mat: Materializer) extends FileService {
+  private val logger: Logger = LoggerFactory.getLogger(getClass)
+
 
   import system._
   implicit val timeout: Timeout = Timeout(5.seconds)

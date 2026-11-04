@@ -9,7 +9,7 @@ import at.energydash.domain.eda.EdaErrorMessage
 import at.energydash.mailer.EmailService.SendEmailCommand
 import at.energydash.mailer.Fetcher.{ErrorMessage, FetcherContext, MailContent, MailMessage}
 import at.energydash.mailer.{ConfiguredMailer, Fetcher}
-import at.energydash.logging.LogFields
+import at.energydash.logging.{LogFields, LogText}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.ExecutionContext
@@ -26,7 +26,8 @@ class TenantMailActor(tenantConfig: TenantConfig, mailRepo: SlickEmailOutboxRepo
 
   var tenant: String = tenantConfig.tenant
 //  val config: com.typesafe.config.Config = Config.getMailSessionConfig(tenant)
-  private val mailSession = ConfiguredMailer.getSession(tenantConfig)
+  // per worker, from the config it starts with: a changed tenant config starts a new worker (XP-CQ-27)
+  private val mailSession = ConfiguredMailer.createSession(tenantConfig)
 
   implicit val mailContext: FetcherContext = FetcherContext(tenant, mailSession, mailRepo)
 
@@ -60,9 +61,6 @@ class TenantMailActor(tenantConfig: TenantConfig, mailRepo: SlickEmailOutboxRepo
                 req.replyTo ! SendResponseError(tenant, req.email.toEmail, ex.getMessage, "Send Mail")
             }
             Behaviors.same
-          case req: DeleteEmailCommand =>
-            req.deleteMail()
-            Behaviors.same
         }
       }
     }
@@ -71,17 +69,14 @@ class TenantMailActor(tenantConfig: TenantConfig, mailRepo: SlickEmailOutboxRepo
 }
 
 object TenantMailActor {
+  private val fetchLogger: Logger = LoggerFactory.getLogger(classOf[TenantMailActor])
+
   case class FetchEmailCommand(tenant: String, subject: String, replyTo: ActorRef[MqttCommand]) extends EmailCommand {
     def fetchEmail(searchTerm: String, distributeMessage: MailContent => Unit)(implicit ex: ExecutionContext, ctx: FetcherContext): Unit /*Try[List[MailContent]]*/ = {
+      // a failed connect, login or search must be seen, or a MAIL tenant silently stops receiving (XP-CQ-20)
       Try(
         Fetcher().fetch(searchTerm, distributeMessage)
-      )
-    }
-  }
-
-  case class DeleteEmailCommand(tenant: String, messageId: String) extends EmailCommand {
-    def deleteMail()(implicit ctx: FetcherContext): Unit = {
-      Fetcher().deleteById(messageId)
+      ).failed.foreach(e => fetchLogger.error(s"Fetching mails failed: ${LogText.exceptionText(e.getClass.getName, e.getMessage)}", e))
     }
   }
 

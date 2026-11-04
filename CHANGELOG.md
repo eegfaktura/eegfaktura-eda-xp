@@ -8,7 +8,7 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
-Logging only (dev#45): topics, payloads, the answer to Ponton and mails do not change.
+Logging (dev#45) and a code-quality cleanup: topics, payloads, the answer to Ponton and mails do not change.
 
 ### Added
 - **`deployment.environment` on every line**, from the new variable `DEPLOYMENT_ENVIRONMENT`; left out when unset.
@@ -52,6 +52,33 @@ Logging only (dev#45): topics, payloads, the answer to Ponton and mails do not c
   sender of an MQTT request, the tenant configuration of the mail actors.
 - **`message` of a log line** is masked like the error text: an e-mail address reads `<address>`, also a Message-ID
   or a Ponton id of that shape.
+
+### Fixed
+- **A MAIL tenant uses its current mail config after an update** (code-quality review XP-CQ-27). JavaMail sessions were
+  cached per tenant for the life of the process: after a tenant's mail host or credentials changed over gRPC, the new
+  mail worker kept the old ones until the pod restarted. Each worker now builds its session from the config it starts
+  with.
+- **One database connection pool per process, closed on shutdown** (XP-CQ-12). Conversation store, aggregator and
+  tenant provider each opened their own pool, and the tenant provider opened another one on every restart after a
+  failure without closing the old one. The one pool has the capacity of the three before: `slick.pgsql.local.db`
+  `maxConnections`/`numThreads` 24, `minConnections` 6 in `reference.conf`. **Operators:** a mounted
+  `application.conf` that sets 8/2/8 itself (gitops `cm-xp-adapter-config`, pilot patch) needs 24/6/24 with this
+  release, or the process runs with a third of the former capacity.
+- **A failed mailbox fetch is logged** (XP-CQ-20). A failed IMAP connect, login or search was dropped without a
+  trace, so a MAIL tenant could stop receiving unnoticed; mailbox and connection are now also closed after an error,
+  and a failing close does not hide the original error.
+
+### Removed
+- Code-quality cleanup (no behaviour change): unused classes, protocol messages, repository methods, config helpers
+  and commented-out code (XP-CQ-3/4/5/6/9/13/14/16/18/23); the unused config keys
+  `epmsmail.mqtt.topics.energyTopic`, `cmTopic`, `cpTopic`; the old `migration.sql` (Flyway never read it), committed
+  broker data under `data/`, an unused WSDL and a sample request; the unused dependencies
+  `pekko-connectors-mqtt-streaming`, `jaxb-api`, `jaxb-core`, `scala-logging` and `mockito-scala` (XP-CQ-15/25/35).
+
+### Tests
+- **Green in any spec order on a loaded host** (XP-CQ-37/40/41/43): embedded PostgreSQL on a free port with a 60 s
+  start wait and no orphaned server after a failed start; no JVM-wide XML limit and no shared mail sessions between
+  specs; the process scenarios wait for the stored conversation before answering; one thread-safe log capture.
 
 ### Security
 - Security relevant log lines fixed (dev#45 L4, L5); details not published.

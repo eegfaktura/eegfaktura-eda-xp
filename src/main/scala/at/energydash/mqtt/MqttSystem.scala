@@ -77,11 +77,7 @@ object MqttProtocol {
 
   case object MQTTConnected extends MqttCmd
 
-  case object StreamCompleteInmediate extends MqttCmd
-
   case class TerminatedWithError(err: Throwable) extends MqttCmd
-
-  case class CamFinished(id: String) extends MqttCmd
 
   case object TerminatedOk extends MqttCmd
 

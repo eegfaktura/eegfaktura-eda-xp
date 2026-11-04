@@ -2,20 +2,31 @@ package at.energydash.domain.dao
 
 import com.github.tminglei.slickpg.json.PgJsonExtensions
 import com.github.tminglei.slickpg._
+import org.apache.pekko.Done
+import org.apache.pekko.actor.CoordinatedShutdown
+import org.apache.pekko.actor.typed.ActorSystem
 import slick.basic.DatabaseConfig
 import slick.jdbc.PostgresProfile
 
-trait Db {
-
-  val db: PostgresProfile#Backend#Database
-  val config: DatabaseConfig[PostgresProfile]
-//  val pgDb: ExPostgresProfile#Backend#Database
-}
+import scala.concurrent.Future
 
 object Db {
-  def getConfig: DatabaseConfig[PostgresProfile] = {
+  @volatile private var created = false
+
+  /** The one connection pool of the JVM (XP-CQ-12); it opens on first use and is closed by [[close]]. */
+  lazy val config: DatabaseConfig[PostgresProfile] = {
+    created = true
     DatabaseConfig.forConfig[PostgresProfile]("slick.pgsql.local")
   }
+
+  /** Closes the pool if it was ever used; a process that never used it does not open one to close it. */
+  def close(): Unit = if (created) config.db.close()
+
+  /** Closes the pool (or runs `close`) when `system` shuts down, after the services have stopped. */
+  def closeOnShutdown(system: ActorSystem[_], close: () => Unit = () => Db.close()): Unit =
+    CoordinatedShutdown(system).addTask(CoordinatedShutdown.PhaseBeforeActorSystemTerminate, "close-database-pool") { () =>
+      Future { close(); Done }(system.executionContext)
+    }
 }
 
 trait PostgresProfiler

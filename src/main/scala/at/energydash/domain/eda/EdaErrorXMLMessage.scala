@@ -1,11 +1,10 @@
 package at.energydash.domain.eda
 
 import at.energydash.domain.EbMsMessage
-import at.energydash.domain.enums.EbMsMessageType
 import scalaxb.CanWriteXML
 
 import scala.util.Try
-import scala.xml.{Elem, NamespaceBinding, Node, NodeSeq}
+import scala.xml.{NamespaceBinding, Node, NodeSeq}
 
 case class EdaErrorMessage(message: EbMsMessage) extends EdaMessage {
 
@@ -22,36 +21,4 @@ case class EdaErrorXMLMessage(message: EbMsMessage) extends EdaXMLMessage[String
   override def toScope: NamespaceBinding = scalaxb.toScope((None -> "" ))
   override def toXML: Node = NodeSeq.Empty.head
 
-}
-
-object EdaErrorXMLMessage extends EdaResponseType {
-  def fromXML(xmlFile: Elem): Try[EdaErrorMessage] = {
-    Try(EdaErrorMessage(
-      EbMsMessage(
-        messageCode = EbMsMessageType.ERROR_MESSAGE,
-        messageCodeVersion = Some("01.00"),
-        conversationId = "1",
-        messageId = None,
-        sender = "",
-        receiver = "",
-        errorMessage = Some((xmlFile \ "ReasonText").text)
-      )
-    ))
-  }
-}
-
-object EdaWrongVersionXMLMessage extends EdaResponseType {
-  def fromXML(xmlFile: Elem): Try[EdaErrorMessage] = {
-    Try(EdaErrorMessage(
-      EbMsMessage(
-        messageCode = EbMsMessageType.ERROR_MESSAGE,
-        messageCodeVersion = Some("01.00"),
-        conversationId = "1",
-        messageId = None,
-        sender = "",
-        receiver = "",
-        errorMessage = Some("Wrong Process Version")
-      ))
-    )
-  }
 }

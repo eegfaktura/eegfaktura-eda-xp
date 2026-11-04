@@ -3,7 +3,7 @@ package at.energydash.actors
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, TimerScheduler}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import at.energydash.actors.MqttPublisher.MqttCommand
-import at.energydash.actors.TenantMailActor.{DeleteEmailCommand, FetchEmailCommand}
+import at.energydash.actors.TenantMailActor.FetchEmailCommand
 import at.energydash.config.Config
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.dao.{SlickEmailOutboxRepository, TenantConfig}
@@ -51,10 +51,6 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
               mailActor ! FetchEmailCommand(tenant.tenant, "", mqttPublisher)
               Behaviors.same
 
-            case WaitResponse =>
-              mailActor ! FetchEmailCommand(tenant.tenant, "", mqttPublisher)
-              Behaviors.same
-
             case SendEdaCommand(message, replyTo) =>
               prepareEmail(message) match {
                 case Some(email) => /*m match {*/
@@ -75,10 +71,6 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
                 case None =>
                   replyTo ! SendResponseError(tenant.tenant, message.receiver, s"No XML mapping or wrong mapping for message type ${message.messageCode}", "Send Mail")
               }
-              Behaviors.same
-
-            case msg: DeleteEmailCommand =>
-              mailActor ! msg
               Behaviors.same
 
             case GracefulShutdown =>
@@ -132,8 +124,6 @@ object FetchMailTenantWorker {
   private case object TimerKey
 
   private case object Refresh extends EdaCommand
-
-  private case object WaitResponse extends EdaCommand
 
   case object GracefulShutdown extends EdaCommand
   //  case class EmitSendEmailCommand(email: EmailModel, replyTo: ActorRef[EmailCommand]) extends EdaCommand

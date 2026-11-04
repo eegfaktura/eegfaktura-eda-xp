@@ -9,19 +9,6 @@ import javax.mail.{PasswordAuthentication, Provider, Session}
 
 object ConfiguredMailer {
 
-  var sessionStore: Map[String, Session] = Map.empty
-
-  def getSession(config: TenantConfig): Session = {
-    sessionStore.get(config.tenant) match {
-      case Some(session) => session
-      case None => {
-        val session = createSession(config)
-        sessionStore = sessionStore ++ Seq(config.tenant -> session)
-        session
-      }
-    }
-  }
-
   def createSession(config: TenantConfig): Session = {
     //First convert the config to a java.util.Properties
     import scala.jdk.CollectionConverters._

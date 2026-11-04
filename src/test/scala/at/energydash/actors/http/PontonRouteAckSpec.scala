@@ -1,19 +1,17 @@
 package at.energydash.actors.http
 
 import at.energydash.actors.MqttPublisher.{MqttCommand, MqttPublish}
+import at.energydash.testsupport.LogCapture
 import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.classic.{Level, Logger => LogbackLogger}
-import ch.qos.logback.core.read.ListAppender
+import ch.qos.logback.classic.Level
 import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
 import org.apache.pekko.http.scaladsl.Http
 import org.apache.pekko.http.scaladsl.model._
 import org.apache.pekko.http.scaladsl.model.headers.RawHeader
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
-import scala.jdk.CollectionConverters._
 
 // 261005-ca1: an inbound message is answered 204 only once it is in the MQTT publishing stream
 class PontonRouteAckSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
@@ -34,14 +32,7 @@ class PontonRouteAckSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
     Http().singleRequest(HttpRequest(HttpMethods.POST, uri, soapAction :: Nil, HttpEntity(ContentTypes.`text/xml(UTF-8)`, envelope)))
       .map { res => res.discardEntityBytes(); res.status }
 
-  private def withLog[T](test: (() => List[ILoggingEvent]) => T): T = {
-    val logger = LoggerFactory.getLogger(classOf[PontonRoute]).asInstanceOf[LogbackLogger]
-    val appender = new ListAppender[ILoggingEvent]()
-    appender.start()
-    logger.addAppender(appender)
-    try test(() => appender.synchronized(appender.list.asScala.toList))
-    finally logger.detachAppender(appender)
-  }
+  private def withLog[T](test: (() => List[ILoggingEvent]) => T): T = LogCapture.during(classOf[PontonRoute].getName)(test)
 
   "the message route" should {
     "answer 204 only once the message is handed to MQTT" in {

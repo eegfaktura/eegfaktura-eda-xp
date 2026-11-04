@@ -6,32 +6,20 @@ import at.energydash.domain.enums.EbMsProcessType
 import at.energydash.domain.enums.EbMsProcessType.EbMsProcessType
 import at.energydash.utils.Base58
 import at.energydash.utils.zip.CRC8
-import org.slf4j.{Logger, LoggerFactory}
 
 import java.text.SimpleDateFormat
-import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, ZoneId}
 import java.util.zip.CRC32
 import java.util._
-import scala.language.implicitConversions
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 
 object MessageHelper {
 
-  var logger: Logger = LoggerFactory.getLogger(this.getClass)
-
-    implicit def toOptionSE(t: Try[EdaXMLMessage[_]]): Option[EdaXMLMessage[_]] = t match {
-      case Success(s) => Some(s)
-      case Failure(ex) =>
-        logger.error("EDA message not built", ex)
-        None
-    }
-
   /**
    * Extract Message Type for Sending to Marktteilnehmer.
    */
-  // .toOption on purpose (not the implicit toOptionSE): the reason is already logged where it arises
+  // the reason is already logged where it arises
   def getEdaMessageByType(message: EbMsMessage): Option[EdaXMLMessage[_]] = getEdaMessageByTypeTry(message).toOption
 
   /**
@@ -49,49 +37,7 @@ object MessageHelper {
       case CHANGE_METER_PARTITION => ECPartitionChangeMessage(message).getVersion()
       case _ => Failure(new IllegalArgumentException(s"No XML mapping for message type ${message.messageCode}"))
     })
-//    matcn {
-//      case Success(obj) => Some(obj)
-//      case Failure(exception) => None
-//
-//    }
   }
-
-  //  /**
-  //   * Lookup for Message object according to Message type. Incoming messages.
-  //   * @param processCode
-  //   * @param version
-  //   * @return
-  //   */
-  //  def getEdaMessageFromHeader(processCode: EbMsProcessType, version: String): Option[EdaResponseType] = {
-  //    processCode match {
-  //      case PROCESS_ENERGY_RESPONSE => {
-  //        version match {
-  //          case "03.03" => Some(ConsumptionRecordMessageV0303)
-  //          case "03.10" => Some(ConsumptionRecordMessageV0410)
-  //          case _ => Some(ConsumptionRecordMessageV0130)
-  //        }
-  //      }
-  //      case EbMsProcessType.PROCESS_REGISTER_ONLINE =>
-  //        version match {
-  //          case "02.00" => Some(CMRequestRegistrationOnlineXMLMessageV0200)
-  //          case _ => Some(CMRequestRegistrationOnlineXMLMessageV0110)
-  //        }
-  //      case EbMsProcessType.PROCESS_REGISTER_OFFLINE => Some(CMRequestOfflineRegistrationXMLMessage)
-  //      case EbMsProcessType.PROCESS_LIST_METERINGPOINTS => Some(CPRequestZPListXMLMessage)
-  //      case EbMsProcessType.PROCESS_METERINGPOINTS_VALUE => Some(CPRequestMeteringValueXMLMessage)
-  //      case EbMsProcessType.PROCESS_REVOKE_VALUE | EbMsProcessType.PROCESS_REVOKE_CUS => Some(CMRevokeXMLMessageV0100)
-  //      case EbMsProcessType.PROCESS_REVOKE_SP => Some(CMRevokeRequestV0100)
-  //      case EbMsProcessType.PROCESS_EC_PRTFACT_CHANGE => {
-  //        version match {
-  //          case "01.00" => Some(ECPartitionChangeXMLMessage)
-  //          case _ => Some(EdaWrongVersionXMLMessage)
-  //        }
-  //      }
-  //      case _ =>
-  //        logger.warn(s"Wrong ProcessCode: ${processCode}")
-  //        None
-  //    }
-  //  }
 
   def EDAMessageCodeToProcessCode(msCode: EbMsMessageType): EbMsProcessType = {
     msCode match {
@@ -170,65 +116,15 @@ object MessageHelper {
   }
 
   def buildCalendarDate(date: Date): String = {
-//    val format = new SimpleDateFormat("yyyy-MM-dd", new Locale("de", "AT"))
-//    format.format(date)
-
-//    val format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", new Locale("de", "AT"))
-//    format.setTimeZone(TimeZone.getTimeZone("CET"));
-//    format.format(date)
-
     date.toInstant.atZone(ZoneId.of("Europe/Vienna")).toLocalDate.toString
   }
 
-
-//  def buildCalendarDate(date: Date): GregorianCalendar = {
-//    //    val format = new SimpleDateFormat("yyyy-MM-dd", new Locale("de", "AT"))
-//    //    format.format(date)
-//
-//    //    val format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", new Locale("de", "AT"))
-//    //    format.setTimeZone(TimeZone.getTimeZone("CET"));
-//    //    format.format(date)
-//
-//    GregorianCalendar.from(
-//      date.toInstant.atZone(ZoneId.of("Europe/Vienna"))
-//    )
-//  }
-
-//  def buildCalendarDateFromString(d: String): GregorianCalendar =
-
   def getProcessDate: String = {
-    //    val processDate = new GregorianCalendar(TimeZone.getTimeZone("Europe/Vienna"), new Locale("de", "AT"))
-    //    processDate.add(Calendar.DAY_OF_MONTH, 1)
-    //    processDate
-    //      val z = ZoneId.of("Europe/Vienna")
-    //      GregorianCalendar.from(
-    //        LocalDate.now(z).plusDays(1).atStartOfDay(z)
-    //      )
     getNow(Some(1L)).toString
   }
 
   def getNow(add: Option[Long] = None): LocalDate = {
     val z = ZoneId.of("Europe/Vienna")
     LocalDate.now(z).plusDays(add.getOrElse(0L))
-  }
-
-  def formatLocalDate(l: LocalDate):String = l.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-
-  def getProcessTime(message: String): GregorianCalendar = {
-    val processDate = new GregorianCalendar(new Locale("de", "AT"))
-    processDate.set(Calendar.MILLISECOND, 0)
-
-    message match {
-      case "ANFORDERUNG_CPF" =>
-        processDate.add(Calendar.DAY_OF_MONTH, 1)
-        if (processDate.get(Calendar.HOUR_OF_DAY) > 16) {
-          processDate.set(Calendar.HOUR_OF_DAY, 16)
-          processDate.set(Calendar.MINUTE, 59)
-          processDate.set(Calendar.SECOND, 0)
-        }
-      case _ =>
-        processDate.add(Calendar.DATE, 1)
-    }
-    processDate
   }
 }

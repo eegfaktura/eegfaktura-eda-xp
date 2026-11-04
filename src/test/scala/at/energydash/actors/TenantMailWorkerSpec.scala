@@ -14,7 +14,7 @@ import scala.concurrent.duration.DurationInt
 class TenantMailWorkerSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with BeforeAndAfter with EmbeddedDb with EmailMock {
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val dbConfig = Db.getConfig
+  val dbConfig = Db.config
   val mailRepo = new SlickEmailOutboxRepository(dbConfig)
   val tenantConfig = TenantConfig(tenant = "TE100100", cType = "KEP", Some("email.com"),  None, None, None, None, None, None, None, None, active = true)
 
