@@ -60,9 +60,13 @@ Logging (dev#45) and a code-quality cleanup: topics, payloads, the answer to Pon
   with.
 - **One database connection pool per process, closed on shutdown** (XP-CQ-12). Conversation store, aggregator and
   tenant provider each opened their own pool, and the tenant provider opened another one on every restart after a
-  failure without closing the old one.
+  failure without closing the old one. The one pool has the capacity of the three before: `slick.pgsql.local.db`
+  `maxConnections`/`numThreads` 24, `minConnections` 6 in `reference.conf`. **Operators:** a mounted
+  `application.conf` that sets 8/2/8 itself (gitops `cm-xp-adapter-config`, pilot patch) needs 24/6/24 with this
+  release, or the process runs with a third of the former capacity.
 - **A failed mailbox fetch is logged** (XP-CQ-20). A failed IMAP connect, login or search was dropped without a
-  trace, so a MAIL tenant could stop receiving unnoticed; mailbox and connection are now also closed after an error.
+  trace, so a MAIL tenant could stop receiving unnoticed; mailbox and connection are now also closed after an error,
+  and a failing close does not hide the original error.
 
 ### Removed
 - Code-quality cleanup (no behaviour change): unused classes, protocol messages, repository methods, config helpers
