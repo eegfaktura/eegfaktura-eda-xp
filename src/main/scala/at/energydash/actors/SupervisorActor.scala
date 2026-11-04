@@ -7,7 +7,6 @@ import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.http.scaladsl.Http
 import at.energydash.actors.http.{AccessLog, BodySizeLimit, HealthRoute, InboundForwarding, PontonRoute, ServiceRoute}
 import at.energydash.config.Config
-import at.energydash.domain.dao.Db
 import at.energydash.mqtt.MqttSystem
 import at.energydash.service.FileService
 import at.energydash.stream.MqttRequestStream
@@ -50,13 +49,11 @@ object SupervisorActor {
     AdminServer.apply(tenantProvider, system)
   }
 
-  /** `closeDatabaseOnShutdown`: the process's application (XpAdapter); a test system must not close the JVM's pool. */
-  def apply(closeDatabaseOnShutdown: Boolean = false): Behavior[Command] =
+  def apply(): Behavior[Command] =
     Behaviors.setup { implicit ctx =>
       implicit val system: ActorSystem[Nothing] = ctx.system
 
       ctx.setLoggerName("Supervisor")
-      if (closeDatabaseOnShutdown) Db.closeOnShutdown(system)
       val conversationEntity = ctx.spawn(ConversationEntity(), name = "conversationentity")
 
       val ebMsAggregator = ctx.spawn(EbMsAggregator(conversationEntity), name = "ebMsAggregator")

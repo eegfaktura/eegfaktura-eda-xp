@@ -11,10 +11,16 @@ import slick.jdbc.PostgresProfile
 import scala.concurrent.Future
 
 object Db {
-  /** The one connection pool of the JVM (XP-CQ-12); it opens on first use and is closed by [[close]]. */
-  lazy val config: DatabaseConfig[PostgresProfile] = DatabaseConfig.forConfig[PostgresProfile]("slick.pgsql.local")
+  @volatile private var created = false
 
-  def close(): Unit = config.db.close()
+  /** The one connection pool of the JVM (XP-CQ-12); it opens on first use and is closed by [[close]]. */
+  lazy val config: DatabaseConfig[PostgresProfile] = {
+    created = true
+    DatabaseConfig.forConfig[PostgresProfile]("slick.pgsql.local")
+  }
+
+  /** Closes the pool if it was ever used; a process that never used it does not open one to close it. */
+  def close(): Unit = if (created) config.db.close()
 
   /** Closes the pool (or runs `close`) when `system` shuts down, after the services have stopped. */
   def closeOnShutdown(system: ActorSystem[_], close: () => Unit = () => Db.close()): Unit =
