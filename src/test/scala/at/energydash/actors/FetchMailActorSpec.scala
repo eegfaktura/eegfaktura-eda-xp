@@ -11,13 +11,9 @@ import courier.Multipart
 import org.jvnet.mock_javamail.Mailbox
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.io.FileInputStream
-import java.nio.file.{FileSystems, Files}
 import javax.mail.Message
 import javax.mail.internet.{InternetAddress, MimeMessage}
-//import scala.collection.JavaConverters._
 import scala.io.Source
-import scala.jdk.CollectionConverters._
 import scala.xml.XML
 
 class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with at.energydash.EmbeddedDb {
@@ -28,19 +24,6 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   val tenantConfig = TenantConfig("myeeg", "KEP", Some("email.com"), Some("email.com"), Some(0), Some("smtp.mail.com"), Some(0), Some("sepp"), Some("password"), Some(""), Some(""), true)
   val emailRepo = new SlickEmailOutboxRepository(Db.config)
   val rand = new scala.util.Random
-
-//  override def afterAll: Unit = {
-//    TestKit.shutdownActorSystem(system)
-//  }
-  def loadManyMails(): Unit = {
-    val session = ConfiguredMailer.createSession(tenantConfig)
-
-    val dir = FileSystems.getDefault.getPath("/home/petero/projects/energycash/scripts/rc100298-aug")
-    val emails = Files.walk(dir).iterator().asScala.filter(Files.isRegularFile(_))
-      .map(f => new MimeMessage(session, new FileInputStream(f.toFile)))
-
-    Mailbox.get("sepp@email.com").addAll(emails.toSeq.asJava)
-  }
 
   def perpareEmail(tenant: String, xmlfile: String, subject: String): Unit = {
     val session = ConfiguredMailer.createSession(tenantConfig)
@@ -126,7 +109,6 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
     }
 
     "handle Email Success Messages" in {
-      val messageStoreProbe = createTestProbe[EdaCommand]()
       val mailActor = spawn(TenantMailActor(tenantConfig, emailRepo))
       val replyActor = createTestProbe[MqttCommand]()
 
@@ -171,7 +153,6 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
     }
 
     "handle Error EmailMessages" in {
-      val messageStoreProbe = createTestProbe[EdaCommand]()
       val mailActor = spawn(TenantMailActor(tenantConfig, emailRepo))
       val replyActor = createTestProbe[MqttCommand]()
 
@@ -202,17 +183,12 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 
     "response with existing conversation id" in {
 
-      val messageStoreProbe = createTestProbe[EdaCommand]()
       val mailActor = spawn(TenantMailActor(tenantConfig, emailRepo))
       val replyActor = createTestProbe[MqttCommand]()
 
       perpareEmail("myeeg", "ANTWORT_PT.xml", "[CR_REQ_PT_03.00 MessageId=123456678]")
 
       mailActor ! FetchEmailCommand("myeeg", "", replyActor.ref)
-
-//      val storeMsg = messageStoreProbe.expectMessageType[MergeConversation] //(MessageStorage.FindById("RC100130202301231674475740000000030", _))
-//      storeMsg.replyTo ! ConversationMerged(
-//        EbMsMessage(None, "RC100001202307250000000000000000009", "sender", "receiver", ENERGY_SYNC_RES, messageCodeVersion=Some("01.00"), None, Some(Meter("meterid123456", None))))
 
       val mqttMsg = replyActor.expectMessageType[MqttPublish]
 
@@ -224,16 +200,12 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 
     "response with not existing conversation id" in {
 
-      val messageStoreProbe = createTestProbe[EdaCommand]()
       val mailActor = spawn(TenantMailActor(tenantConfig, emailRepo))
       val replyActor = createTestProbe[MqttCommand]()
 
       perpareEmail("myeeg", "ANTWORT_PT.xml", "[CR_REQ_PT_03.00 MessageId=123456678]")
 
       mailActor ! FetchEmailCommand("myeeg", "", replyActor.ref)
-
-//      val storeMsg = messageStoreProbe.expectMessageType[MergeConversation] //(MessageStorage.FindById("RC100130202301231674475740000000030", _))
-//      storeMsg.replyTo ! MergeError("RC100001202307250000000000000000009")
 
       val mqttMsg = replyActor.expectMessageType[MqttPublish]
 
@@ -245,7 +217,6 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 
     "response with existing conversation id but with all infos" in {
 
-      val messageStoreProbe = createTestProbe[EdaCommand]()
       val mailActor = spawn(TenantMailActor(tenantConfig, emailRepo))
       val replyActor = createTestProbe[MqttCommand]()
 
@@ -253,17 +224,11 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 
       mailActor ! FetchEmailCommand("myeeg", "", replyActor.ref)
 
-//      val storeMsg = messageStoreProbe.expectMessageType[MergeConversation] //(MessageStorage.FindById("RC100130202301231674475740000000030", _))
-//      storeMsg.replyTo ! ConversationMerged(
-//        EbMsMessage(None, "RC100001202307250000000000000000009", "sender", "receiver", ONLINE_REG_APPROVAL, messageCodeVersion=Some("01.00"), None, Some(Meter("meterid123456", None))))
-
       val mqttMsg = replyActor.expectMessageType[MqttPublish]
-      println(mqttMsg)
       mqttMsg.mails.head.message.meter shouldBe None
       mqttMsg.mails.head.message.responseData.get.head.ResponseCode.head shouldBe 175
       mqttMsg.mails.head.message.responseData.get.head.MeteringPoint shouldBe Some("AT0030000000000000000000000959561")
 
-//      testKit.stop(mailActor.ref)
       Mailbox.clearAll()
     }
   }
