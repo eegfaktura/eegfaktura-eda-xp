@@ -23,7 +23,7 @@ object ProtocolCatalog {
                             knownError: Option[String], expectFailure: Boolean, patch: Option[Json],
                             variant: Option[String] = None) {
     def name: String = s"$code ${label.getOrElse("<no label>")}" + variant.fold("")(v => s" ($v)") + knownError.fold("")(id => s" [$id]")
-    def goldenBase: String = s"out/${code}_${label.getOrElse("none")}"
+    def goldenBase: String = s"out/${code}_${label.getOrElse("none")}" + variant.fold("")(v => s"_${v.replace(' ', '_')}")
     /** The request is built and sent: the row has golden files (a known error states its outcome instead). */
     def sends: Boolean = !refused && !expectFailure
 

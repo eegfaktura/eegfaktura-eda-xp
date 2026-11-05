@@ -64,6 +64,18 @@ class CatalogScenarioSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike
     }
   }
 
+  "S0: unknown ecType" should {
+    // platform#229, E2: not sent as RC_L; the decoder refuses the request (error topic), nothing reaches Ponton
+    "S0: ANFORDERUNG_CPF 01.10 with an ecType eda-xp does not know" in {
+      g
+      val cpf = ProtocolCatalog.outbound.find(r => r.code == "ANFORDERUNG_CPF" && r.label.contains("01.10") && r.variant.isEmpty).get
+      request(cpf.message.asJson.deepMerge(io.circe.Json.obj("ecType" -> io.circe.Json.fromString("PC"))))
+      val error = await("eda/response/error")
+      error.hcursor.downField("errorMessage").as[String].toOption.get shouldBe "Parse Payload"
+      awaitPonton(1, 300.millis) shouldBe empty
+    }
+  }
+
   "S0: inbound" should {
     ProtocolCatalog.inbound.filter(r => r.via == "ponton" || r.via == "upload").foreach { row =>
       s"S0: ${row.name}" in {

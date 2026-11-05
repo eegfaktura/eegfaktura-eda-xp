@@ -80,11 +80,15 @@ object ECMPListV0120Document {
       ConversationId = message.conversationId,
       ProcessDate = Helper.toCalendar(getProcessDate),
       ECID = Some(message.ecId.getOrElse(throw new IllegalArgumentException("ANFORDERUNG_CPF without ecId"))),
+      // no default: a missing type is not sent as RC_L (platform#229, E2)
       ECType = Some(message.ecType match {
         case Some(EcTypeEnum.GEA) => ecmplist.v01p20.GC
         case Some(EcTypeEnum.REGIONAL) => ecmplist.v01p20.RC_R
+        case Some(EcTypeEnum.LOCAL) => ecmplist.v01p20.RC_L
         case Some(EcTypeEnum.BEG) => ecmplist.v01p20.CC
-        case _ => ecmplist.v01p20.RC_L
+        case Some(EcTypeEnum.P2P) => ecmplist.v01p20.PP
+        case Some(EcTypeEnum.EVA) => ecmplist.v01p20.SC
+        case other => throw new IllegalArgumentException(s"ANFORDERUNG_CPF without a known ecType (${other.getOrElse("<none>")})")
       }),
       ECDisModel = Some(message.ecDisModel match {
         case Some(EcDisModelEnum.STATIC) => ecmplist.v01p20.S
