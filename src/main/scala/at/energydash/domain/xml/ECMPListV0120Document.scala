@@ -42,13 +42,17 @@ class ECMPListV0120Document(doc: ecmplist.v01p20.ECMPList) {
               to = Some(mp.DateTo.toGregorianCalendar.getTime),
               share = mp.ECShare,
               consentId = m.ConsentId,
-              techCode = mp.TechCode,
-              fuelCode = mp.FuelCode
+              techCode = code(mp.TechCode),
+              fuelCode = code(mp.FuelCode)
             ))
         )
       )
     )
   }
+
+  /** TechCode/FuelCode with the XSD's whiteSpace="collapse" applied (scalaxb does not); blank = absent. */
+  private def code(value: Option[String]): Option[String] =
+    value.map(_.trim.replaceAll("\\s+", " ")).filter(_.nonEmpty)
 
   /** ECZoneLevel 1–7 (Nahebereich, platform#229); any other value is dropped with a warning. */
   private def zoneLevel: Option[Int] = doc.ProcessDirectory.ECZoneLevel.map(_.trim).flatMap { z =>

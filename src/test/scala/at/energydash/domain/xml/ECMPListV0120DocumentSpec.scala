@@ -25,5 +25,14 @@ class ECMPListV0120DocumentSpec extends AnyWordSpec with Matchers {
       }
       ECMPListV0120Document(withZone(None)).toMessage.ecZoneLevel shouldBe None
     }
+    "collapse white space in TechCode/FuelCode and treat a blank code as absent" in {
+      def withCodes(tech: Option[String], fuel: Option[String]) = {
+        val first = doc.ProcessDirectory.MPListData.head
+        val td = first.MPTimeData.head.copy(TechCode = tech, FuelCode = fuel)
+        doc.copy(ProcessDirectory = doc.ProcessDirectory.copy(MPListData = Seq(first.copy(MPTimeData = Seq(td)))))
+      }
+      val m = ECMPListV0120Document(withCodes(Some(" PV "), Some(" "))).toMessage.meterList.get.head
+      (m.techCode, m.fuelCode) shouldBe ((Some("PV"), None))
+    }
   }
 }
