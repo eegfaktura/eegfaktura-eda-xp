@@ -1,0 +1,12 @@
+// Excerpt of eegfaktura-backend model/Eeg.go: the community types (EEG.area), sent as EbmsMessage.ecType.
+// P2P and EVA: contract of vfeeg-development/eegfaktura-platform#229 (backend feat/p2p-eva).
+type AreaType string
+
+const (
+	LOCAL    AreaType = "LOCAL"
+	REGIONAL AreaType = "REGIONAL"
+	BEG      AreaType = "BEG"
+	GEA      AreaType = "GEA"
+	P2P      AreaType = "P2P"
+	EVA      AreaType = "EVA"
+)

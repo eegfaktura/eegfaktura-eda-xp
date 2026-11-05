@@ -2,7 +2,7 @@ package at.energydash.contract
 
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.eda.MessageHelper
-import at.energydash.domain.enums.EbMsMessageType
+import at.energydash.domain.enums.{EbMsMessageType, EcTypeEnum}
 import at.energydash.mqtt.path.MqttPaths
 import at.energydash.testsupport.{Fixtures, LogCapture, ProtocolCatalog}
 import io.circe.Json
@@ -48,6 +48,15 @@ class BackendContractSpec extends AnyWordSpec with Matchers {
       val m = decode[EbMsMessage](request).fold(e => fail(e.toString), identity)
       (m.meter.flatMap(_.partFact), m.meterList.map(_.size), m.ecId, m.consentEnd.map(_.getTime)) shouldBe
         ((Some(BigDecimal(50)), Some(1), Some("EC"), Some(4102354800000L)))
+    }
+    "know every community type the backend sends as ecType and build a CPF 01.10 for each (platform#229)" in {
+      val areas = """AreaType = "([A-Z0-9_]+)"""".r.findAllMatchIn(Fixtures.text("contract/backend/area.go.txt")).map(_.group(1)).toSet
+      areas shouldBe EcTypeEnum.values.map(_.toString)
+      val cpf = ProtocolCatalog.outbound.find(r => r.code == "ANFORDERUNG_CPF" && r.label.contains("01.10") && r.variant.isEmpty).get.message
+      areas.foreach { a =>
+        val built = MessageHelper.getEdaMessageByTypeTry(cpf.copy(ecType = Some(EcTypeEnum.withName(a)))).flatMap(_.toByte)
+        withClue(a)(built.isSuccess shouldBe true)
+      }
     }
   }
 
