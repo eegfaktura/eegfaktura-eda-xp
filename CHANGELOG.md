@@ -9,8 +9,14 @@ this changelog highlights the changes relevant for overview and operations.
 ## [Unreleased]
 
 Logging (dev#45) and a code-quality cleanup: topics, payloads, the answer to Ponton and mails do not change.
+Peer-to-Peer and Eigenversorgung (vfeeg-development/eegfaktura-platform#229): the participation-factor change
+(ANFORDERUNG_CPF) to the grid operator carries `PP`/`SC`, and no longer `RC_L` for a missing type.
 
 ### Added
+- **Community types `P2P` and `EVA`** in `ecType` of `eda/request` (platform#229). The ANFORDERUNG_CPF in
+  EC_PRTFACT_CHANGE 01.10 (ECMPList 01p20) carries `ECType` `PP` resp. `SC`. Before, a request with one of these
+  values failed at the decoder. **Deploy order:** eda-xp → backend → billing, admin-backend → admin, web → operator
+  SQL (PP100784, PP102502, PP102524 to `P2P`).
 - **`deployment.environment` on every line**, from the new variable `DEPLOYMENT_ENVIRONMENT`; left out when unset.
   **Operators:** set it per zone (`dev`, `pilot`, `prod`) in the deployment.
 - **One start-up line** `service start` (`event.action=service.start`, `log.effective_level`, logger
@@ -23,6 +29,11 @@ Logging (dev#45) and a code-quality cleanup: topics, payloads, the answer to Pon
   of a value (whole words, every segment of a dotted value).
 
 ### Changed
+- **No `RC_L` default in the ANFORDERUNG_CPF any more** (platform#229, E2). A request without `ecType`, or with
+  `P2P`/`EVA` in version 01.00 (ECMPList 01p10 knows no `PP`/`SC`), is not built: nothing goes to the grid operator,
+  the sender gets the error on `eda/response/<tenant>/protocol/error` (as for a missing `ecId`). An `ecType` eda-xp
+  does not know still fails at the decoder (`eda/response/error`, "Parse Payload"). `LOCAL` stays `RC_L`; the
+  documents for `LOCAL`, `REGIONAL`, `BEG` and `GEA` are unchanged. Prod held only these four on 05.11.2026.
 - **`request.id` and `tenant.id` on the lines of an HTTP request** on port 6090, not only on the access line
   (`tenant.id` once the message is parsed). HTTP only: nothing travels over MQTT or gRPC. Lines of the actors a message
   passes after the route (`MqttPublisher`, `EbMsAggregator`, `ConversationEntity`, `MqttSystem`) do not carry them.
@@ -76,6 +87,11 @@ Logging (dev#45) and a code-quality cleanup: topics, payloads, the answer to Pon
   `pekko-connectors-mqtt-streaming`, `jaxb-api`, `jaxb-core`, `scala-logging` and `mockito-scala` (XP-CQ-15/25/35).
 
 ### Tests
+- **P2P/EVA** (platform#229): golden files `ANFORDERUNG_CPF_01.10_P2P` (`PP`) and `_EVA` (`SC`); catalog rows for a
+  missing `ecType` (01.00, 01.10) and for `P2P`/`EVA` in 01.00, which must fail unsent; a scenario for an unknown
+  `ecType` (decode error, nothing at Ponton); `BackendContractSpec` checks the backend's `AreaType` values (new copy
+  `contract/backend/area.go.txt`) against `EcTypeEnum`; `contract/backend/mqtt.go.txt` refreshed to backend `e82a0d0`.
+  A catalog row with a variant that sends gets its own golden file (`<code>_<label>_<variant>`).
 - **Green in any spec order on a loaded host** (XP-CQ-37/40/41/43): embedded PostgreSQL on a free port with a 60 s
   start wait and no orphaned server after a failed start; no JVM-wide XML limit and no shared mail sessions between
   specs; the process scenarios wait for the stored conversation before answering; one thread-safe log capture.
