@@ -49,14 +49,9 @@ class BackendContractSpec extends AnyWordSpec with Matchers {
       (m.meter.flatMap(_.partFact), m.meterList.map(_.size), m.ecId, m.consentEnd.map(_.getTime)) shouldBe
         ((Some(BigDecimal(50)), Some(1), Some("EC"), Some(4102354800000L)))
     }
-    "know every community type the backend sends as ecType and build a CPF 01.10 for each (platform#229)" in {
+    "know every community type the backend sends as ecType (platform#229; the mapping: ECPartitionChangeSpec)" in {
       val areas = """AreaType = "([A-Z0-9_]+)"""".r.findAllMatchIn(Fixtures.text("contract/backend/area.go.txt")).map(_.group(1)).toSet
       areas shouldBe EcTypeEnum.values.map(_.toString)
-      val cpf = ProtocolCatalog.outbound.find(r => r.code == "ANFORDERUNG_CPF" && r.label.contains("01.10") && r.variant.isEmpty).get.message
-      areas.foreach { a =>
-        val built = MessageHelper.getEdaMessageByTypeTry(cpf.copy(ecType = Some(EcTypeEnum.withName(a)))).flatMap(_.toByte)
-        withClue(a)(built.isSuccess shouldBe true)
-      }
     }
   }
 

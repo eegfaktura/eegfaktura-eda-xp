@@ -88,7 +88,7 @@ object ECMPListV0120Document {
         case Some(EcTypeEnum.BEG) => ecmplist.v01p20.CC
         case Some(EcTypeEnum.P2P) => ecmplist.v01p20.PP
         case Some(EcTypeEnum.EVA) => ecmplist.v01p20.SC
-        case other => throw new IllegalArgumentException(s"ANFORDERUNG_CPF without a known ecType (${other.getOrElse("<none>")})")
+        case other => throw new IllegalArgumentException(s"${message.messageCode} without a known ecType (${other.getOrElse("<none>")})")
       }),
       ECDisModel = Some(message.ecDisModel match {
         case Some(EcDisModelEnum.STATIC) => ecmplist.v01p20.S
