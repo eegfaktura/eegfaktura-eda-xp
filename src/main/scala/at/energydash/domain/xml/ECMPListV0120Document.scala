@@ -5,6 +5,7 @@ import at.energydash.domain.eda.MessageHelper.{buildCalendarDate, getNow, getPro
 import at.energydash.domain.enums.{EbMsMessageType, EcDisModelEnum, EcTypeEnum, MeterDirectionType}
 import at.energydash.domain.{EbMsMessage, Meter}
 import ponton.`package`.{Commontypesv01p20_AddressTypeFormat, Commontypesv01p20_DocumentModeFormat, Ecmplistv01p20_SchemaVersionFormat, __BooleanXMLFormat}
+import org.slf4j.{Logger, LoggerFactory}
 import scalaxb.Helper
 
 import java.util.Date
@@ -27,6 +28,8 @@ class ECMPListV0120Document(doc: ecmplist.v01p20.ECMPList) {
       messageCode = EbMsMessageType.withName(doc.MarketParticipantDirectory.MessageCode.toString),
       messageCodeVersion = Some("02.00"),
       ecId = doc.ProcessDirectory.ECID,
+      ecZoneLevel = zoneLevel,
+      ecTypeEda = doc.ProcessDirectory.ECType.map(_.toString),
       meterList = Some(doc.ProcessDirectory.MPListData
         .flatMap(m =>
           m.MPTimeData.map(mp =>
@@ -38,15 +41,26 @@ class ECMPListV0120Document(doc: ecmplist.v01p20.ECMPList) {
               from = Some(mp.DateFrom.toGregorianCalendar.getTime),
               to = Some(mp.DateTo.toGregorianCalendar.getTime),
               share = mp.ECShare,
-              consentId = m.ConsentId
+              consentId = m.ConsentId,
+              techCode = mp.TechCode,
+              fuelCode = mp.FuelCode
             ))
         )
       )
     )
   }
+
+  /** ECZoneLevel 1–7 (Nahebereich, platform#229); any other value is dropped with a warning. */
+  private def zoneLevel: Option[Int] = doc.ProcessDirectory.ECZoneLevel.map(_.trim).flatMap { z =>
+    val level = z.toIntOption.filter(l => l >= 1 && l <= 7)
+    if (level.isEmpty) ECMPListV0120Document.logger.warn(s"ECZoneLevel not 1-7, ignored (conversation ${doc.ProcessDirectory.ConversationId})")
+    level
+  }
 }
 
 object ECMPListV0120Document {
+  private val logger: Logger = LoggerFactory.getLogger(classOf[ECMPListV0120Document])
+
   def apply(doc: ecmplist.v01p20.ECMPList) = new ECMPListV0120Document(doc)
 
   /** Pflichtfeld MPTimeData/DataType ("Datentypen der Anfrage", neu in 01p20). */

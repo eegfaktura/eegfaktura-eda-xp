@@ -17,6 +17,12 @@ Peer-to-Peer and Eigenversorgung (vfeeg-development/eegfaktura-platform#229): th
   EC_PRTFACT_CHANGE 01.10 (ECMPList 01p20) carries `ECType` `PP` resp. `SC`. Before, a request with one of these
   values failed at the decoder. **Deploy order:** eda-xp → backend → billing, admin-backend → admin, web → operator
   SQL (PP100784, PP102502, PP102524 to `P2P`).
+- **Nahebereich, ECType and Tech-/FuelCode from an inbound ECMPList 01p20** (platform#229, Nachtrag 05.11.2026): the
+  message to the backend (`eda/response/<tenant>/protocol/…`, e.g. SENDEN_ECP, ABSCHLUSS_ECON) gets the optional
+  fields `ecZoneLevel` (number 1–7; another value is dropped with a warning), `ecTypeEda` (the ECType as received,
+  e.g. `PP`; separate from the outbound `ecType`) and per metering point `techCode`, `fuelCode`. Left out when the
+  list has none; ECMPList 01p00/01p10 unchanged. An older backend ignores the fields. The ANTWORT_CPF keeps taking
+  its metering points from the stored request, so it carries no codes.
 - **`deployment.environment` on every line**, from the new variable `DEPLOYMENT_ENVIRONMENT`; left out when unset.
   **Operators:** set it per zone (`dev`, `pilot`, `prod`) in the deployment.
 - **One start-up line** `service start` (`event.action=service.start`, `log.effective_level`, logger
@@ -92,6 +98,10 @@ Peer-to-Peer and Eigenversorgung (vfeeg-development/eegfaktura-platform#229): th
   `ecType` (decode error, nothing at Ponton); `BackendContractSpec` checks the backend's `AreaType` values (new copy
   `contract/backend/area.go.txt`) against `EcTypeEnum`; `contract/backend/mqtt.go.txt` refreshed to backend `e82a0d0`.
   A catalog row with a variant that sends gets its own golden file (`<code>_<label>_<variant>`).
+  Inbound: fixture `ECMPList-01.20-SENDEN_ECP-P2P-zone.xml` (PP, zone 3, codes) with its golden file,
+  `ecTypeEda` in the golden file of `ECMPList-01.20-ABSCHLUSS_ECON`, `ECMPListV0120DocumentSpec` (invalid zone
+  levels), and `BackendContractSpec` pins the four field names in the backend's structs (`mqtt.go.txt` from backend
+  `feat/p2p-eva`, backend#147).
 - **Green in any spec order on a loaded host** (XP-CQ-37/40/41/43): embedded PostgreSQL on a free port with a 60 s
   start wait and no orphaned server after a failed start; no JVM-wide XML limit and no shared mail sessions between
   specs; the process scenarios wait for the stored conversation before answering; one thread-safe log capture.

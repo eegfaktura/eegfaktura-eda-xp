@@ -77,6 +77,12 @@ class BackendContractSpec extends AnyWordSpec with Matchers {
     "use only keys the backend's structs know (case-insensitive: ResponseData's keys are capitalised on our side)" in {
       published.flatMap { case (_, j) => keys(j) }.toSet.filterNot(k => backendTags(k.toLowerCase)) shouldBe empty
     }
+    "carry the ECMPList 01p20 fields under the backend's names (platform#229)" in {
+      struct("EbmsMessage") should contain allOf ("ecZoneLevel", "ecTypeEda")
+      struct("Meter") should contain allOf ("techCode", "fuelCode")
+      val keysPublished = published.flatMap { case (_, j) => keys(j) }.toSet
+      Set("ecZoneLevel", "ecTypeEda", "techCode", "fuelCode").diff(keysPublished) shouldBe empty
+    }
     "carry every metering-point factor as a whole number (the backend's Meter.PartFact is int)" in {
       def factors(j: Json): Seq[Json] = j.fold(Nil, _ => Nil, _ => Nil, _ => Nil, _.flatMap(factors),
         o => o.toList.flatMap { case (k, v) => (if (k == "partFact") Seq(v) else Nil) ++ factors(v) })
