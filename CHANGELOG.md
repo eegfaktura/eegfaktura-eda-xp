@@ -8,6 +8,8 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.5.0] – 2026-11-06
+
 Logging (dev#45) and a code-quality cleanup: topics, payloads, the answer to Ponton and mails do not change.
 Peer-to-Peer and Eigenversorgung (vfeeg-development/eegfaktura-platform#229): the participation-factor change
 (ANFORDERUNG_CPF) to the grid operator carries `PP`/`SC`, and no longer `RC_L` for a missing type.
