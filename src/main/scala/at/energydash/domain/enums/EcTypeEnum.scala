@@ -12,6 +12,9 @@ object EcTypeEnum extends Enumeration {
   val LOCAL: EcTypeEnum.Value = Value("LOCAL")
   val REGIONAL: EcTypeEnum.Value = Value("REGIONAL")
   val GEA: EcTypeEnum.Value = Value("GEA")
+  // Peer-to-Peer and Eigenversorgung (ElWG, platform#229): ECType PP / SC, only in ECMPList 01p20
+  val P2P: EcTypeEnum.Value = Value("P2P")
+  val EVA: EcTypeEnum.Value = Value("EVA")
 }
 
 object EcDisModelEnum extends Enumeration {

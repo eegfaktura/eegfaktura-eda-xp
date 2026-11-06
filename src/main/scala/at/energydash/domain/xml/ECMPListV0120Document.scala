@@ -5,6 +5,7 @@ import at.energydash.domain.eda.MessageHelper.{buildCalendarDate, getNow, getPro
 import at.energydash.domain.enums.{EbMsMessageType, EcDisModelEnum, EcTypeEnum, MeterDirectionType}
 import at.energydash.domain.{EbMsMessage, Meter}
 import ponton.`package`.{Commontypesv01p20_AddressTypeFormat, Commontypesv01p20_DocumentModeFormat, Ecmplistv01p20_SchemaVersionFormat, __BooleanXMLFormat}
+import org.slf4j.{Logger, LoggerFactory}
 import scalaxb.Helper
 
 import java.util.Date
@@ -27,6 +28,8 @@ class ECMPListV0120Document(doc: ecmplist.v01p20.ECMPList) {
       messageCode = EbMsMessageType.withName(doc.MarketParticipantDirectory.MessageCode.toString),
       messageCodeVersion = Some("02.00"),
       ecId = doc.ProcessDirectory.ECID,
+      ecZoneLevel = zoneLevel,
+      ecTypeEda = doc.ProcessDirectory.ECType.map(_.toString),
       meterList = Some(doc.ProcessDirectory.MPListData
         .flatMap(m =>
           m.MPTimeData.map(mp =>
@@ -38,15 +41,30 @@ class ECMPListV0120Document(doc: ecmplist.v01p20.ECMPList) {
               from = Some(mp.DateFrom.toGregorianCalendar.getTime),
               to = Some(mp.DateTo.toGregorianCalendar.getTime),
               share = mp.ECShare,
-              consentId = m.ConsentId
+              consentId = m.ConsentId,
+              techCode = code(mp.TechCode),
+              fuelCode = code(mp.FuelCode)
             ))
         )
       )
     )
   }
+
+  /** TechCode/FuelCode with the XSD's whiteSpace="collapse" applied (scalaxb does not); blank = absent. */
+  private def code(value: Option[String]): Option[String] =
+    value.map(_.trim.replaceAll("\\s+", " ")).filter(_.nonEmpty)
+
+  /** ECZoneLevel 1–7 (Nahebereich, platform#229); any other value is dropped with a warning. */
+  private def zoneLevel: Option[Int] = doc.ProcessDirectory.ECZoneLevel.map(_.trim).flatMap { z =>
+    val level = z.toIntOption.filter(l => l >= 1 && l <= 7)
+    if (level.isEmpty) ECMPListV0120Document.logger.warn(s"ECZoneLevel not 1-7, ignored (conversation ${doc.ProcessDirectory.ConversationId})")
+    level
+  }
 }
 
 object ECMPListV0120Document {
+  private val logger: Logger = LoggerFactory.getLogger(classOf[ECMPListV0120Document])
+
   def apply(doc: ecmplist.v01p20.ECMPList) = new ECMPListV0120Document(doc)
 
   /** Pflichtfeld MPTimeData/DataType ("Datentypen der Anfrage", neu in 01p20). */
@@ -80,11 +98,15 @@ object ECMPListV0120Document {
       ConversationId = message.conversationId,
       ProcessDate = Helper.toCalendar(getProcessDate),
       ECID = Some(message.ecId.getOrElse(throw new IllegalArgumentException("ANFORDERUNG_CPF without ecId"))),
+      // no default: a missing type is not sent as RC_L (platform#229, E2)
       ECType = Some(message.ecType match {
         case Some(EcTypeEnum.GEA) => ecmplist.v01p20.GC
         case Some(EcTypeEnum.REGIONAL) => ecmplist.v01p20.RC_R
+        case Some(EcTypeEnum.LOCAL) => ecmplist.v01p20.RC_L
         case Some(EcTypeEnum.BEG) => ecmplist.v01p20.CC
-        case _ => ecmplist.v01p20.RC_L
+        case Some(EcTypeEnum.P2P) => ecmplist.v01p20.PP
+        case Some(EcTypeEnum.EVA) => ecmplist.v01p20.SC
+        case other => throw new IllegalArgumentException(s"${message.messageCode} without a known ecType (${other.getOrElse("<none>")})")
       }),
       ECDisModel = Some(message.ecDisModel match {
         case Some(EcDisModelEnum.STATIC) => ecmplist.v01p20.S

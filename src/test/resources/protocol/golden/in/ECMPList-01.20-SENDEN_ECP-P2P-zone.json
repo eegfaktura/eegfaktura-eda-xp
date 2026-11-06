@@ -1,0 +1,33 @@
+{
+  "conversationId" : "PP900001202607141781008000000000202",
+  "ecId" : "ATPP999900000PP900001000000000000",
+  "ecTypeEda" : "PP",
+  "ecZoneLevel" : 3,
+  "messageCode" : "SENDEN_ECP",
+  "messageCodeVersion" : "02.00",
+  "messageId" : "AT009999202607141781008000000000201",
+  "meterList" : [
+    {
+      "activation" : 1784066400000,
+      "consentId" : "AT009999000000001",
+      "direction" : "GENERATION",
+      "from" : 1784066400000,
+      "fuelCode" : "FC01",
+      "meteringPoint" : "AT0090001000000000000000000000001",
+      "partFact" : 100,
+      "techCode" : "TC01",
+      "to" : 4102354800000
+    },
+    {
+      "activation" : 1784066400000,
+      "consentId" : "AT009999000000002",
+      "direction" : "CONSUMPTION",
+      "from" : 1784066400000,
+      "meteringPoint" : "AT0090001000000000000000000000002",
+      "partFact" : 100,
+      "to" : 4102354800000
+    }
+  ],
+  "receiver" : "PP900001",
+  "sender" : "AT009999"
+}
