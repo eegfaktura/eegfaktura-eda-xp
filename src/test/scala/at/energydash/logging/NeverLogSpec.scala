@@ -86,6 +86,8 @@ class NeverLogSpec extends AnyWordSpec with Matchers {
     Allowed("actors/http/PontonRoute.scala", "x.receiver", "market partner id of an inbound message (RC or EC number)"),
     Allowed("domain/XmlParseHandler.scala", "faultCode(x)", "a QName by its pattern, never the fault text"),
     Allowed("domain/xml/ECMPListV0120Document.scala", "doc.ProcessDirectory.ConversationId", "EDA conversation id"),
+    Allowed("domain/xml/RevokeReason.scala", "MaxLength", "a constant, the length of Reason in CMRevoke"),
+    Allowed("domain/xml/RevokeReason.scala", "message.messageId.getOrElse(\"<no message id>\")", "EDA message id, never the reason"),
     Allowed("domain/eda/EdaXMLMessage.scala", "msg", "EdaMessage.fallbackVersion: version label, message code and conversation id"),
     Allowed("mailer/EmailService.scala", "Email", "the label of the action in `About to send Email <message code>`, the value is the message code"),
     Allowed("mailer/EmailService.scala", "email.data.conversationId", "the EmailModel: its EDA conversation id"),
