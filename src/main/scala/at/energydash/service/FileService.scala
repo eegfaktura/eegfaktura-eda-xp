@@ -10,7 +10,8 @@ import org.apache.pekko.stream.scaladsl.Sink
 import org.apache.pekko.util.{ByteString, Timeout}
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish}
 import at.energydash.domain.{DefaultEbMsMessage, XmlParseHandler}
-import com.typesafe.scalalogging.StrictLogging
+import at.energydash.logging.LogFields
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
@@ -27,7 +28,9 @@ object FileService {
     new FileServiceImpl(system, mqttPublisher)
 }
 
-class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCommand])(implicit val mat: Materializer) extends FileService with StrictLogging {
+class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCommand])(implicit val mat: Materializer) extends FileService {
+  private val logger: Logger = LoggerFactory.getLogger(getClass)
+
 
   import system._
   implicit val timeout: Timeout = Timeout(5.seconds)
@@ -54,7 +57,7 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
       Some(protocol, version)
     } catch {
       case e: MatchError =>
-        logger.error(s"Error ProcessInfo: ${e.getMessage()}")
+        logger.error("Error ProcessInfo: not a process name", e)
         Some("ERROR", "")
       case _: Throwable =>
         None
@@ -62,9 +65,10 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
   }
 
   def handleUpload(formData: Multipart.FormData, ecId: Option[String]): Future[Done] = {
+    val request = LogFields.current() // the stages run on other threads
     formData.parts
       .map(part => FileInfo(part))
-      .map(info => Tuple2(info, parseProcessName(info.processName)))
+      .map(info => Tuple2(info, LogFields.withMdc(request: _*)(parseProcessName(info.processName))))
       .mapAsync(1) {
         case (info, Some(process)) => bodyPart2Xml(info.bodyPart).map(xml => {
           (process._1, XmlParseHandler.mapXmlToEbms(
@@ -75,7 +79,7 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
 //          }
         })
         case (info, None) =>
-          log.error(s"File not valid ${info.processName}")
+          LogFields.withMdc(request: _*)(log.error(s"File not valid ${info.processName}"))
           Future(("Error", DefaultEbMsMessage.Error("FileUpload", Some("Wrong File"))))
       }
       .map {

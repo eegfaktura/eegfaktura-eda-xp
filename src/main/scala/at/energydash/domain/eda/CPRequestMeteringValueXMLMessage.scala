@@ -49,21 +49,3 @@ case class CPRequestMeteringValueXMLMessage(message: EbMsMessage) extends EdaXML
       true).head
   }
 }
-
-//object CPRequestMeteringValueXMLMessage extends EdaResponseType {
-//  def fromXML(xmlFile: Elem): Try[CPRequestMeteringValue] = {
-//    Try(scalaxb.fromXML[CPNotification](xmlFile)).map(document =>
-//      CPRequestMeteringValue(
-//        EbMsMessage(
-//          messageId = Some(document.ProcessDirectory.MessageId),
-//          conversationId = document.ProcessDirectory.ConversationId,
-//          sender = document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-//          receiver = document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-//          messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
-//          messageCodeVersion = Some("01.13"),
-//          responseData = Some(document.ProcessDirectory.ResponseData.ResponseCode.map(r => ResponseData(None, List(r)))),
-//        )
-//      )
-//    )
-//  }
-//}

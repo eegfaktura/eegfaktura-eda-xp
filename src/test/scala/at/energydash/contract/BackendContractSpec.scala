@@ -2,7 +2,7 @@ package at.energydash.contract
 
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.eda.MessageHelper
-import at.energydash.domain.enums.EbMsMessageType
+import at.energydash.domain.enums.{EbMsMessageType, EcTypeEnum}
 import at.energydash.mqtt.path.MqttPaths
 import at.energydash.testsupport.{Fixtures, LogCapture, ProtocolCatalog}
 import io.circe.Json
@@ -49,6 +49,10 @@ class BackendContractSpec extends AnyWordSpec with Matchers {
       (m.meter.flatMap(_.partFact), m.meterList.map(_.size), m.ecId, m.consentEnd.map(_.getTime)) shouldBe
         ((Some(BigDecimal(50)), Some(1), Some("EC"), Some(4102354800000L)))
     }
+    "know every community type the backend sends as ecType (platform#229; the mapping: ECPartitionChangeSpec)" in {
+      val areas = """AreaType = "([A-Z0-9_]+)"""".r.findAllMatchIn(Fixtures.text("contract/backend/area.go.txt")).map(_.group(1)).toSet
+      areas shouldBe EcTypeEnum.values.map(_.toString)
+    }
   }
 
   "C1b the backend's process-version labels" should {
@@ -72,6 +76,12 @@ class BackendContractSpec extends AnyWordSpec with Matchers {
     val published = ProtocolCatalog.inbound.map(r => r.fileName -> parse(Fixtures.text(s"protocol/golden/${r.golden}")).toOption.get)
     "use only keys the backend's structs know (case-insensitive: ResponseData's keys are capitalised on our side)" in {
       published.flatMap { case (_, j) => keys(j) }.toSet.filterNot(k => backendTags(k.toLowerCase)) shouldBe empty
+    }
+    "carry the ECMPList 01p20 fields under the backend's names (platform#229)" in {
+      struct("EbmsMessage") should contain allOf ("ecZoneLevel", "ecTypeEda")
+      struct("Meter") should contain allOf ("techCode", "fuelCode")
+      val keysPublished = published.flatMap { case (_, j) => keys(j) }.toSet
+      Set("ecZoneLevel", "ecTypeEda", "techCode", "fuelCode").diff(keysPublished) shouldBe empty
     }
     "carry every metering-point factor as a whole number (the backend's Meter.PartFact is int)" in {
       def factors(j: Json): Seq[Json] = j.fold(Nil, _ => Nil, _ => Nil, _ => Nil, _.flatMap(factors),

@@ -5,13 +5,13 @@ import at.energydash.domain.enums.{EbMsMessageType, MeterDirectionType}
 import at.energydash.domain.{EbMsMessage, Meter, XmlParseHandler}
 import io.circe.generic.auto._
 import io.circe.parser.decode
-import io.circe.syntax._
+import org.scalatest.{EitherValues, TryValues}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.io.Source
 
-class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers {
+class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers with EitherValues with TryValues {
   import at.energydash.domain.JsonImplicit._
 
   "Registration Online Message" should {
@@ -56,9 +56,7 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers {
 
       val message = decode[EbMsMessage](testMessage)
 
-      val node = message match {
-        case Right(m) => CMRequestRegistrationOnlineXMLMessageV0200(m).toXML
-      }
+      val node = CMRequestRegistrationOnlineXMLMessageV0200(message.value).toXML
 
       (node \ "MarketParticipantDirectory" \ "MessageCode").text shouldBe EbMsMessageType.ONLINE_REG_INIT.toString
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000179843"
@@ -72,9 +70,7 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers {
     val jsonMessage = """{"conversationId":"12","messageId":"34","requestId":"T672AGJ2","sender":"RC100130","receiver":"AT003000","messageCode":"ANFORDERUNG_ECON","messageCodeVersion":"02.30","meter":{"meteringPoint":"AT0030000000000000000000000179843","direction":"CONSUMPTION","partFact":100,"from":1776211200000},"ecId":"AT00300000000RC100130000000952832"}"""
     val message = decode[EbMsMessage](jsonMessage)
 
-    val node = message match {
-      case Right(m) => CMRequestRegistrationOnline(m).getVersion().map(_.toXML).get
-    }
+    val node = CMRequestRegistrationOnline(message.value).getVersion().success.value.toXML
 
     (node \ "MarketParticipantDirectory" \ "MessageCode").text shouldBe EbMsMessageType.ONLINE_REG_INIT.toString
     (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000179843"
@@ -123,9 +119,7 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers {
 
       val message = decode[EbMsMessage](jsonObjectStr)
 
-      val node = message match {
-        case Right(m) => CMRequestRegistrationOnlineXMLMessageV0200(m).toXML
-      }
+      val node = CMRequestRegistrationOnlineXMLMessageV0200(message.value).toXML
       (node \\ "ECPartFact").text shouldBe "90"
       (node \\ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0020000000000000000000020901971"
     }

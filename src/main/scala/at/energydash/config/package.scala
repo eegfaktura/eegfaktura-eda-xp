@@ -1,13 +1,9 @@
 package at.energydash
 
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.Config
 
 package object config {
   implicit class ConfigExtensions(self: Config) {
-
-    def get[T](key:String,construct:String => T):T = construct(self.getString(key))
-
-    def getConfigured[T](key: String, constructor: Config => T): T = constructor(self.getConfig(key))
 
     def getOption[T](key: String, extract: Config => (String => T)): Option[T] = {
       if (self.hasPath(key)) Option(extract(self)(key))
@@ -22,18 +18,6 @@ package object config {
       Some(self.getString(path))
     } else {
       None
-    }
-
-    def getOptionConfiguredIf[T](key:String,constructor: Config => T,createFlag:String = "create"):Option[T] = {
-      if(self.getBoolean(s"$key.$createFlag")) self.getOptionConfigured(key,constructor)
-      else None
-    }
-
-    def getConfigOrEmpty(key:String): Config = {
-      if (self.hasPath(key))
-        self.getConfig(key)
-      else
-        ConfigFactory.empty()
     }
   }
 }

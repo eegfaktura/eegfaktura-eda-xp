@@ -24,6 +24,8 @@ case class Meter(meteringPoint: String,
                  share: Option[BigDecimal] = None, // distribution factor in percent for static distribution model
                  plantCategory: Option[String] = None,
                  consentId: Option[String] = None,
+                 techCode: Option[String] = None, // inbound ECMPList 01p20 MPTimeData/TechCode (platform#229)
+                 fuelCode: Option[String] = None, // inbound ECMPList 01p20 MPTimeData/FuelCode (platform#229)
                 )
 
 case class EnergyValue(from: Date, to: Option[Date]=None, method: Option[String]=None, value: BigDecimal)
@@ -53,6 +55,10 @@ case class EbMsMessage(
                         reason: Option[String] = None,
                         reasonKey: Option[BigInt] = None,
                         seqNr: Option[Long] = None,
+                        // inbound ECMPList 01p20 (platform#229): Nahebereich 1–7, and ECType as the grid
+                        // operator sends it (EDA code, e.g. "PP"); ecType above is the outbound internal type
+                        ecZoneLevel: Option[Int] = None,
+                        ecTypeEda: Option[String] = None,
                       )
 
 object DefaultEbMsMessage {

@@ -2,9 +2,9 @@ package at.energydash.actors.http
 
 import at.energydash.actors.MqttPublisher.{MqttCommand, MqttPublish}
 import at.energydash.service.FileService
+import at.energydash.testsupport.LogCapture
 import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.classic.{Level, Logger => LogbackLogger}
-import ch.qos.logback.core.read.ListAppender
+import ch.qos.logback.classic.Level
 import com.typesafe.config.ConfigFactory
 import org.apache.pekko.Done
 import org.apache.pekko.actor.typed.ActorSystem
@@ -18,11 +18,9 @@ import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
-import scala.jdk.CollectionConverters._
 
 // eda-xp #3: bodies read completely into memory are capped at app.max-body-size
 class BodySizeLimitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
@@ -44,7 +42,7 @@ class BodySizeLimitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
   }
 
   private def ponton(probe: TestProbe[MqttCommand], targets: Map[String, Uri] = Map.empty, maxBytes: Long = limit): Route =
-    new PontonRoute(probe.ref, targets, forwardTimeout = 1.second, maxBodyBytes = maxBytes).pontonRoutes
+    new PontonRoute(testKit.spawn(AckingPublisher(probe.ref)), targets, forwardTimeout = 1.second, maxBodyBytes = maxBytes).pontonRoutes
 
   /** Upload handler that, like FileServiceImpl, publishes each part as soon as it has read it. */
   private def uploads(probe: TestProbe[MqttCommand]): FileService = {
@@ -61,14 +59,7 @@ class BodySizeLimitSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
     new ServiceRoute(uploads(probe), maxBytes).adminRoutes
 
   /** Events logged by the given route class while the test runs. */
-  private def withLog[T](cls: Class[_])(test: (() => List[ILoggingEvent]) => T): T = {
-    val logger = LoggerFactory.getLogger(cls).asInstanceOf[LogbackLogger]
-    val appender = new ListAppender[ILoggingEvent]()
-    appender.start()
-    logger.addAppender(appender)
-    try test(() => appender.synchronized(appender.list.asScala.toList))
-    finally logger.detachAppender(appender)
-  }
+  private def withLog[T](cls: Class[_])(test: (() => List[ILoggingEvent]) => T): T = LogCapture.during(cls.getName)(test)
 
   private def logged(events: List[ILoggingEvent], level: Level, text: String): Boolean =
     events.exists(e => e.getLevel == level && e.getFormattedMessage.contains(text))

@@ -20,6 +20,9 @@ import scala.util.{Failure, Success}
 
 object EbMsAggregator {
 
+  /** Protocol of the notification that replaces a message the aggregator could not merge or enrich. */
+  val ReplacedProtocol = "error"
+
   private def checkEcIdIsNecessary(t: EbMsMessageType) = t match {
     case EbMsMessageType.CHANGE_METER_PARTITION_ANSWER | EbMsMessageType.CHANGE_METER_PARTITION_REJECTION => true
     case EbMsMessageType.ENERGY_FILE_RESPONSE => true
@@ -36,7 +39,8 @@ object EbMsAggregator {
       implicit val mat: Materializer = Materializer(ctx)
       implicit val timeout: Timeout = Timeout(5.seconds)
 
-      val eegRepo = new SlickEegMasterRepository(Db.getConfig)
+      val eegRepo = new SlickEegMasterRepository(Db.config)
+      val log = ctx.log // ctx.log itself only works on the actor thread, not in the stream below
 
       Behaviors.receiveMessage {
         case AggregateNotification(tenant, notifications, replyTo) =>
@@ -45,7 +49,7 @@ object EbMsAggregator {
               ActorFlow.ask(parallelism = 1)(conversationEntity)((msg: EdaNotification, replyTo: ActorRef[EdaCommand]) =>
                 MergeNotification(msg, replyTo)).collect {
                 case NotificationMerged(m) => m
-                case MergeError(error) => EdaNotification("error", DefaultEbMsMessage.Error(error))
+                case MergeError(error) => EdaNotification(ReplacedProtocol, DefaultEbMsMessage.Error(error))
               }
             }
             .mapAsync(1) {
@@ -64,8 +68,8 @@ object EbMsAggregator {
             }
             .recover {
               case e =>
-                ctx.log.error(s"Recover Aggregator: ${e.getMessage}")
-                EdaNotification("error", DefaultEbMsMessage.Error(e.getMessage))
+                log.error("Recover Aggregator", e)
+                EdaNotification(ReplacedProtocol, DefaultEbMsMessage.Error(e.getMessage))
             }
             .runWith(Sink.collection[MqttPublisher.EdaNotification, List[MqttPublisher.EdaNotification]])
             .onComplete {

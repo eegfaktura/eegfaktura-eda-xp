@@ -5,8 +5,9 @@ import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior, Dispatcher
 import org.apache.pekko.http.scaladsl.server.Directives._
 import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.http.scaladsl.Http
-import at.energydash.actors.http.{BodySizeLimit, HealthRoute, InboundForwarding, PontonRoute, ServiceRoute}
+import at.energydash.actors.http.{AccessLog, BodySizeLimit, HealthRoute, InboundForwarding, PontonRoute, ServiceRoute}
 import at.energydash.config.Config
+import at.energydash.domain.dao.Db
 import at.energydash.mqtt.MqttSystem
 import at.energydash.service.FileService
 import at.energydash.stream.MqttRequestStream
@@ -41,8 +42,20 @@ object SupervisorActor {
     }
   }
 
+  /** All routes of the HTTP port, with one access line per request (probe paths excepted). */
+  def httpRoutes(ponton: PontonRoute, admin: ServiceRoute, health: HealthRoute): Route =
+    AccessLog(PontonRoute.Templates ++ ServiceRoute.Templates)(ponton.pontonRoutes ~ admin.adminRoutes ~ health.healthRoutes)
+
   private def startGRPCServer(tenantProvider: ActorRef[EdaCommand])(implicit system: ActorSystem[_]) = {
     AdminServer.apply(tenantProvider, system)
+  }
+
+  /** The process's actor system (XpAdapter): started, with the database pool closed on its shutdown (XP-CQ-12). */
+  def start(): ActorSystem[Command] = {
+    val system = ActorSystem(apply(), "supervisor")
+    Db.closeOnShutdown(system)
+    system ! Start
+    system
   }
 
   def apply(): Behavior[Command] =
@@ -50,7 +63,6 @@ object SupervisorActor {
       implicit val system: ActorSystem[Nothing] = ctx.system
 
       ctx.setLoggerName("Supervisor")
-//      val messageStore = ctx.spawn(MessageStorage(), name = "message-storage")
       val conversationEntity = ctx.spawn(ConversationEntity(), name = "conversationentity")
 
       val ebMsAggregator = ctx.spawn(EbMsAggregator(conversationEntity), name = "ebMsAggregator")
@@ -75,31 +87,17 @@ object SupervisorActor {
       val fileService = FileService(system, mqttPublisher)
       val adminRoutes = new ServiceRoute(fileService, maxBodyBytes)
       val healthRoutes = new HealthRoute(HealthRoute.databaseCheck(Config.config)(system.dispatchers.lookup(DispatcherSelector.blocking())))
-      //      val pontonPublisher = ctx.spawn(PontonService(), name = "ponton-service")
 
       def process(): Behavior[Command] =
         Behaviors.receiveMessage {
           case Start =>
-//            adapter.partnerExistenceTest()
-//            adapter.getPartnerlistTest()
-//            adapter.sendTest()
             mqttRequestStream.startCommand()
 
-            startHttpServer(routes.pontonRoutes ~ adminRoutes.adminRoutes ~ healthRoutes.healthRoutes)
+            startHttpServer(httpRoutes(routes, adminRoutes, healthRoutes))
             startGRPCServer(tenantProvider)
-
-//            val edaMessage = EbMsMessage(
-//              conversationId = "AT003000202303041506076450000003761",
-//              requestId = Some("5JWLV5Z3"),
-//              messageId = Some("RC100181202303041506080740000003762"),
-//              sender = "RC100130", receiver = "AT003000", messageCode = EbMsMessageType.ONLINE_REG_INIT, messageCodeVersion = Some("02.00"),
-//              meter = Some(Meter("AT0030000000000000000000000655856", Some(MeterDirectionType.CONSUMPTION))), ecId = Some("AT00300000000RC100181000000956509"))
-//            pontonPublisher ! TestSendEdaCommand(edaMessage)
-            Behaviors.same
-          case Shutdown =>
             Behaviors.same
           case m =>
-          ctx.log.warn(s"Supervisor: Can not handle message -> ${m}")
+          ctx.log.warn(s"Supervisor: Can not handle message -> ${m.getClass.getSimpleName}")
             Behaviors.same
         }
       process()

@@ -27,7 +27,7 @@ object EmailService {
     }
 
     private def shippingEmail(mailer: Mailer)(implicit ex: ExecutionContext): Future[Unit] = {
-      logger.info(s"About to send Email ${email.tenant}@${domain} to ${email.toEmail}@${domain}")
+      logger.info(s"About to send Email ${email.data.messageCode}, conversation ${email.data.conversationId}")
       try {
         val myFormatObj = DateTimeFormatter.ofPattern("yyyyMMdd")
 

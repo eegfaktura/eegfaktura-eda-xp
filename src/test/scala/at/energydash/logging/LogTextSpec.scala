@@ -1,0 +1,90 @@
+package at.energydash.logging
+
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+
+// 261005-ca14: scalaxb's ParserFailure carries the whole document in its message
+class LogTextSpec extends AnyWordSpec with Matchers {
+
+  private val failure =
+    """Error while parsing <v320:Message><Meter>AT0030000000000000000000000526178</Meter></v320:Message>: parser error "'{ns}CPRequest' expected but EDASendError found" while parsing /{ns}Message/EDASendError"""
+
+  "errorText" should {
+    "drop the document of a scalaxb parser failure and keep the reason" in {
+      val text = LogText.errorText(failure)
+      text should not include "AT0030000000000000000000000526178"
+      text should not include "<"
+      text shouldBe """Error while parsing the document: parser error "'{ns}CPRequest' expected but EDASendError found" while parsing /{ns}Message/EDASendError"""
+    }
+    "drop the document when the reason cannot be found" in {
+      LogText.errorText("Error while parsing <a>secret</a>") shouldBe "Error while parsing the document (content not logged)"
+    }
+    "keep any other message" in {
+      LogText.errorText("Connection refused") shouldBe "Connection refused"
+      LogText.errorText(null: String) shouldBe ""
+    }
+    "use the last marker, so a document with the marker text stays out" in {
+      val text = LogText.errorText("""Error while parsing <a>AT00: parser error secret</a>: parser error "bad" while parsing /a""")
+      text shouldBe """Error while parsing the document: parser error "bad" while parsing /a"""
+    }
+    "drop the document when other text comes first" in {
+      LogText.errorText(s"Recover: $failure") should startWith("Recover: Error while parsing the document: parser error")
+      LogText.errorText(s"Error: $failure").count(_ == '<') shouldBe 0
+    }
+  }
+
+  "exceptionText" should {
+    "drop the document, e-mail addresses and the text of a MatchError" in {
+      LogText.exceptionText("java.lang.RuntimeException", failure) should not include "AT00"
+      LogText.exceptionText("javax.mail.SendFailedException", "Invalid: member@email.com") shouldBe "Invalid: <address>"
+      LogText.exceptionText("scala.MatchError", "<doc>AT00</doc> (of class scala.xml.Elem)") shouldBe "(content not logged)"
+      LogText.exceptionText("java.lang.RuntimeException", null) shouldBe ""
+    }
+  }
+
+  "decodeError" should {
+    val meter = "AT0030000000000000000000000526178"
+    "name the path and not the value of a decoding failure" in {
+      val error = io.circe.parser.decode[Map[String, List[String]]](s"""{"meterList":{"meteringPoint":"$meter"}}""").swap.toOption.get
+      error.getMessage should include(meter)
+      LogText.decodeError(error) shouldBe "Request cannot be decoded at .meterList"
+    }
+    "not quote text that is no JSON" in {
+      val error = io.circe.parser.decode[List[String]](s"$meter}").swap.toOption.get
+      LogText.decodeError(error) shouldBe "Request is not valid JSON"
+    }
+  }
+
+  "withoutEmailAddresses" should {
+    "replace every address" in {
+      LogText.withoutEmailAddresses("Invalid Addresses: member@email.com, <cc@email.com>") shouldBe "Invalid Addresses: <address>, <<address>>"
+      LogText.withoutEmailAddresses("no address here") shouldBe "no address here"
+      LogText.withoutEmailAddresses(null) shouldBe ""
+    }
+    "mask what the regular expression it replaces masked" in {
+      val before = """[^\s<>"'`(),;:]+@[^\s<>"'`(),;:]+""".r
+      def old(text: String) = before.replaceAllIn(text, "<address>")
+      Seq("a@b", "@b", "a@", "@", "a@@", "@@b", "a@b@c", "@a@", "a@b,c@d", "<a@b>", "x a@b.c y", "a:b@c", "a@b:c", "a@\nb").foreach { text =>
+        withClue(text)(LogText.withoutEmailAddresses(text) shouldBe old(text))
+      }
+      val random = new scala.util.Random(45)
+      (1 to 20000).foreach { _ =>
+        val text = Seq.fill(random.nextInt(14))("ab@@ <,:\t\"".charAt(random.nextInt(10))).mkString
+        withClue(text)(LogText.withoutEmailAddresses(text) shouldBe old(text))
+      }
+    }
+    "take a time linear in the length" in {
+      def seconds(text: String): Double = {
+        val started = System.nanoTime()
+        LogText.withoutEmailAddresses(text)
+        (System.nanoTime() - started) / 1e9
+      }
+      val megabyte = 1024 * 1024
+      seconds("a" * megabyte) should be < 2.0
+      seconds("a" * megabyte + "@") should be < 2.0
+      seconds("a@" * (megabyte / 2)) should be < 2.0
+      seconds("@ " * (megabyte / 2)) should be < 2.0
+      seconds("a " * (megabyte / 2) + "@") should be < 2.0
+    }
+  }
+}

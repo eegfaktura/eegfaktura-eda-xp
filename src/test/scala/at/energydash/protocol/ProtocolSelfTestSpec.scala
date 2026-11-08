@@ -1,6 +1,6 @@
 package at.energydash.protocol
 
-import at.energydash.testsupport.ProtocolCatalog.Outbound
+import at.energydash.testsupport.ProtocolCatalog.{Outbound, row}
 import at.energydash.testsupport.ProtocolChecks.CatalogData
 import at.energydash.testsupport._
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
@@ -14,9 +14,6 @@ import org.scalatest.wordspec.AnyWordSpecLike
  */
 class ProtocolSelfTestSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
   private val real = ProtocolChecks.real
-
-  private def row(code: String, label: String): Outbound =
-    real.outbound.find(r => r.code == code && r.label.contains(label) && r.variant.isEmpty).get
 
   private def replaceRow(d: CatalogData, old: Outbound, updated: Outbound): CatalogData =
     d.copy(outbound = d.outbound.map(r => if (r == old) updated else r))

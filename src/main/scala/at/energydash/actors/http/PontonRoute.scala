@@ -1,5 +1,6 @@
 package at.energydash.actors.http
 
+import org.apache.pekko.Done
 import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Scheduler}
 import org.apache.pekko.http.scaladsl.Http
 import org.apache.pekko.http.scaladsl.marshallers.xml.ScalaXmlSupport._
@@ -9,15 +10,16 @@ import org.apache.pekko.pattern.after
 import org.apache.pekko.http.scaladsl.server.Directives._
 import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
-import org.apache.pekko.util.{ByteString, Timeout}
+import org.apache.pekko.util.Timeout
 import at.energydash.actors.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish, MqttPublishError}
 import at.energydash.domain.{EbMsMessage, XmlParseHandler}
 import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
+import at.energydash.mqtt.MqttProtocol.Handover
 import org.slf4j.{Logger, LoggerFactory}
 import soapenvelope11.Envelope
 
 import java.util.concurrent.TimeoutException
-import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
+import scala.concurrent.duration.{Duration, DurationInt, DurationLong, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
@@ -27,7 +29,8 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                   forwardTargets: Map[String, Uri] = Map.empty,
                   forwardTimeout: FiniteDuration = InboundForwarding.DefaultForwardTimeout,
                   readTimeout: FiniteDuration = InboundForwarding.DefaultReadTimeout,
-                  maxBodyBytes: Long)(implicit val system: ActorSystem[_]) {
+                  maxBodyBytes: Long,
+                  handoverTimeout: FiniteDuration = PontonRoute.HandoverTimeout)(implicit val system: ActorSystem[_]) {
 
   implicit val timeout: Timeout = 3.seconds
   implicit val scheduler: Scheduler = system.scheduler
@@ -35,13 +38,15 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
 
   var logger: Logger = LoggerFactory.getLogger(this.getClass)
 
+  /** pekko.http.server.request-timeout; None when `infinite` (a valid value without a Duration). */
+  private val requestTimeout: Option[FiniteDuration] =
+    Try(system.settings.config.getDuration("pekko.http.server.request-timeout").toMillis.millis).toOption
+
   logger.debug("Start Ponton Routes ...")
   if (forwardTargets.nonEmpty) {
     logger.info(s"Inbound messages forwarded to another zone for: ${forwardTargets.map { case (rc, uri) => s"$rc -> $uri" }.mkString(", ")} (read within $readTimeout, answer within $forwardTimeout)")
-    // `infinite` is a valid request-timeout and has no Duration: then nothing to warn about
-    val serverTimeout = Try(system.settings.config.getDuration("pekko.http.server.request-timeout").toMillis.millis).toOption
-    if (serverTimeout.exists(readTimeout + forwardTimeout >= _))
-      logger.warn(s"app.forward-read-timeout + app.forward-timeout ($readTimeout + $forwardTimeout) reach pekko.http.server.request-timeout (${serverTimeout.get}): the server's 503 can answer before the forward result")
+    if (requestTimeout.exists(readTimeout + forwardTimeout >= _))
+      logger.warn(s"app.forward-read-timeout + app.forward-timeout ($readTimeout + $forwardTimeout) reach pekko.http.server.request-timeout (${requestTimeout.get}): the server's 503 can answer before the forward result")
   }
 
   /**
@@ -62,7 +67,11 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
       .withConnectionSettings(ClientConnectionSettings(system).withIdleTimeout(forwardTimeout))
 
   private def forward(target: Uri, request: HttpRequest): Future[StatusCode] = {
-    val headers = request.headers.filter(_.is("soapaction")) :+ RawHeader(InboundForwarding.ForwardedHeader, "true")
+    // request id and a valid traceparent travel along, so both zones' lines of the message can be joined
+    val correlation = request.attribute(AccessLog.ContextKey).toSeq.flatMap { c =>
+      RawHeader(AccessLog.RequestIdHeader, c.requestId) +: c.traceParent.map(RawHeader("traceparent", _)).toSeq
+    }
+    val headers = request.headers.filter(_.is("soapaction")) ++ correlation :+ RawHeader(InboundForwarding.ForwardedHeader, "true")
     val sent = Http().singleRequest(HttpRequest(HttpMethods.POST, target, headers, request.entity), settings = forwardPool).map { r =>
       r.discardEntityBytes()
       r.status
@@ -77,28 +86,70 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
   private def logSize(size: Option[Long], details: => String): Unit =
     size.filter(_ > PontonRoute.LogSizeAboveBytes).foreach(b => logger.info(s"ponton-message-size: $b bytes, $details"))
 
-  private def processLocally(response: NodeSeq, size: Option[Long]): Route =
-    onComplete(Future {
-      logger.debug(s"Receive message from edaAdapter. Length ${response.head.length}")
-      scalaxb.fromXML[Envelope](response.head)
-    }.flatMap(e => XmlParseHandler.reponseEbMsMessage(e))) {
-      case Success(x) =>
-        logSize(size, s"message code ${x.messageCode}, conversation ${x.conversationId}")
-        val notification = PontonRoute.notificationFor(x)
-        if (notification.protocol == PontonRoute.ErrorProtocol)
-          logger.error(s"Inbound message from edaAdapter not processed (conversation ${x.conversationId}, receiver ${x.receiver}): ${notification.message.errorMessage.getOrElse("")}")
-        mqttPublisher ! MqttPublish(notification :: Nil)
-        complete(HttpResponse(StatusCodes.NoContent))
-      case Failure(ex) =>
-        logSize(size, "not parsed")
-        // The message does not parse, or a known document cannot be mapped (e.g. a new
-        // MessageCode): keep the 500 so Ponton holds it and redelivers it after a fix
-        // (team decision, platform#111 ca11). Only unknown document types are
-        // acknowledged above, because eda-xp can never process them.
-        logger.error("Error while parsing message from edaAdapter", ex)
-        mqttPublisher ! MqttPublishError("NotSpecified", ex.getMessage)
-        complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
+  /**
+   * Hands the notification to the publisher and completes once it is in the MQTT publishing stream,
+   * from where it is published (also after a reconnect of the client: buffered there, as before).
+   * Fails when it will not be published: aggregator failure or merge error, client not connected
+   * (start, restart backoff), publish buffer full (261005-ca1). After the deadline (e.g. while
+   * MqttSystem waits out its restart backoff) the route gives up; a message it gave up on is never
+   * published, so Ponton's redelivery does not create a duplicate. The deadline ends before the
+   * server's request-timeout, so its 503 never answers while the hand-over is still open.
+   */
+  private def handOver(notification: EdaNotification, started: Long): Future[Done] = {
+    val handover = new Handover
+    val deadline = PontonRoute.handoverDeadline(handoverTimeout, requestTimeout, (System.nanoTime() - started).nanos)
+    val timer = system.scheduler.scheduleOnce(deadline, () =>
+      handover.giveUp(new TimeoutException(s"not handed to MQTT within ${deadline.toMillis} ms")))
+    handover.future.onComplete(_ => timer.cancel())
+    mqttPublisher ! MqttPublish(notification :: Nil, Some(handover))
+    handover.future
+  }
+
+  /** Runs `body` with the request id, tenant and conversation the access context knows so far in the MDC. */
+  private def withContext[T](context: Option[AccessLog.Context])(body: => T): T =
+    context.fold(body)(AccessLog.withContext(_)(body))
+
+  /** Runs once the body is read: that is also when the request-timeout of the server starts. */
+  private def processLocally(response: NodeSeq, size: Option[Long]): Route = {
+    val started = System.nanoTime()
+    (optionalAttribute(AccessLog.ContextKey) & extractExecutionContext) { (context, requestExecutor) =>
+      implicit val ec: ExecutionContext = requestExecutor // parsing logs too: with the request's context
+      onComplete(Future {
+        logger.debug(s"Receive message from edaAdapter. Length ${response.head.length}")
+        scalaxb.fromXML[Envelope](response.head)
+      }.flatMap(e => XmlParseHandler.reponseEbMsMessage(e))) {
+        case Success(x) =>
+          context.foreach { c => c.tenant = Option(x.receiver); c.conversationId = Some(x.conversationId) }
+          val notification = PontonRoute.notificationFor(x)
+          withContext(context) {
+            logSize(size, s"message code ${x.messageCode}, conversation ${x.conversationId}")
+            if (notification.protocol == PontonRoute.ErrorProtocol)
+              logger.error(s"Inbound message from edaAdapter not processed (conversation ${x.conversationId}, receiver ${x.receiver}): ${notification.message.errorMessage.getOrElse("")}")
+          }
+          // 204 only once the message is in the MQTT publishing stream; otherwise a 500, so Ponton
+          // keeps the message and redelivers it instead of it being lost silently (261005-ca1)
+          onComplete(handOver(notification, started)) {
+            case Success(_) =>
+              complete(HttpResponse(StatusCodes.NoContent))
+            case Failure(ex) =>
+              val ms = (System.nanoTime() - started) / 1000000
+              withContext(context)(logger.error(s"Inbound message (conversation ${x.conversationId}, message code ${x.messageCode}) not handed to MQTT after $ms ms; Ponton will redeliver", ex))
+              complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
+          }
+        case Failure(ex) => withContext(context) {
+          logSize(size, "not parsed")
+          // The message does not parse, or a known document cannot be mapped (e.g. a new
+          // MessageCode): keep the 500 so Ponton holds it and redelivers it after a fix
+          // (team decision, platform#111 ca11). Only unknown document types are
+          // acknowledged above, because eda-xp can never process them.
+          // scalaxb's message holds the document: the encoder masks it in error.message and the stack (261005-ca14)
+          logger.error("Error while parsing message from edaAdapter", ex)
+          mqttPublisher ! MqttPublishError("NotSpecified", ex.getMessage)
+          complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
+        }
+      }
     }
+  }
 
   val pontonRoutes: Route = pathPrefix("pontonxp") {
     // inside the prefix: the routes are bound together with adminRoutes, which has its own limit
@@ -113,10 +164,10 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
               }.flatMap(_=>request.entity.toStrict(1 second))) {
                 case Success(d) =>
 //                  println(d.data.utf8String)
-                  logger.info(s"Notification from EDA: ${PontonRoute.logBody(d.data)}")
+                  logger.info(s"Notification from EDA received (${d.data.length} bytes)")
                   complete(HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                 case Failure(f) =>
-                  logger.error(f.getMessage)
+                  logger.error("Notification from EDA not read", f)
                   complete(HttpResponse(StatusCodes.BadRequest, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
               }
             }
@@ -132,10 +183,10 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
               } {
                 case Success(d) =>
 //                    println(d.data.utf8String)
-                  logger.info(s"Status from EDA: ${PontonRoute.logBody(d.data)}")
+                  logger.info(s"Status from EDA received (${d.data.length} bytes)")
                   complete(HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                 case Failure(e) =>
-                  logger.error(e.toString)
+                  logger.error("Status from EDA not read", e)
                   complete(HttpResponse(StatusCodes.BadRequest, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
               }
             }
@@ -159,19 +210,22 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                     val size = request.entity.contentLengthOption
                     val receiver = InboundForwarding.receiverOf(response)
                     val alreadyForwarded = request.headers.exists(_.is(InboundForwarding.ForwardedHeader.toLowerCase))
+                    val context = request.attribute(AccessLog.ContextKey)
                     InboundForwarding.decide(forwardTargets, receiver, alreadyForwarded) match {
                       case InboundForwarding.Local => processLocally(response, size)
                       case InboundForwarding.Loop(rc, target) =>
-                        logger.error(s"Inbound message for $rc arrived already forwarded, but $rc is forwarded again to $target here; refusing it to avoid a loop")
+                        context.foreach(_.tenant = Some(rc))
+                        withContext(context)(logger.error(s"Inbound message for $rc arrived already forwarded, but $rc is forwarded again to $target here; refusing it to avoid a loop"))
                         complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                       case InboundForwarding.Forward(rc, target) =>
-                        logSize(size, s"forwarded for $rc")
+                        context.foreach(_.tenant = Some(rc))
+                        withContext(context)(logSize(size, s"forwarded for $rc"))
                         // No MqttPublishError on failure: this zone's backend does not own the
                         // community any more; the error stays in this log and Ponton redelivers.
-                        val started = System.nanoTime()
+                        val forwardStarted = System.nanoTime()
                         onComplete(forward(target, request)) { result =>
-                          val ms = (System.nanoTime() - started) / 1000000
-                          result match {
+                          val ms = (System.nanoTime() - forwardStarted) / 1000000
+                          withContext(context) { result match {
                             case Success(status) if status.isSuccess() =>
                               logger.info(s"Inbound message for $rc forwarded to $target: $status in $ms ms")
                               complete(HttpResponse(StatusCodes.NoContent))
@@ -182,9 +236,9 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
                               logger.error(s"Inbound message for $rc not accepted by $target: $status in $ms ms; Ponton will redeliver")
                               complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
                             case Failure(ex) =>
-                              logger.error(s"Inbound message for $rc could not be forwarded to $target after $ms ms: ${ex.getMessage}; Ponton will redeliver")
+                              logger.error(s"Inbound message for $rc could not be forwarded to $target after $ms ms; Ponton will redeliver", ex)
                               complete(HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentTypes.`text/xml(UTF-8)`, "")))
-                          }
+                          } }
                         }
                     }
                   }
@@ -200,27 +254,33 @@ class PontonRoute(mqttPublisher: ActorRef[MqttCommand],
 object PontonRoute {
   val ErrorProtocol = "ERROR"
 
-  /** Notification and status bodies are logged up to this many characters. */
-  val LogBodyChars = 500
-
-  /**
-   * A notification or status body for the log: in full up to [[LogBodyChars]] characters, otherwise its start and
-   * its size. Ponton's bodies are short; a large one (the body has no size limit there) would otherwise become one
-   * huge log line in the pod log and in Dynatrace.
-   */
-  def logBody(data: ByteString): String = {
-    val head = data.take(LogBodyChars * 4).utf8String
-    if (data.length <= LogBodyChars * 4 && head.length <= LogBodyChars) head // all of it decoded, short enough
-    else s"${head.take(LogBodyChars)}… (${data.length} bytes)"
-  }
+  /** The paths of [[PontonRoute.pontonRoutes]], for the access line. */
+  val Templates: Set[String] = Set("/pontonxp/notification", "/pontonxp/status", "/pontonxp/message")
 
   /** Inbound messages above this size are logged at INFO with their size (ponton-message-size). */
   val LogSizeAboveBytes: Long = 16L * 1024 * 1024
 
+  /**
+   * Upper bound for the hand-over to MQTT. Normally the hand-over takes milliseconds or fails at
+   * once; only a MqttSystem in restart backoff holds it longer.
+   */
+  val HandoverTimeout: FiniteDuration = 10.seconds
+
+  /** Time left between the end of the hand-over deadline and the server's request-timeout. */
+  val RequestTimeoutMargin: FiniteDuration = 2.seconds
+
+  /**
+   * Hand-over deadline: at most `cap`, and over at least RequestTimeoutMargin before the server's
+   * request-timeout, which starts when the body is read (`elapsed`: the time since then, for parsing
+   * and the aggregator); zero when no time is left.
+   */
+  def handoverDeadline(cap: FiniteDuration, requestTimeout: Option[FiniteDuration], elapsed: FiniteDuration): FiniteDuration =
+    requestTimeout.fold(cap)(t => (t - elapsed - RequestTimeoutMargin) min cap) max Duration.Zero
+
   /*
    * Deadlines: app.forward-read-timeout / app.forward-timeout (InboundForwarding.timeouts). Reading the
    * body, parsing it and forwarding normally stay below the server's request-timeout (pekko default
-   * 20 s, counted from the start of the request), so the forward result decides the answer; the route
+   * 20 s, counted from the moment the body is read), so the forward result decides the answer; the route
    * warns at start when the configured values reach it. A very large, slowly read body can still run
    * into the server's own 503; Ponton then redelivers as well. Ponton's EDA add-on waits 30 s
    * (eda.adapter.httpclient_timeout).

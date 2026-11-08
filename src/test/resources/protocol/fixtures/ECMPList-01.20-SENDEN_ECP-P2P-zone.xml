@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Minimal ECMPList 01p20 SENDEN_ECP of a P2P community (platform#229): ECType PP, ECZoneLevel 3, TechCode/FuelCode on the first metering point only. Codes are placeholders; validated against ECMPList_01p20.xsd by the test. -->
+
+<ECMPList xmlns:ct="http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20" xmlns="http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p20" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ebutilities.at/schemata/customerprocesses/ecmplist/01p20 http://www.ebutilities.at/schemata/customerprocesses/EC_PODLIST/02.10/SENDEN_ECP">
+    <MarketParticipantDirectory SchemaVersion="01.20" DocumentMode="SIMU" Duplicate="false">
+        <ct:RoutingHeader>
+            <ct:Sender AddressType="ECNumber">
+                <ct:MessageAddress>AT009999</ct:MessageAddress>
+            </ct:Sender>
+            <ct:Receiver AddressType="ECNumber">
+                <ct:MessageAddress>PP900001</ct:MessageAddress>
+            </ct:Receiver>
+            <ct:DocumentCreationDateTime>2026-07-14T10:00:00+02:00</ct:DocumentCreationDateTime>
+        </ct:RoutingHeader>
+        <ct:Sector>01</ct:Sector>
+        <MessageCode>SENDEN_ECP</MessageCode>
+    </MarketParticipantDirectory>
+    <ProcessDirectory>
+        <MessageId>AT009999202607141781008000000000201</MessageId>
+        <ConversationId>PP900001202607141781008000000000202</ConversationId>
+        <ProcessDate>2026-07-15</ProcessDate>
+        <ECID>ATPP999900000PP900001000000000000</ECID>
+        <ECType>PP</ECType>
+        <ECDisModel>D</ECDisModel>
+        <ECZoneLevel>3</ECZoneLevel>
+        <MPListData>
+            <MeteringPoint>AT0090001000000000000000000000001</MeteringPoint>
+            <ConsentId>AT009999000000001</ConsentId>
+            <MPTimeData>
+                <DateFrom>2026-07-15</DateFrom>
+                <DateTo>2099-12-31</DateTo>
+                <EnergyDirection>GENERATION</EnergyDirection>
+                <ECPartFact>100</ECPartFact>
+                <DataType>EnergyCommunityRegistration</DataType>
+                <TechCode>TC01</TechCode>
+                <FuelCode>FC01</FuelCode>
+                <DateActivate>2026-07-15</DateActivate>
+            </MPTimeData>
+        </MPListData>
+        <MPListData>
+            <MeteringPoint>AT0090001000000000000000000000002</MeteringPoint>
+            <ConsentId>AT009999000000002</ConsentId>
+            <MPTimeData>
+                <DateFrom>2026-07-15</DateFrom>
+                <DateTo>2099-12-31</DateTo>
+                <EnergyDirection>CONSUMPTION</EnergyDirection>
+                <ECPartFact>100</ECPartFact>
+                <DataType>EnergyCommunityRegistration</DataType>
+                <DateActivate>2026-07-15</DateActivate>
+            </MPTimeData>
+        </MPListData>
+    </ProcessDirectory>
+</ECMPList>

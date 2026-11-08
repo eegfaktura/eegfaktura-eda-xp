@@ -2,28 +2,34 @@ package at.energydash.testsupport
 
 import at.energydash.MigrationRunner
 import com.opentable.db.postgres.embedded.EmbeddedPostgres
+import com.typesafe.config.ConfigFactory
 import slick.basic.DatabaseConfig
 import slick.jdbc.PostgresProfile
 
 import java.sql.Connection
+import java.time.Duration
 import scala.io.Source
 import scala.util.Using
 
 /**
- * One embedded PostgreSQL per test JVM on the port of `application-test.conf` (54325), migrated with the
+ * One embedded PostgreSQL per test JVM on the port of `application-test.conf` (`eda.test.db.port`), migrated with the
  * production migrations (`MigrationRunner`, schema `eda`) plus the backend's `base.EEG` (test-only DDL,
  * outside Flyway). Specs call [[TestDb.start]] (idempotent), seed their own rows and [[TestDb.reset]].
  */
 object TestDb {
-  val Port = 54325
+  val Port: Int = ConfigFactory.load().getInt("eda.test.db.port")
 
+  // The first start (initdb) can take longer than the library's 10 s default on a loaded host. A start that
+  // fails anyway closes what it started, so the next spec does not meet an orphaned server (XP-CQ-37).
   private lazy val server: EmbeddedPostgres = {
-    val pg = EmbeddedPostgres.builder().setPort(Port).start()
+    val pg = EmbeddedPostgres.builder().setPort(Port).setPGStartupWait(Duration.ofSeconds(60)).start()
     sys.addShutdownHook(pg.close())
-    MigrationRunner.migrate()
-    Using.resource(pg.getPostgresDatabase.getConnection) { c =>
-      c.createStatement().execute(Using.resource(Source.fromResource("testdb/base_eeg.sql"))(_.mkString))
-    }
+    try {
+      MigrationRunner.migrate()
+      Using.resource(pg.getPostgresDatabase.getConnection) { c =>
+        c.createStatement().execute(Using.resource(Source.fromResource("testdb/base_eeg.sql"))(_.mkString))
+      }
+    } catch { case e: Throwable => pg.close(); throw e }
     pg
   }
 
@@ -31,7 +37,7 @@ object TestDb {
   def start(): Unit = server
 
   /** Slick configuration the production code uses (`slick.pgsql.local`), pointing at the embedded server. */
-  lazy val dbConfig: DatabaseConfig[PostgresProfile] = { start(); at.energydash.domain.dao.Db.getConfig }
+  lazy val dbConfig: DatabaseConfig[PostgresProfile] = { start(); at.energydash.domain.dao.Db.config }
 
   def withConnection[T](f: Connection => T): T = {
     start()

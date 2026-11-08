@@ -8,26 +8,15 @@ import org.scalatest.wordspec.AnyWordSpec
 class ConfigSpec extends AnyWordSpec with Matchers {
   private val c = ConfigFactory.parseString(
     """a = "x"
-      |n { create = true, v = "inner" }
-      |off { create = false, v = "inner" }""".stripMargin)
+      |n { v = "inner" }""".stripMargin)
 
   "ConfigExtensions" should {
     "read present and absent keys" in {
-      c.get("a", _.toUpperCase) shouldBe "X"
-      c.getConfigured("n", _.getString("v")) shouldBe "inner"
       c.getOption("a", _.getString _) shouldBe Some("x")
       c.getOption("missing", _.getString _) shouldBe None
       c.getOptionConfigured("n", _.getString("v")) shouldBe Some("inner")
       c.optionalString("a") shouldBe Some("x")
       c.optionalString("missing") shouldBe None
-    }
-    "create a configured value only when its flag is set" in {
-      c.getOptionConfiguredIf("n", _.getString("v")) shouldBe Some("inner")
-      c.getOptionConfiguredIf("off", _.getString("v")) shouldBe None
-    }
-    "give an empty config for an absent key" in {
-      c.getConfigOrEmpty("n").getString("v") shouldBe "inner"
-      c.getConfigOrEmpty("missing").isEmpty shouldBe true
     }
   }
 

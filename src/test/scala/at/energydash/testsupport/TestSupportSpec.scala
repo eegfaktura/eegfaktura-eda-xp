@@ -46,5 +46,10 @@ class TestSupportSpec extends AnyWordSpec with Matchers {
     "reject a document that is not valid" in {
       an[org.xml.sax.SAXParseException] should be thrownBy Xsd.validate(<CMRequest/>, "CMRequest_01p30.xsd")
     }
+    // XP-CQ-41: the limit used to be lifted with a system property for every later test in the JVM
+    "read the large ECMPList 01p10 schema without lifting the XML limits of the JVM" in {
+      Xsd.schema("ECMPList_01p10.xsd") should not be null
+      sys.props.get("jdk.xml.maxOccurLimit") shouldBe None
+    }
   }
 }

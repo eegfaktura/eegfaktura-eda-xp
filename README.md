@@ -51,7 +51,7 @@ bash scripts/dev/test.sh --coverage       # + scoverage report and the coverage 
 bash scripts/dev/test.sh --update-golden  # rewrite the protocol golden files, then review `git diff`
 ```
 
-- Everything a test talks to is a loopback stand-in started by the tests: embedded PostgreSQL (port 54325,
+- Everything a test talks to is a loopback stand-in started by the tests: embedded PostgreSQL (a free port per run,
   migrated with the production migrations), embedded MQTT broker (18831), a fake Ponton messenger (16060).
   **No test ever sends to a real KEP endpoint.** Configuration: `src/test/resources/application-test.conf`.
 - Files a run writes stay under `target/`; the JVM runs in `Europe/Vienna`.
@@ -111,11 +111,67 @@ docker run -p 6090:6090 -p 9093:9093 \
   Keep it the same in both zones when `app.forward` is used: a target with a lower limit answers 413, logged here
   as ERROR `refused as too large`, and Ponton redelivers.
   Inbound Ponton messages above 16 MiB are logged at INFO with their size (search key `ponton-message-size`).
+- Inbound messages processed here (`/pontonxp/message`) are answered 204 once they are in the MQTT
+  publishing stream (buffer of 2000); from there they are published, also after the client reconnects to
+  a restarted broker. They are answered 500 (ERROR line `not handed to MQTT … Ponton will redeliver`)
+  when they cannot be published: MQTT not connected (start, or restart backoff of 4 s to 1 min after a
+  client stream failure, e.g. a publish in flight when the broker connection drops), the eda-xp database
+  lookup fails or times out (aggregator, merge error), or the buffer is full. This also applies to unknown
+  document types. The route gives up at the latest after 10 s, and always 2 s before
+  `pekko.http.server.request-timeout` counted from the moment the body is read; a message answered 500 is never
+  published later. Each retry of a message refused by a merge error or aggregator failure publishes
+  the `error` notification (not when the aggregator does not answer within 5 s), so the backend gets one error entry per Ponton retry during an
+  eda-xp database outage. Still lost, as before: messages already in the buffer when the client stream
+  fails. **Runbook after 500s:**
+  1. Find the window: search the eda-xp log (Dynatrace) for `not handed to MQTT`; the window runs from the
+     first such line until the next successfully processed message (no more such lines). Note the
+     conversation ids of the lines.
+  2. In the Ponton message monitor, look for inbound messages of that window in state FAILED or not
+     delivered (exact menu path and status names to be confirmed by operations).
+  3. Resend them to the adapter. That is safe: energystore stores energy values idempotently; the backend
+     may get an extra `base.processhistory` row.
+  4. Afterwards check `base.processhistory` for the conversation ids from step 1 (read-only).
+  5. Not verified yet: whether Ponton redelivers on its own after a 500.
 - `epmsmail.*` — IMAP/SMTP accounts for EDA-over-email
+- `epmsmail.admin.javaxmail.mail.smtp.{connectiontimeout,timeout,writetimeout}` (10 s / 20 s / 20 s; env
+  `SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`; milliseconds or with unit,
+  e.g. `20s`; an invalid value stops the start) — SMTP timeouts of the gRPC `SendMailService`. Its reply status
+  (contract with the backend): 200 sent; 202 `SMTP unconfirmed: …` — the message was sent completely but the relay's
+  reply to it did not arrive in time, so it was most likely delivered (do not resend); 504 `SMTP timeout: …` —
+  timeout before the message was sent (connect, greeting, a command), nothing delivered; 500 any other error.
 - `slick.pgsql.local.db.*` / `flyway.*` — PostgreSQL connection + migrations
 
 Environment variables (names only): `SMTP_ADMIN_SERVER_HOST`, `SMTP_ADMIN_SERVER_PORT`,
-`EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `MAX_BODY_SIZE`, `TZ`, `JAVA_OPTS`.
+`SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`, `EMAIL_ADMIN_USER`, `EMAIL_ADMIN_PWD`, `FORWARD_READ_TIMEOUT`, `FORWARD_TIMEOUT`, `MAX_BODY_SIZE`, `TZ`, `JAVA_OPTS`,
+`LOG_FORMAT`, `LOG_LEVEL`, `SLICK_LOG_LEVEL`, `SERVICE_VERSION`, `DEPLOYMENT_ENVIRONMENT`.
+
+### Logging
+
+Every line goes through one encoder (`src/main/resources/logback.xml`, `at.energydash.logging`) to stdout:
+
+- `LOG_FORMAT` — `json` (default): one JSON object per line with flat ECS names (`@timestamp` UTC,
+  `log.level`, `log.logger`, `service.name` `eegfaktura-eda-xp`, `service.version`, `message`, `error.*`, and when
+  known `request.id`, `tenant.id`, `eda.conversation_id`, …); other MDC entries are not written. `text`: the same
+  fields as a plain line for reading in a terminal. `tenant.id` is written only in the shape of a tenant (upper case,
+  `^[A-Z0-9][A-Z0-9_-]{0,63}$`).
+- `LOG_LEVEL` — `trace`, `debug`, `info` (default), `warn` (also `warning`), `error`; `SLICK_LOG_LEVEL` the same for the `slick`
+  loggers only. An unknown value stops the start (exit code 2); an empty value means the default.
+- `SERVICE_VERSION` — set by the image build (the version without `v` for a tag build, else the commit, which a retagged image keeps); `dev` from source.
+- `DEPLOYMENT_ENVIRONMENT` — `deployment.environment` of every line (JSON and text) (`dev`, `pilot`, `prod`); the field is left
+  out when unset or empty.
+- Start-up line `service start` (`event.action=service.start`, `log.effective_level`), at any `LOG_LEVEL`.
+- An error line has a fixed text and the exception (`error.type`, `error.message`, `error.stack_trace`); the message
+  of the exception and of its causes is masked (no document, no e-mail address).
+- java.util.logging (gRPC, pgjdbc, paho) goes through the same encoder.
+- Lines of an HTTP request on port 6090 carry its `request.id`, and `tenant.id` once the message is parsed; not the
+  lines of the actors behind the route.
+- Access line (`event.action=http.access`, logger `at.energydash.access`): one line per request on port 6090 with
+  method, route, status, `event.outcome`, `event.duration` (ns), `request.id` (`X-Request-Id`, also returned),
+  `client.id=ponton` on `/pontonxp/*`, and `tenant.id`/`eda.conversation_id` once the message is parsed. Never an
+  IP, user agent, query or body. `/healthz` and `/readyz` are not logged.
+- Never logged: EDA XML, MQTT payloads, mail bodies/attachments, e-mail addresses of members. `NeverLogSpec` reads
+  the log calls of the source, not `.addKeyValue(` or `println`: a new value in a log line needs an entry for its file
+  with a reason in its allowlist; the text of an exception in the message and a word of the never-log list fail.
 
 Exposed ports: **6090** (HTTP), **9093** (gRPC). Volumes: `/conf`, `/storage/prod`.
 

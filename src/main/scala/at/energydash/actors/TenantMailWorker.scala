@@ -3,7 +3,7 @@ package at.energydash.actors
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, TimerScheduler}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import at.energydash.actors.MqttPublisher.MqttCommand
-import at.energydash.actors.TenantMailActor.{DeleteEmailCommand, FetchEmailCommand}
+import at.energydash.actors.TenantMailActor.FetchEmailCommand
 import at.energydash.config.Config
 import at.energydash.domain.EbMsMessage
 import at.energydash.domain.dao.{SlickEmailOutboxRepository, TenantConfig}
@@ -12,6 +12,7 @@ import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
 import at.energydash.domain.enums.EbMsProcessType
 import at.energydash.mailer.EmailService
 import at.energydash.mailer.EmailService.SendEmailCommand
+import at.energydash.logging.LogFields
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration, MILLISECONDS}
@@ -35,7 +36,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
   val interval: FiniteDuration = Config.interval(tenant.domain.getOrElse(""))
 
   private def setup(): Behavior[EdaCommand] = {
-    Behaviors.withMdc(Map("tenant" -> tenant.tenant))(
+    Behaviors.withMdc(Map(LogFields.TenantId -> tenant.tenant))(
       Behaviors.setup { context => {
         context.log.info("Setup Tenant Worker")
         context.log.info(s"Interval: ${interval.toMillis}")
@@ -50,23 +51,19 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
               mailActor ! FetchEmailCommand(tenant.tenant, "", mqttPublisher)
               Behaviors.same
 
-            case WaitResponse =>
-              mailActor ! FetchEmailCommand(tenant.tenant, "", mqttPublisher)
-              Behaviors.same
-
             case SendEdaCommand(message, replyTo) =>
               prepareEmail(message) match {
                 case Some(email) => /*m match {*/
                   //                case Success(email) =>
-                  context.log.debug(s"Forward mail to Mail Actor ${email.toEmail}")
-                  context.log.debug(s"Mail Attachment ${email.attachment.utf8String}")
+                  context.log.debug(s"Forward mail to Mail Actor: conversation ${email.data.conversationId}")
+                  context.log.debug(s"Mail Attachment: ${email.attachment.length} bytes")
 
                   tenant.domain match {
                     case Some(domain) =>
                       mailActor ! SendEmailCommand(email, domain, replyTo)
                       timers.startSingleTimer(Refresh, 1.minute)
                     case _ =>
-                      replyTo ! SendResponseError(tenant.tenant, message.receiver, s"Domain missing for sending mail. ${tenant}", "Send Mail")
+                      replyTo ! SendResponseError(tenant.tenant, message.receiver, s"Domain missing for sending mail. ${tenant.tenant}", "Send Mail")
                   }
                 //                case Failure(exception) =>
                 //                  replyTo ! SendResponseError(tenant.tenant, message.receiver, s"Error sending EDA message. ${exception}", "Send Mail")
@@ -74,10 +71,6 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
                 case None =>
                   replyTo ! SendResponseError(tenant.tenant, message.receiver, s"No XML mapping or wrong mapping for message type ${message.messageCode}", "Send Mail")
               }
-              Behaviors.same
-
-            case msg: DeleteEmailCommand =>
-              mailActor ! msg
               Behaviors.same
 
             case GracefulShutdown =>
@@ -110,7 +103,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
   private def prepareEmail(data: EbMsMessage) =
     MessageHelper.getEdaMessageByType(data).flatMap(_.toByte.fold(
       e => {
-        logger.error(s"Parse message to XML. ${data.messageCode} - Error: $e")
+        logger.error(s"Parse message to XML failed: ${data.messageCode}, conversation ${data.conversationId}", e)
         None
       },
       attachment => {
@@ -119,7 +112,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EdaCommand],
         val to = determineReceiver(data)
         val tenant = data.sender.toUpperCase()
 
-        logger.debug(s"Prepare Email Message Flow: $data")
+        logger.debug(s"Prepare Email Message Flow: ${data.messageCode}, conversation ${data.conversationId}")
         Some(EmailService.EmailModel(tenant = tenant, toEmail = to,
           subject = subject, attachment = attachment, data = data))
       }
@@ -131,8 +124,6 @@ object FetchMailTenantWorker {
   private case object TimerKey
 
   private case object Refresh extends EdaCommand
-
-  private case object WaitResponse extends EdaCommand
 
   case object GracefulShutdown extends EdaCommand
   //  case class EmitSendEmailCommand(email: EmailModel, replyTo: ActorRef[EmailCommand]) extends EdaCommand

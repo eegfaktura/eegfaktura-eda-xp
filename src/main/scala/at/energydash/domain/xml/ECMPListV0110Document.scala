@@ -109,11 +109,16 @@ object ECMPListV0110Document {
         ConversationId = message.conversationId,
         ProcessDate = Helper.toCalendar(getProcessDate),
         ECID = message.ecId.get,
+        // no default: a missing type is not sent as RC_L; ECMPList 01p10 has no PP/SC, those need
+        // EC_PRTFACT_CHANGE 01.10 (ECMPList 01p20) (platform#229, E2)
         ECType = message.ecType match {
           case Some(EcTypeEnum.GEA) => ecmplist.v01p10.GC
           case Some(EcTypeEnum.REGIONAL) => ecmplist.v01p10.RC_R
+          case Some(EcTypeEnum.LOCAL) => ecmplist.v01p10.RC_L
           case Some(EcTypeEnum.BEG) => ecmplist.v01p10.CC
-          case _ => ecmplist.v01p10.RC_L
+          case Some(t @ (EcTypeEnum.P2P | EcTypeEnum.EVA)) => throw new IllegalArgumentException(
+            s"${message.messageCode} with ecType $t needs version 01.10 (ECMPList 01p20), not ${message.messageCodeVersion.getOrElse("<none>")}")
+          case other => throw new IllegalArgumentException(s"${message.messageCode} without a known ecType (${other.getOrElse("<none>")})")
         },
         ECDisModel = message.ecDisModel match {
           case Some(EcDisModelEnum.STATIC) => ecmplist.v01p10.S

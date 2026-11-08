@@ -8,6 +8,163 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Changed
+- **CI: no image build for a commit that only changes `CHANGELOG.md`** (platform#239): pushes and pull requests whose
+  only change is the CHANGELOG, such as the release PR, skip the image build and the checks (PR checks, security
+  scan, Snyk Code; the weekly schedules still run). Tag pushes still build. A release promotes
+  the image of the last commit before the release PR; it has the same content.
+- **A revoke's free-text reason goes to the grid operator with ReasonKey 0** (`AUFHEBUNG_CCMS`; user decision
+  2026-10-30, tracking: revoke reason (2026-10-30) — behaviour towards the grid operator changes). CMRevoke 01p10
+  (label 01.30) defines `Reason` as "Grund der Beendigung für ReasonKey 0"; eda-xp now sends `ReasonKey` 0 together
+  with the `reason` from `eda/request`, and neither element without one. Before, `ReasonKey` was copied from the MQTT
+  field `reasonKey`, which the backend never sends. CMRevoke 01p00 (labels 01.02, 01.10) has no `ReasonKey`: `Reason`
+  only. Both builders share one cleaning step, the same as the backend's: control characters and every kind of white
+  space (also U+00A0) become one space, format characters (U+200B, U+FEFF, U+202E …) and characters XML 1.0 does not
+  allow (U+FFFE, U+FFFF, lone surrogates) are dropped, the ends are trimmed, blank means no reason; a reason still
+  longer than 50 characters is dropped with a
+  warning naming only the message id, so no document outside the schema is sent (the backend refuses such a reason
+  with 400 already). The reason arrives once eegfaktura/eegfaktura-backend#127 and eegfaktura/eegfaktura-web#245 are
+  deployed. It is also kept in eda-xp's conversation store and, through the echo, in the backend's EDA history.
+
+## [1.5.0] – 2026-11-06
+
+Logging (dev#45) and a code-quality cleanup: topics, payloads, the answer to Ponton and mails do not change.
+Peer-to-Peer and Eigenversorgung (vfeeg-development/eegfaktura-platform#229): the participation-factor change
+(ANFORDERUNG_CPF) to the grid operator carries `PP`/`SC`, and no longer `RC_L` for a missing type.
+
+### Added
+- **Community types `P2P` and `EVA`** in `ecType` of `eda/request` (platform#229). The ANFORDERUNG_CPF in
+  EC_PRTFACT_CHANGE 01.10 (ECMPList 01p20) carries `ECType` `PP` resp. `SC`. Before, a request with one of these
+  values failed at the decoder. **Deploy order:** eda-xp → backend → billing, admin-backend → admin, web → operator
+  SQL (PP100784, PP102502, PP102524 to `P2P`).
+- **Nahebereich, ECType and Tech-/FuelCode from an inbound ECMPList 01p20** (platform#229, Nachtrag 05.11.2026): the
+  message to the backend (`eda/response/<tenant>/protocol/…`, e.g. SENDEN_ECP, ABSCHLUSS_ECON) gets the optional
+  fields `ecZoneLevel` (number 1–7; another value is dropped with a warning), `ecTypeEda` (the ECType as received,
+  e.g. `PP`; separate from the outbound `ecType`) and per metering point `techCode`, `fuelCode`. Left out when the
+  list has none; ECMPList 01p00/01p10 unchanged. An older backend ignores the fields. The ANTWORT_CPF keeps taking
+  its metering points from the stored request, so it carries no codes.
+- **`deployment.environment` on every line**, from the new variable `DEPLOYMENT_ENVIRONMENT`; left out when unset.
+  **Operators:** set it per zone (`dev`, `pilot`, `prod`) in the deployment.
+- **One start-up line** `service start` (`event.action=service.start`, `log.effective_level`, logger
+  `at.energydash.start`; `service.version` as on every JSON line), written at any `LOG_LEVEL`.
+- **`jul-to-slf4j`:** java.util.logging (gRPC, pgjdbc, paho) goes through the encoder instead of printing plain text
+  to stderr. Levels: what JUL passes (info and above); `LOG_LEVEL=debug` does not switch on JUL's fine levels.
+- **A never-log test** (`NeverLogSpec`) reads the log calls of the source, not `.addKeyValue(` or `println`, and fails
+  on a value not allowed for its file (each entry with a reason), on the text of an exception in the message (also
+  with the exception attached), on `toString`, and on a word of the never-log list of all services in any identifier
+  of a value (whole words, every segment of a dotted value).
+
+### Changed
+- **No `RC_L` default in the ANFORDERUNG_CPF any more** (platform#229, E2). A request without `ecType`, or with
+  `P2P`/`EVA` in version 01.00 (ECMPList 01p10 knows no `PP`/`SC`), is not built: nothing goes to the grid operator,
+  the sender gets the error on `eda/response/<tenant>/protocol/error` (as for a missing `ecId`). An `ecType` eda-xp
+  does not know still fails at the decoder (`eda/response/error`, "Parse Payload"). `LOCAL` stays `RC_L`; the
+  documents for `LOCAL`, `REGIONAL`, `BEG` and `GEA` are unchanged. Prod held only these four on 05.11.2026.
+- **`request.id` and `tenant.id` on the lines of an HTTP request** on port 6090, not only on the access line
+  (`tenant.id` once the message is parsed). HTTP only: nothing travels over MQTT or gRPC. Lines of the actors a message
+  passes after the route (`MqttPublisher`, `EbMsAggregator`, `ConversationEntity`, `MqttSystem`) do not carry them.
+- **Error lines carry the exception** (`error.type`, `error.message`, `error.stack_trace`) and a fixed text; the
+  reason of a failure is in `error.message`, no longer in `message`. The encoder masks the message of the exception
+  and of each cause and suppressed exception in the stack, so the parse-failure line of `/pontonxp/message` carries
+  its exception too (without the document).
+- **`LOG_FORMAT` defaults to `json`**, also when run from source; unset and empty are the same. `text` writes the
+  fields of the JSON line as `time level logger: message key=value …` (before: a pattern with empty
+  `request.id=`/`tenant.id=` placeholders). `LOG_LEVEL` and `SLICK_LOG_LEVEL` accept `warning` as `warn`.
+- Some log texts changed; a saved search on them needs adapting: `Cannot merge conversation …`, `Notification from EDA
+  not read`, `Status from EDA not read`, `Parse message to XML failed: …`, `Extract Message failed for mail …`,
+  `Error Subject: not an EDA subject …`, `Error ProcessInfo: not a process name`, `SOAP fault in response body …`,
+  `Send Mail: …`, `Sent Mail: …`, `About to send Email …`, `Mail Subject: …` (was `Mail Subject (…)`),
+  `Supervisor: Can not handle message -> …` (now the class name), `Forward mail to Mail Actor: …`. Without the
+  exception text after them now: `Recover Aggregator`, `Error sending shutdown to tenant actor`, `Failed to load tenant
+  configuration`, `Tenant …: mail worker not started`, `Initialization failed. Retrying in 5 seconds...`, `Error
+  passing command to tenant`, `Failed to add tenant …`, `Update Tenant failed for …`, `Tenant …: worker not started`,
+  `Error Stream handling`, `Recover`, `EDA command listener: subscription failed, restarting with backoff`, `Error
+  while parsing message from edaAdapter`, `Inbound message (…) not handed to MQTT after … ms; Ponton will redeliver`,
+  `Inbound message for … could not be forwarded to … after … ms; Ponton will redeliver`, `EDA message not built`
+  (was the exception text alone), `SMTP unconfirmed`, `SMTP timeout`, `Mail not sent` (was the exception text alone).
+  The mail service's lines come from the logger `at.energydash.service.SendMailServiceImpl` (was pekko's
+  `org.apache.pekko.actor.typed.ActorSystem`).
+- **`tenant.id` on every line** is upper case and left out unless it has the shape of a tenant
+  (`^[A-Z0-9][A-Z0-9_-]{0,63}$`, also GEA tenants such as `GC123456-001`), whatever sets it: a Ponton message, the
+  sender of an MQTT request, the tenant configuration of the mail actors.
+- **`message` of a log line** is masked like the error text: an e-mail address reads `<address>`, also a Message-ID
+  or a Ponton id of that shape.
+
+### Fixed
+- **A MAIL tenant uses its current mail config after an update** (code-quality review XP-CQ-27). JavaMail sessions were
+  cached per tenant for the life of the process: after a tenant's mail host or credentials changed over gRPC, the new
+  mail worker kept the old ones until the pod restarted. Each worker now builds its session from the config it starts
+  with.
+- **One database connection pool per process, closed on shutdown** (XP-CQ-12). Conversation store, aggregator and
+  tenant provider each opened their own pool, and the tenant provider opened another one on every restart after a
+  failure without closing the old one. The one pool has the capacity of the three before: `slick.pgsql.local.db`
+  `maxConnections`/`numThreads` 24, `minConnections` 6 in `reference.conf`. **Operators:** a mounted
+  `application.conf` that sets 8/2/8 itself (gitops `cm-xp-adapter-config`, pilot patch) needs 24/6/24 with this
+  release, or the process runs with a third of the former capacity.
+- **A failed mailbox fetch is logged** (XP-CQ-20). A failed IMAP connect, login or search was dropped without a
+  trace, so a MAIL tenant could stop receiving unnoticed; mailbox and connection are now also closed after an error,
+  and a failing close does not hide the original error.
+
+### Removed
+- Code-quality cleanup (no behaviour change): unused classes, protocol messages, repository methods, config helpers
+  and commented-out code (XP-CQ-3/4/5/6/9/13/14/16/18/23); the unused config keys
+  `epmsmail.mqtt.topics.energyTopic`, `cmTopic`, `cpTopic`; the old `migration.sql` (Flyway never read it), committed
+  broker data under `data/`, an unused WSDL and a sample request; the unused dependencies
+  `pekko-connectors-mqtt-streaming`, `jaxb-api`, `jaxb-core`, `scala-logging` and `mockito-scala` (XP-CQ-15/25/35).
+
+### Tests
+- **P2P/EVA** (platform#229): golden files `ANFORDERUNG_CPF_01.10_P2P` (`PP`) and `_EVA` (`SC`); catalog rows for a
+  missing `ecType` (01.00, 01.10) and for `P2P`/`EVA` in 01.00, which must fail unsent; a scenario for an unknown
+  `ecType` (decode error, nothing at Ponton); `BackendContractSpec` checks the backend's `AreaType` values (new copy
+  `contract/backend/area.go.txt`) against `EcTypeEnum`; `contract/backend/mqtt.go.txt` refreshed to backend `e82a0d0`.
+  A catalog row with a variant that sends gets its own golden file (`<code>_<label>_<variant>`).
+  Inbound: fixture `ECMPList-01.20-SENDEN_ECP-P2P-zone.xml` (PP, zone 3, codes) with its golden file,
+  `ecTypeEda` in the golden file of `ECMPList-01.20-ABSCHLUSS_ECON`, `ECMPListV0120DocumentSpec` (invalid zone
+  levels), and `BackendContractSpec` pins the four field names in the backend's structs (`mqtt.go.txt` from backend
+  `feat/p2p-eva`, backend#147).
+- **Green in any spec order on a loaded host** (XP-CQ-37/40/41/43): embedded PostgreSQL on a free port with a 60 s
+  start wait and no orphaned server after a failed start; no JVM-wide XML limit and no shared mail sessions between
+  specs; the process scenarios wait for the stored conversation before answering; one thread-safe log capture.
+
+### Security
+- Security relevant log lines fixed (dev#45 L4, L5); details not published.
+
+## [1.4.0] – 2026-11-02
+
+### Security
+- **guava 33.7.2** (from 33.3.1, comes in through gRPC): fixes CVE-2026-102554, a denial of service while deserializing
+  Java objects. eda-xp does not use Java serialization on external input, so the code path was not reachable; the update
+  removes the finding.
+
+### Changed
+- **Behaviour change towards Ponton:** an inbound message on `/pontonxp/message` that is processed in
+  this zone is answered `500` instead of `204` when it cannot be published to MQTT. Until now it was
+  answered `204` and lost silently when MQTT was not connected (start, or the restart backoff of 4 s to
+  1 min after a client stream failure, e.g. a publish in flight when the broker connection drops), the
+  aggregator lookup in the eda-xp database failed or timed out, a merge error replaced the message, or the
+  publish buffer was full (the oldest buffered message was dropped; now the new one is refused). This
+  also applies to unknown document types, which otherwise still get `204` + error topic. Each such `500`
+  has an empty body and one ERROR line with conversation id and cause ("not handed to MQTT …; Ponton
+  will redeliver"). The route gives up at the latest after 10 s and always before the server's
+  request-timeout, so a message answered `500` is never published later and Ponton's redelivery creates no
+  duplicate. A message refused by a merge error or aggregator failure still publishes the `error`
+  notification (not when the aggregator does not answer within 5 s): during an eda-xp database outage the backend gets one error entry per Ponton
+  retry. A message handed to the publishing stream is answered `204` as before, without waiting for the
+  broker, also while the client reconnects to a restarted broker. **Known limit:** a message already in the buffer
+  when the client stream fails is lost after its `204`, as before (tracking 261102-mm1). Messages without a Ponton request
+  (mail, file upload, commands) that MQTT does not take are now logged at ERROR instead of dropped
+  silently. Unparseable messages, forwarding, topics and payloads are unchanged. **Operators:** see the
+  runbook in the README (search `not handed to MQTT`, check the Ponton message monitor for FAILED inbound
+  messages of that window and resend); Ponton's automatic redelivery after a `500` is not verified yet
+  (261005-ca1).
+
+### Fixed
+- **A failed database lookup in the aggregator publishes its error notification and logs its cause.** The handler logged
+  through the actor context on a stream thread, which throws: no `error` notification, and an ERROR line about the actor
+  context instead of the cause. Same fix for a failed merge in `ConversationEntity`, which sent no reply at all.
+
+## [1.3.0] – 2026-10-31
+
 ### Added
 - **Health endpoints `GET /healthz` and `GET /readyz` for Kubernetes probes** on the HTTP port 6090, next to
   `/pontonxp/…` and `/admin/upload`. `/healthz` answers `ok` without checking anything (liveness, so a database
@@ -26,20 +183,60 @@ this changelog highlights the changes relevant for overview and operations.
   (eegfaktura-dev tracking 261005-ca1).
 
 ### Changed
-- **A revoke's free-text reason goes to the grid operator with ReasonKey 0** (`AUFHEBUNG_CCMS`; user decision
-  2026-10-30, tracking: revoke reason (2026-10-30) — behaviour towards the grid operator changes). CMRevoke 01p10
-  (label 01.30) defines `Reason` as "Grund der Beendigung für ReasonKey 0"; eda-xp now sends `ReasonKey` 0 together
-  with the `reason` from `eda/request`, and neither element without one. Before, `ReasonKey` was copied from the MQTT
-  field `reasonKey`, which the backend never sends. CMRevoke 01p00 (labels 01.02, 01.10) has no `ReasonKey`: `Reason`
-  only. Both builders share one cleaning step, the same as the backend's: control characters and every kind of white
-  space (also U+00A0) become one space, format characters (U+200B, U+FEFF, U+202E …) and characters XML 1.0 does not
-  allow (U+FFFE, U+FFFF, lone surrogates) are dropped, the ends are trimmed, blank means no reason; a reason still
-  longer than 50 characters is dropped with a
-  warning naming only the message id, so no document outside the schema is sent (the backend refuses such a reason
-  with 400 already). The reason arrives once eegfaktura/eegfaktura-backend#127 and eegfaktura/eegfaktura-web#245 are
-  deployed. It is also kept in eda-xp's conversation store and, through the echo, in the backend's EDA history.
+- **Logs are JSON now — this changes what operators and Dynatrace receive from eda-xp** (logging concept
+  W-261008-ca2, alignment 2026-10-30). In the image every log line is one JSON object on stdout with flat ECS names,
+  the same as the other services: `@timestamp` (UTC, ms), `log.level` (lower case), `log.logger`, `service.name`
+  (`eegfaktura-eda-xp`), `service.version`, `message`, errors as `error.type`/`error.message`/`error.stack_trace` in
+  the same record, and where known `request.id`, `trace.id`/`span.id`, `tenant.id`, `client.id`,
+  `eda.conversation_id` (the EDA ConversationId of the message a line handles: inbound Ponton messages, errors of
+  the MQTT request stream). Only these fields are written; other MDC entries (e.g. Pekko's `pekkoSource`) are
+  dropped. Parse rules on the old text format no longer match. The mail actors' MDC key `tenant` is now `tenant.id`.
+  New and changed environment variables:
+  - `LOG_FORMAT`: `json` (set in the image) or `text` (default when run from source with `sbt run`).
+  - `LOG_LEVEL`: `trace`, `debug`, `info` (default), `warn`, `error` — the root level. **An unknown value stops
+    the start** (exit code 2, message on stderr); an empty value means the default, as in the other services.
+  - `SLICK_LOG_LEVEL`: same values, now only for the `slick` loggers. Before, it set the root level of the whole
+    service (a second `<root>` in `logback.xml`, tracking 261008-ca6); prod and pilot do not set it.
+  - `SERVICE_VERSION` → `service.version`: set in the image by the build (the version without `v` for a tag build, the commit
+    for any other CI build, which a retagged release image keeps; the sbt version for a local image build); `dev` when
+    run from source.
+  No new dependency: the encoder is our own (`at.energydash.logging`), on logback-classic and jackson-core already
+  in the build.
+- **One access line per HTTP request on port 6090** (`event.action=http.access`, logger `at.energydash.access`):
+  `http.request.method`, `http.route` (the route path, e.g. `/pontonxp/message`; missing for unknown paths, the
+  message then shows `-`), `http.response.status_code`, `event.outcome` (`success`; `refused` for 401/403; `failure` for other ≥ 400),
+  `event.duration` in nanoseconds, `request.id`, `client.id` (`ponton` on `/pontonxp/*`; this port has no token, so
+  the route's fixed caller; none on `/admin/upload`), and once an inbound message is parsed `tenant.id` (its
+  receiver) and `eda.conversation_id`. No IP, user agent, query or body (no user tracking, decided 2026-10-29);
+  eda-xp had no access log before. `/healthz` and `/readyz` are not logged. `X-Request-Id` is taken over when it
+  matches `[A-Za-z0-9._:-]{1,128}`, otherwise generated (32 hex), and returned as response header (also to Ponton,
+  which ignores it); `traceparent` only when valid. A message forwarded to another zone (`app.forward`) takes
+  `X-Request-Id` and a valid `traceparent` along.
 
 ### Fixed
+- **Mails over the gRPC `SendMailService` end after an SMTP timeout instead of hanging** (caller: backend). The
+  admin mail session had no SMTP timeouts, so a relay that accepted the connection but did not answer blocked the
+  send until the backend gave up at its gRPC deadline, and the failure was not visible in eda-xp. Defaults in
+  `reference.conf` (also apply under the mounted `application.conf`): `mail.smtp.connectiontimeout` 10 s,
+  `mail.smtp.timeout` (read) 20 s, `mail.smtp.writetimeout` 20 s; overrides via env
+  `SMTP_ADMIN_CONNECTION_TIMEOUT`, `SMTP_ADMIN_TIMEOUT`, `SMTP_ADMIN_WRITE_TIMEOUT`, in milliseconds or with a unit
+  (`20s`); an invalid value stops the start. The admin session no longer waits for the reply to QUIT
+  (`mail.smtp.quitwait=false`): the mail is accepted at that point, and a relay that does not answer QUIT no longer
+  turns a delivered mail into a timeout. Tenant (EDA MAIL transport) sessions are unchanged.
+- **No EDA payloads in the log** (eegfaktura-dev tracking 261005-ca14): `/pontonxp/notification` and `/status` log
+  the body size instead of the body (up to 500 characters before); the MQTT request stream's error lines no longer
+  append the whole request (metering point, ecId); a parse error of an inbound message is logged without the
+  document scalaxb puts into its message (also in the publisher's error line; the exception is no longer attached).
+- **No SOAP body, headers, mail attachment or whole EDA message at debug** (tracking 261008-ca6): the KEP client and
+  the mail worker log sizes, message code and conversation id instead.
+- Security relevant, details not published: tracking 261031-mm2 and 261031-mm3. The send-mail log now has neither the
+  subject nor a rejected recipient, and a request that cannot be decoded is logged with the JSON path only; for a
+  request that cannot be decoded the MQTT error message is unchanged, and so is the gRPC reply. The MQTT text
+  `Domain missing for sending mail.` now names the tenant only.
+- **No e-mail addresses in the send-mail log** (tracking 261031-mm1): the gRPC `SendMailService` (mails of the backend to members) logged
+  recipient and cc at info and javax.mail's error text with the address; now neither, and the error with
+  the addresses replaced by `<address>`.
+- A `println` of a document build error went to stdout next to the logged error; removed.
 - **The tenant provider survives a second update of a mail tenant and is supervised** (eegfaktura-dev tracking
   261005-ca3). A second register/update of a tenant with type MAIL (or an empty type) spawned the new mail worker
   under the name of the old one before it had stopped; the provider failed, ran without supervision and stayed
@@ -66,6 +263,19 @@ this changelog highlights the changes relevant for overview and operations.
   push scan green without any result (`continue-on-error`); now only „issues found“ keeps the run green (the
   issues go to Code Scanning), an authentication or tool error fails it. The Snyk CLI is pinned to 1.1308.1
   instead of the latest version.
+
+### Contract
+- **gRPC `SendMailService` reply status on SMTP timeouts** (caller: backend, mapped in
+  [eegfaktura-backend#132](https://github.com/eegfaktura/eegfaktura-backend/pull/132)); proto unchanged:
+  - `202`, message `SMTP unconfirmed: …` — the message was sent completely, but the relay's reply to its end did not
+    arrive in time: most likely delivered, must not be resent (a resend would be a duplicate).
+  - `504`, message `SMTP timeout: …` — timeout before the message was sent (connect, greeting, a command up to
+    DATA): nothing delivered, a failure.
+  - A write timeout makes JavaMail close the connection; it is answered like every other error with `500`.
+  - Before, none of these cases got an answer before the backend's deadline. A backend without #132 treats every
+    status other than 200, including 202, as a failed send.
+  - **Rollout: this release before backend 1.14.0.** With an old eda-xp, which has no SMTP timeouts, a relay hanging
+    before DATA runs into the backend's 30 s and reads as "vermutlich verschickt", although nothing was delivered.
 
 ### Security
 - **CI: the release workflow pins its actions by commit SHA** (eegfaktura-dev tracking W-261028-mm6). `rolling-release.yml`

@@ -5,8 +5,9 @@ Copied by hand from the sibling repositories of the eegfaktura stack; the contra
 
 | File | Source | Commit |
 |---|---|---|
-| `backend/mqtt.go.txt` | eegfaktura-backend `model/mqtt.go` (MQTT message struct and message codes) | `a1b5b18` (2026-10-05) |
-| `backend/eda-process-versions.upstream.yaml` | eegfaktura-backend `config.yaml`, block `eda-process-versions` | `a1b5b18` |
+| `backend/mqtt.go.txt` | eegfaktura-backend `model/mqtt.go` (MQTT message struct and message codes) | `2fc5f8b` (2026-11-05, backend `feat/p2p-eva`, backend#147: `ecZoneLevel`, `ecTypeEda`, `techCode`, `fuelCode` of platform#229); refresh after the merge |
+| `backend/area.go.txt` | excerpt of eegfaktura-backend `model/Eeg.go`, `AreaType` constants (values of `ecType`) | `2fc5f8b` (backend `feat/p2p-eva`, backend#147); refresh after the merge |
+| `backend/eda-process-versions.upstream.yaml` | eegfaktura-backend `config.yaml`, block `eda-process-versions` | `e82a0d0` (2026-11-05) |
 | `backend/eda-process-versions.workspace-stack.yaml` | the eegfaktura-dev workspace's `docker/backend/config.yaml`, same block | workspace 2026-10-08 |
 | `backend/mail.proto` | eegfaktura-backend `proto/mail.proto` (caller of SendMailService) | `a1b5b18` |
 | `admin-backend/ponton.proto` | eegfaktura-admin-backend `src/main/protobuf/ponton.proto` (caller of RegisterPontonService) | `a910655` (2026-10-05) |

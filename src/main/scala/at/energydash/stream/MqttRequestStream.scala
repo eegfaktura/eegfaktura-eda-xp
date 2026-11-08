@@ -13,6 +13,7 @@ import at.energydash.actors._
 import at.energydash.config.Config
 import at.energydash.domain.eda.MessageHelper.EDAMessageCodeToProcessCode
 import at.energydash.domain.{DefaultEbMsMessage, EbMsMessage}
+import at.energydash.logging.{LogFields, LogText}
 import at.energydash.mqtt.path.MqttPaths
 import io.circe.generic.auto._
 import io.circe.parser.decode
@@ -39,13 +40,13 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
     cause.foreach(initCause)
   }
 
-  private val decodingFlow: Flow[String, EbMsMessage, NotUsed] = {
-    Flow.fromFunction(msg => decode[EbMsMessage](msg) match {
+  private val decodingFlow: Flow[Either[io.circe.Error, EbMsMessage], EbMsMessage, NotUsed] = {
+    Flow.fromFunction {
       case Right(m) => m
       case Left(error) => throw MqttException(
         MqttMessage(s"${Config.errorTopic}",
-          ByteString(DefaultEbMsMessage.Error("Parse Payload", Some(error.getMessage)).asJson.toString())), error.getMessage)
-    })
+          ByteString(DefaultEbMsMessage.Error("Parse Payload", Some(error.getMessage)).asJson.toString())), LogText.decodeError(error))
+    }
   }
 
   private val prepareMessageFlow: Flow[EbMsMessage, EbMsMessage, NotUsed] =
@@ -73,8 +74,19 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
         ByteString(m.asJson.toString()))
     }
 
+  /**
+   * Runs `body` with the tenant (sender) and EDA ConversationId of the request in the MDC, when it decoded; the
+   * encoder writes the sender as `tenant.id` only in the shape of a tenant.
+   */
+  private def withRequest[T](request: Option[EbMsMessage])(body: => T): T =
+    LogFields.withMdc(
+      LogFields.TenantId -> request.map(_.sender),
+      LogFields.ConversationId -> request.map(_.conversationId))(body)
+
   private def commandFlow(input: String): Future[MqttMessage] = {
-    Source.single[String](input)
+    // decoded once: for the stream and for the fields of its error lines
+    val decoded = decode[EbMsMessage](input)
+    Source.single(decoded)
       .via(decodingFlow)
       .via(prepareMessageFlow)
       .via(storeMessageFlow)
@@ -92,10 +104,10 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
       .via(responseFlow)
       .recover {
         case me: MqttException =>
-          logger.error(s"Error Stream handling - ${me.getMessage} (${input})")
+          withRequest(decoded.toOption)(logger.error("Error Stream handling", me))
           me.errorMsg
         case e =>
-          logger.error(s"Recover: ${e.getMessage} (${input})")
+          withRequest(decoded.toOption)(logger.error("Recover", e))
           MqttMessage("eda/response/error", ByteString(e.getMessage))
       }.runWith(Sink.head[MqttMessage])
   }
@@ -105,7 +117,7 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
   def runCommand(source: Source[MqttMessage, Future[Done]], responseSink: Sink[MqttMessage, _]): Future[Done] = {
     val decider: Supervision.Decider = {
       case e: MqttException => {
-        logger.error(s"Supervision Decider - Resume $e")
+        logger.error("Supervision Decider - Resume", e)
         Supervision.Resume
       }
       case _: RuntimeException => Supervision.Resume
@@ -121,8 +133,8 @@ class MqttRequestStream(tenantService: ActorRef[EdaCommand],
     val firstSubscription = Promise[Done]()
     RestartSource.onFailuresWithBackoff(restartSettings) { () =>
       source.mapMaterializedValue { subscribed =>
-        subscribed.failed.foreach(e => logger.warn(s"EDA command listener: subscription failed, restarting with backoff - ${e.getMessage}"))
-        firstSubscription.tryCompleteWith(subscribed)
+        subscribed.failed.foreach(e => logger.warn("EDA command listener: subscription failed, restarting with backoff", e))
+        firstSubscription.completeWith(subscribed) // same as the deprecated tryCompleteWith: a later restart leaves the first result
         NotUsed
       }
     }.throttle(5, 1.second)

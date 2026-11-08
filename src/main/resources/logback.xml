@@ -1,49 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- The one logging setup of eda-xp (logging concept W-261008-ca2): every line goes through LogEncoder to stdout,
+     one JSON object per line (LOG_FORMAT=json, the default) or a plain line (LOG_FORMAT=text). LOG_LEVEL sets the
+     root level, SLICK_LOG_LEVEL the slick loggers; an empty variable is the same as an unset one. LogStartup ends the
+     start on an unknown value before logback reads this file (at.energydash.logging.LogSettings). -->
 <configuration>
+    <define name="ROOT_LEVEL" class="at.energydash.logging.LogLevelDefiner">
+        <env>LOG_LEVEL</env>
+    </define>
+    <define name="SLICK_LEVEL" class="at.energydash.logging.LogLevelDefiner">
+        <env>SLICK_LOG_LEVEL</env>
+    </define>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <target>System.out</target>
-        <encoder>
-<!--
-            <pattern>%date{ISO8601} %-5level [%thread] %logger{0} &ndash;&gt; %class{0} - %msg tenant=%X{tenant:-}%n</pattern>
--->
-            <pattern>%date{ISO8601} %-5level [%thread] %logger{0} --> %class{0} - %msg%replace( tenant=%X{tenant}){' tenant=$',''}%n</pattern>
+        <encoder class="at.energydash.logging.LogEncoder">
+            <format>${LOG_FORMAT:-json}</format>
+            <serviceVersion>${SERVICE_VERSION:-dev}</serviceVersion>
+            <deploymentEnvironment>${DEPLOYMENT_ENVIRONMENT:-}</deploymentEnvironment>
         </encoder>
     </appender>
 
-<!--    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
-<!--        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">-->
-<!--            <fileNamePattern>/var/tmp/log/epmsmail/application-%d{yyyy-MM-dd}.%i.log</fileNamePattern>-->
-<!--            <timeBasedFileNamingAndTriggeringPolicy-->
-<!--                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">-->
-<!--                <maxFileSize>1GB</maxFileSize>-->
-<!--            </timeBasedFileNamingAndTriggeringPolicy>-->
-<!--        </rollingPolicy>-->
+    <logger name="slick" level="${SLICK_LEVEL}"/>
+    <logger name="at.energydash.start" level="info"/>
 
-<!--        <append>true</append>-->
-
-<!--        <encoder>-->
-<!--            <pattern>%date{yyyy-MM-dd'T'HH:mm:ss.SSS+03:00, Africa/Lagos} %-5level[%thread] %logger{1} - %msg%n-->
-<!--            </pattern>-->
-<!--        </encoder>-->
-
-<!--    </appender>-->
-
-    <logger name="akka" level="ERROR"/>
-    <logger name="akka.http" level="OFF" />
-    <logger name="slick.pgsql.local" level="INFO"/>
-    <logger name="scala.slick" level="INFO"/>
-    <logger name="slick.jdbc.DriverDataSource" level="INFO"/>
-    <logger name="slick.compiler" level="INFO"/>
-    <logger name="at.energydash" level="INFO"/>
-
-    <root level="INFO">
-<!--        <appender-ref ref="FILE"/>-->
-        <appender-ref ref="CONSOLE"/>
-    </root>
-
-
-    <root level="${SLICK_LOG_LEVEL:-INFO}">
+    <root level="${ROOT_LEVEL}">
         <appender-ref ref="CONSOLE"/>
     </root>
 
