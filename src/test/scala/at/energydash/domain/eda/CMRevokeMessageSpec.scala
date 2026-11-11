@@ -151,6 +151,19 @@ class CMRevokeMessageSpec extends AnyWordSpec with Matchers with EitherValues wi
       }
     }
 
+    "warn once about a dropped reason with the message id only, never the reason text" in {
+      val reason = "Geheimer Grund " + "x" * 40
+      val (node, events) = at.energydash.testsupport.LogCapture(at.energydash.domain.xml.RevokeReason.getClass.getName) {
+        revoke("01.30", Some(reason))
+      }
+      (node \ "ProcessDirectory" \ "Reason") shouldBe empty
+      val warnings = events.filter(_.getLevel == ch.qos.logback.classic.Level.WARN)
+      warnings should have size 1
+      val text = at.energydash.testsupport.LogCapture.messages(warnings).head
+      text should include("CC100063202406201615421120000059024")
+      text should not include "Geheimer"
+    }
+
     "serialise the reason as UTF-8 bytes that are valid against CMRevoke 01p10" in {
       val bytes = request("01.30", Some("Auszug – Mitglied äöü")).toByte.get.utf8String
       bytes should include("ReasonKey>0</")
