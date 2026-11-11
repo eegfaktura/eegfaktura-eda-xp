@@ -19,7 +19,7 @@ xmlns:cmrevoke="http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p1
     <cmrevoke:ConsentId>AT003000209901010000000000000401</cmrevoke:ConsentId>
     <cmrevoke:MeteringPoint>AT0030000000000000000000000401001</cmrevoke:MeteringPoint>
     <cmrevoke:ConsentEnd>2099-12-31</cmrevoke:ConsentEnd>
-    <cmrevoke:ReasonKey>1</cmrevoke:ReasonKey>
+    <cmrevoke:ReasonKey>0</cmrevoke:ReasonKey>
     <cmrevoke:Reason>Austritt</cmrevoke:Reason>
   </cmrevoke:ProcessDirectory>
 </cmrevoke:CMRevoke>

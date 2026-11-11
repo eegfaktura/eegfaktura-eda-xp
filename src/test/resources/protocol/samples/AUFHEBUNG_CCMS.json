@@ -15,7 +15,6 @@
   },
   "consentEnd": 4102354800000,
   "reason": "Austritt",
-  "reasonKey": 1,
   "ecId": "AT00300000000RC100401000000000001",
   "ecType": "LOCAL",
   "ecDisModel": "DYNAMIC"
