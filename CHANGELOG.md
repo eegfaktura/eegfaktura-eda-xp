@@ -8,6 +8,8 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.6.0] – 2026-11-11
+
 ### Changed
 - **CI: no image build for a commit that only changes `CHANGELOG.md`** (platform#239): pushes and pull requests whose
   only change is the CHANGELOG, such as the release PR, skip the image build and the checks (PR checks, security
