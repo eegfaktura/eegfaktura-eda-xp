@@ -2,7 +2,7 @@ package at.energydash.domain.xml
 
 import at.energydash.config.Config
 import at.energydash.domain.EbMsMessage
-import at.energydash.domain.eda.MessageHelper.{buildCalendarDate, getProcessDate, getNow}
+import at.energydash.domain.eda.MessageHelper.{buildCalendarDate, getNow}
 import at.energydash.domain.enums.MeterDirectionType
 import cmrequest._
 import commontypes.v01p20._
@@ -37,7 +37,7 @@ object CMRequestV0120Document {
     ProcessDirectory = v01p20.ProcessDirectory(
       MessageId = message.messageId.get,
       ConversationId = message.conversationId,
-      ProcessDate = Helper.toCalendar(getProcessDate),
+      ProcessDate = Helper.toCalendar(getNow().toString), // sending day (Vienna), EC_REQ_ONL/EC_REQ_OFF: "immer mit dem Anfragedatum"
       MeteringPoint = message.meter.map(x => x.meteringPoint),
       CMRequestId = message.requestId.get,
       ConsentId = message.meter.flatMap(m=>m.consentId),

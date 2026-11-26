@@ -8,6 +8,13 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+### Fixed
+- **Registration requests carry the sending day as `ProcessDate`** (platform#273, tracking eda-xp 261126-mm1 —
+  behaviour towards the grid operator changes): `ANFORDERUNG_ECON` and `ANFORDERUNG_ECOF` (CMRequest 01p20, 01p21,
+  01p30) sent tomorrow. EC_REQ_ONL 2.29 and EC_REQ_OFF 2.19 require "immer das Anfragedatum (Erstellung der
+  Marktnachricht durch den Sender)", and the rejection knows code 82 "Prozessdatum falsch". `DateFrom` is
+  unchanged. The other messages that use `getProcessDate` (CPRequest, ECMPList, GCRequest) are unchanged.
+
 ## [1.6.0] – 2026-11-11
 
 ### Changed

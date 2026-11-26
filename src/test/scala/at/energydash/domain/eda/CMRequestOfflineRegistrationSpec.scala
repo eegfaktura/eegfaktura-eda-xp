@@ -1,7 +1,7 @@
 package at.energydash.domain.eda
 
 import at.energydash.domain.{EbMsMessage, Meter, XmlParseHandler}
-import at.energydash.domain.eda.MessageHelper.{getNow, getProcessDate}
+import at.energydash.domain.eda.MessageHelper.getNow
 import at.energydash.domain.enums.{EbMsMessageType, MeterDirectionType}
 import org.scalatest.{EitherValues, TryValues}
 import org.scalatest.matchers.should.Matchers
@@ -30,7 +30,7 @@ class CMRequestOfflineRegistrationSpec extends AnyWordSpecLike with Matchers wit
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
-      (node \ "ProcessDirectory" \ "ProcessDate").text should (equal(getNow().toString) or equal(getProcessDate)) // tomorrow; today if the run crossed midnight
+      (node \ "ProcessDirectory" \ "ProcessDate").text should (equal(getNow().toString) or equal(getNow(Some(-1L)).toString)) // sending day; the day before if the run crossed midnight
 
     }
 
@@ -49,7 +49,7 @@ class CMRequestOfflineRegistrationSpec extends AnyWordSpecLike with Matchers wit
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
-      (node \ "ProcessDirectory" \ "ProcessDate").text should (equal(getNow().toString) or equal(getProcessDate)) // tomorrow; today if the run crossed midnight
+      (node \ "ProcessDirectory" \ "ProcessDate").text should (equal(getNow().toString) or equal(getNow(Some(-1L)).toString)) // sending day; the day before if the run crossed midnight
     }
 
     "build version 02.30 from eda message" in {
