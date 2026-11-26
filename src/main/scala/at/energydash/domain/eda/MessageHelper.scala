@@ -119,6 +119,7 @@ object MessageHelper {
     date.toInstant.atZone(ZoneId.of("Europe/Vienna")).toLocalDate.toString
   }
 
+  // Tomorrow (Vienna). Not for registration requests (CMRequest): EC_REQ_ONL/EC_REQ_OFF want the sending day (platform#273).
   def getProcessDate: String = {
     getNow(Some(1L)).toString
   }

@@ -1,6 +1,6 @@
 package at.energydash.domain.eda
 
-import at.energydash.domain.eda.MessageHelper.{getNow, getProcessDate}
+import at.energydash.domain.eda.MessageHelper.getNow
 import at.energydash.domain.enums.{EbMsMessageType, MeterDirectionType}
 import at.energydash.domain.{EbMsMessage, Meter, XmlParseHandler}
 import io.circe.generic.auto._
@@ -30,7 +30,7 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers with
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
-      (node \ "ProcessDirectory" \ "ProcessDate").text should (equal(getNow().toString) or equal(getProcessDate)) // tomorrow; today if the run crossed midnight
+      (node \ "ProcessDirectory" \ "ProcessDate").text should (equal(getNow().toString) or equal(getNow(Some(-1L)).toString)) // sending day; the day before if the run crossed midnight
     }
 
     "build 02.10 XML File" in {
@@ -48,7 +48,7 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers with
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"
       (node \ "ProcessDirectory" \ "CMRequest" \ "ECID").text shouldBe "AT00300000000RC100181000000956509"
       (node \ "ProcessDirectory" \ "CMRequest" \ "EnergyDirection").text shouldBe MeterDirectionType.CONSUMPTION.toString
-      (node \ "ProcessDirectory" \ "ProcessDate").text should (equal(getNow().toString) or equal(getProcessDate)) // tomorrow; today if the run crossed midnight
+      (node \ "ProcessDirectory" \ "ProcessDate").text should (equal(getNow().toString) or equal(getNow(Some(-1L)).toString)) // sending day; the day before if the run crossed midnight
     }
 
     "build from JsonFile" in {
@@ -180,6 +180,22 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers with
       meter = Some(Meter("AT0030000000000000000000000655856", Some(MeterDirectionType.CONSUMPTION))), ecId = Some("AT00300000000RC100130000000952832"))
 
     CMRequestRegistrationOnline(msg).getVersion().isFailure shouldBe true
+  }
+
+  "ECON 02.40 — ProcessDate is the sending day, DateFrom the requested start (platform#273)" in {
+    // EC_REQ_ONL 2.29: ProcessDate "immer mit dem Anfragedatum" — no relation to DateFrom
+    val msg = EbMsMessage(
+      conversationId = "AT003000202310051506076450000003761",
+      requestId = Some("5JWLV5Z3"),
+      messageId = Some("RC100130202310051506080740000003762"),
+      sender = "RC100130", receiver = "AT003000", messageCode = EbMsMessageType.ONLINE_REG_INIT, messageCodeVersion = Some("02.40"),
+      meter = Some(Meter("AT0030000000000000000000000655856", Some(MeterDirectionType.CONSUMPTION),
+        from = Some(new java.util.Date(1799794800000L)))), // 2027-01-13 00:00 Europe/Vienna
+      ecId = Some("AT00300000000RC100130000000952832"))
+
+    val node = CMRequestRegistrationOnline(msg).getVersion().get.toXML
+    (node \ "ProcessDirectory" \ "ProcessDate").text should (equal(getNow().toString) or equal(getNow(Some(-1L)).toString)) // sending day; the day before if the run crossed midnight
+    (node \\ "DateFrom").text shouldBe "2027-01-13"
   }
 
   "ECON 02.40 — offenes Ende DateTo ist 2099-12-31" in {
