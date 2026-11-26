@@ -16,7 +16,7 @@ xmlns:cmrequest="http://www.ebutilities.at/schemata/customerconsent/cmrequest/01
   <cmrequest:ProcessDirectory>
     <types:MessageId>@MESSAGE_ID@</types:MessageId>
     <types:ConversationId>@CONVERSATION_ID@</types:ConversationId>
-    <cmrequest:ProcessDate>@TOMORROW@</cmrequest:ProcessDate>
+    <cmrequest:ProcessDate>@TODAY@</cmrequest:ProcessDate>
     <cmrequest:MeteringPoint>AT0030000000000000000000000401001</cmrequest:MeteringPoint>
     <cmrequest:CMRequestId>@REQUEST_ID@</cmrequest:CMRequestId>
     <cmrequest:ConsentId>AT003000209901010000000000000401</cmrequest:ConsentId>
