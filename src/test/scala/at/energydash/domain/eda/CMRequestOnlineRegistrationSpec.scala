@@ -198,7 +198,7 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers with
     (node \\ "DateFrom").text shouldBe "2027-01-13"
   }
 
-  "ECON 02.40 — offenes Ende DateTo ist 2099-12-31" in {
+  "ECON 02.40 — no DateTo (EC_REQ_ONL 3: Bis-Datum darf nicht befüllt werden, platform#275)" in {
     val msg = EbMsMessage(
       conversationId = "AT003000202310051506076450000003761",
       requestId = Some("5JWLV5Z3"),
@@ -207,6 +207,7 @@ class CMRequestOnlineRegistrationSpec extends AnyWordSpecLike with Matchers with
       meter = Some(Meter("AT0030000000000000000000000655856", Some(MeterDirectionType.CONSUMPTION))), ecId = Some("AT00300000000RC100130000000952832"))
 
     val node = CMRequestRegistrationOnline(msg).getVersion().get.toXML
-    (node \\ "DateTo").text shouldBe "2099-12-31"
+    (node \\ "DateTo") shouldBe empty
+    (node \\ "DateFrom").text should not be empty
   }
 }

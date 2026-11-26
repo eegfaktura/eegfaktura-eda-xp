@@ -9,7 +9,7 @@ import commontypes.v01p20._
 import ponton.`package`.{Cmrequestv01p30_SchemaVersionFormat, Commontypesv01p20_AddressTypeFormat, Commontypesv01p20_DocumentModeFormat, __BooleanXMLFormat}
 import scalaxb.Helper
 
-import java.util.{Date, GregorianCalendar}
+import java.util.Date
 
 class CMRequestV0130Document(doc: v01p30.CMRequest) {
   def toDoc: v01p30.CMRequest = doc
@@ -46,7 +46,7 @@ object CMRequestV0130Document {
         DateFrom = Helper.toCalendar(
           message.meter.flatMap(m => m.from.map (f => buildCalendarDate(f)))
             .getOrElse(getNow(Some(1)).toString)),
-        DateTo = Some(Helper.toCalendar(buildCalendarDate(new GregorianCalendar(2099, java.util.Calendar.DECEMBER, 31).getTime))),
+        DateTo = None, // EC_REQ_ONL/EC_REQ_OFF 3: "Bis-Datum darf … nicht befüllt werden" (platform#275)
         ECPartFact=message.meter.map { m => m.partFact.getOrElse(100)},
         MeteringIntervall = Some(v01p30.QH),
         TransmissionCycle = None, //Some(v01p30.D),
