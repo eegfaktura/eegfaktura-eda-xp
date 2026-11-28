@@ -8,6 +8,8 @@ this changelog highlights the changes relevant for overview and operations.
 
 ## [Unreleased]
 
+## [1.6.1] – 2026-11-28
+
 ### Fixed
 - **Registration requests carry the sending day as `ProcessDate`** (platform#273, tracking eda-xp 261126-mm1 —
   behaviour towards the grid operator changes): `ANFORDERUNG_ECON` and `ANFORDERUNG_ECOF` (CMRequest 01p20, 01p21,
