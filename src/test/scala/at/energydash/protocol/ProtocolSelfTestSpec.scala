@@ -183,7 +183,7 @@ class ProtocolSelfTestSpec extends ScalaTestWithActorTestKit with AnyWordSpecLik
       Golden.compare("g", Some("a\nb"), Seq("a\nc")).get should include ("line 2")
       Golden.compare("g", None, Seq("a")).get should include ("missing")
     }
-    "see the DateTo difference of 1.0.8 through the normalisation" in {
+    "see a changed DateTo through the normalisation" in {
       // a sample that still carries DateTo 2099-12-31 (registrations have none since platform#275)
       val doc = ProtocolChecks.run(row("ANFORDERUNG_CPF", "01.10")).sent.get.document
       val normalised = Normalise.document(doc, Normalise.dateTokens())
